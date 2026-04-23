@@ -1,5 +1,10 @@
 import os
+
+import numpy as np
 import pandas as pd
+from sklearn.datasets import load_svmlight_file
+from sklearn.preprocessing import LabelEncoder
+
 
 class DatasetLoader:
     """
@@ -49,3 +54,42 @@ class DatasetLoader:
             
         df_splits = pd.read_pickle(pkl_path)
         return df_splits
+
+    def load_tfidf_fold(self, fold: int):
+        """Load the prebuilt per-fold TF-IDF matrices and labels.
+
+        Mirrors the upstream bio-is loader (``utils/general.py::get_data``):
+        reads ``tfidf/train{fold}.gz`` and ``tfidf/test{fold}.gz`` (svmlight
+        format), aligns feature dimensionality between train and test, and
+        encodes labels to a 0..n-1 contiguous integer range using a
+        ``LabelEncoder`` fitted on the training labels.
+
+        Returns:
+            X_train (csr_matrix), y_train (ndarray), X_test (csr_matrix), y_test (ndarray)
+        """
+        tfidf_dir = os.path.join(self.dataset_path, "tfidf")
+        train_path = os.path.join(tfidf_dir, f"train{fold}.gz")
+        test_path = os.path.join(tfidf_dir, f"test{fold}.gz")
+
+        if not os.path.exists(train_path) or not os.path.exists(test_path):
+            raise FileNotFoundError(
+                f"Missing prebuilt TF-IDF files for fold {fold} in {tfidf_dir}"
+            )
+
+        X_train, y_train = load_svmlight_file(train_path, dtype=np.float64)
+        X_test, y_test = load_svmlight_file(test_path, dtype=np.float64)
+
+        if X_train.shape[1] != X_test.shape[1]:
+            n_features = max(X_train.shape[1], X_test.shape[1])
+            X_train, y_train = load_svmlight_file(
+                train_path, dtype=np.float64, n_features=n_features
+            )
+            X_test, y_test = load_svmlight_file(
+                test_path, dtype=np.float64, n_features=n_features
+            )
+
+        le = LabelEncoder().fit(y_train)
+        y_train = le.transform(y_train)
+        y_test = le.transform(y_test)
+
+        return X_train, y_train, X_test, y_test

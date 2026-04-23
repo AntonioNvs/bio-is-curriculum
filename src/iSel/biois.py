@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.utils.multiclass import unique_labels
 from sklearn.model_selection import StratifiedKFold
 
-from src.main.python.iSel.base import InstanceSelectionMixin
+from src.iSel.base import InstanceSelectionMixin
 
 class BIOIS(InstanceSelectionMixin):
     """ Bi-objective instance selection framework (biO-IS)
@@ -68,7 +68,7 @@ class BIOIS(InstanceSelectionMixin):
 
     >>> from collections import Counter
     >>> from sklearn.datasets import make_classification
-    >>> from src.main.python.iSel import biois
+    >>> from src.iSel import biois
     >>> X, y = make_classification(n_classes=2, class_sep=2,
     ... weights=[0.1, 0.9], n_informative=3, n_redundant=1, flip_y=0,
     ... n_features=20, n_clusters_per_class=1, n_samples=1000, random_state=10)
@@ -81,15 +81,20 @@ class BIOIS(InstanceSelectionMixin):
     Resampled dataset shape Counter({1: 36, 0: 14})
     """
 
-    def __init__(self, beta = 0.0,
-                       theta = 0.0,
-                       maxreduction = 1.0):
-        
+    def __init__(self, beta=0.0,
+                       theta=0.0,
+                       maxreduction=1.0,
+                       random_state=None):
+
         self.beta = beta
-        self.theta = theta 
+        self.theta = theta
         self.maxreduction = maxreduction
-        
+        self.random_state = random_state
+
         self.sample_indices_ = []
+
+    def _get_rng(self):
+        return np.random.default_rng(self.random_state)
 
         
     def fitting_alpha(self, X, y):
@@ -114,7 +119,7 @@ class BIOIS(InstanceSelectionMixin):
             X_train, y_train = X[train_index], y[train_index]
             X_val, y_val = X[val_index], y[val_index]
 
-            classifier = LogisticRegression(C=1.0,solver='warn',multi_class='warn',n_jobs=-1)
+            classifier = LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000)
             print(classifier)
             classifier.fit(X_train, y_train)
 
@@ -172,10 +177,11 @@ class BIOIS(InstanceSelectionMixin):
         nwrong = sum(wrongpredictedIdx)
         ntoremove = int(self.theta * nwrong)
 
-        idx_choice_to_remove = np.random.choice(a=list(range(X.shape[0])),
-                                                size=ntoremove,
-                                                replace=False,
-                                                p=proba_toremove)
+        rng = self._get_rng()
+        idx_choice_to_remove = rng.choice(a=np.arange(X.shape[0]),
+                                          size=ntoremove,
+                                          replace=False,
+                                          p=proba_toremove)
 
         return idx_choice_to_remove
 
@@ -186,12 +192,13 @@ class BIOIS(InstanceSelectionMixin):
         # Choosing the instances to be removed based on either alpha distibution and beta rate.
         n_training_samples = len(alpha)
         n_samples_to_remove = int(n_training_samples * beta)
-        
-        idx_choice_to_remove = np.random.choice(a=list(range(n_training_samples)),
-                                                size=n_samples_to_remove,
-                                                replace=False,
-                                                p=alpha)
-        
+
+        rng = self._get_rng()
+        idx_choice_to_remove = rng.choice(a=np.arange(n_training_samples),
+                                          size=n_samples_to_remove,
+                                          replace=False,
+                                          p=alpha)
+
         return idx_choice_to_remove
    
     def fix_proba_columns_if_necessary(self, probas, columns_diff,max_y_train):

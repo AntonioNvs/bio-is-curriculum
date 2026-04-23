@@ -1,45 +1,53 @@
 import argparse
-import sys
 import os
+import sys
+from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from data.loader import DatasetLoader
-from data.preprocessor import TextPreprocessor
+from iSel.biois import BIOIS
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Load and preprocess text datasets.")
-    parser.add_argument("dataset", type=str, help="Name of the dataset (e.g., ohsumed, mpqa, sst1)")
+    parser = argparse.ArgumentParser(
+        description="Load a prebuilt per-fold TF-IDF dataset and run BIOIS instance selection."
+    )
+    parser.add_argument("dataset", type=str, help="Name of the dataset (e.g., webkb, ohsumed, mpqa)")
     parser.add_argument("--data_dir", type=str, default="datasets", help="Directory where datasets are stored")
-    parser.add_argument("--n_splits", type=int, default=10, help="Number of splits/folds to load")
-    parser.add_argument("--max_features", type=int, default=5000, help="Max features for TF-IDF")
-    
+    parser.add_argument("--fold", type=int, default=0, help="Fold index to use as training set for BIOIS")
+    parser.add_argument("--beta", type=float, default=0.0, help="BIOIS redundancy reduction rate (0 keeps all)")
+    parser.add_argument("--theta", type=float, default=0.0, help="BIOIS noise reduction rate (0 keeps all)")
+    parser.add_argument("--random-state", dest="random_state", type=int, default=42, help="Random seed for BIOIS")
+
     args = parser.parse_args()
-    
-    print(f"==========================================")
-    print(f"Loading dataset: {args.dataset} from {args.data_dir}...")
+
+    print("==========================================")
+    print(f"Loading prebuilt TF-IDF for dataset: {args.dataset} (fold {args.fold}) from {args.data_dir}...")
     try:
         loader = DatasetLoader(data_dir=args.data_dir, dataset_name=args.dataset)
-        texts, scores = loader.load_texts_and_scores()
-        print(f"Successfully loaded {len(texts)} texts and {len(scores)} scores.")
-        
-        splits = loader.load_splits(n_splits=args.n_splits)
-        print(f"Loaded {len(splits)} folds from split_{args.n_splits}.pkl")
+        X_train, y_train, X_test, y_test = loader.load_tfidf_fold(args.fold)
     except Exception as e:
         print(f"Error loading data: {e}")
         return
-        
-    print(f"\nPreprocessing texts...");
-    print(f"Applying TF-IDF (max_features={args.max_features})...")
-    preprocessor = TextPreprocessor(max_features=args.max_features, lowercase=True)
-    tfidf_matrix = preprocessor.fit_transform(texts)
-    
-    print(f"TF-IDF Matrix shape: {tfidf_matrix.shape}")
-    
-    # Printing the first 10 vocabulary terms for demonstration
-    sample_vocab = preprocessor.get_feature_names()[:10]
-    print(f"Sample vocabulary extracted: {sample_vocab}")
-    print(f"==========================================")
+
+    print(f"X_train shape: {X_train.shape}, X_test shape: {X_test.shape}")
+    print("Original dataset shape %s" % Counter(y_train.tolist()))
+    print("==========================================")
+
+    print(
+        f"Running BIOIS (beta={args.beta}, theta={args.theta}, "
+        f"random_state={args.random_state})..."
+    )
+    selector = BIOIS(beta=args.beta, theta=args.theta, random_state=args.random_state)
+    selector.fit(X_train, y_train)
+
+    idx = selector.sample_indices_
+    X_train_selected, y_train_selected = X_train[idx], y_train[idx]
+    print("Resampled dataset shape %s" % Counter(y_train_selected.tolist()))
+    print(f"Reduction: {selector.reduction_:.4f}")
+    print("==========================================")
+
 
 if __name__ == "__main__":
     main()
