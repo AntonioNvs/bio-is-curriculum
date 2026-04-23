@@ -1,5 +1,4 @@
-def main():
-    print("Hello from bio-is-curriculum!")
+from src.cli import main
 
 
 if __name__ == "__main__":
