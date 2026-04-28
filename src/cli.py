@@ -5,6 +5,7 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from curriculum.biois_curriculum import BIOISCurriculum
 from data.loader import DatasetLoader
 from iSel.biois import BIOIS
 
@@ -19,6 +20,27 @@ def main():
     parser.add_argument("--beta", type=float, default=0.0, help="BIOIS redundancy reduction rate (0 keeps all)")
     parser.add_argument("--theta", type=float, default=0.0, help="BIOIS noise reduction rate (0 keeps all)")
     parser.add_argument("--random-state", dest="random_state", type=int, default=42, help="Random seed for BIOIS")
+    parser.add_argument(
+        "--curriculum",
+        action="store_true",
+        help="Run BIOIS-Curriculum staged training after BIOIS",
+    )
+    parser.add_argument(
+        "--curriculum-beta",
+        dest="curriculum_beta",
+        type=float,
+        default=0.5,
+        help="Beta weight applied to redundant samples in the Hard phase (w_i = 1 - beta * r_i)",
+    )
+    parser.add_argument(
+        "--curriculum-q",
+        dest="curriculum_q",
+        type=float,
+        nargs=3,
+        default=(0.3, 0.6, 0.95),
+        metavar=("Q_LOW", "Q_MID", "Q_HIGH"),
+        help="Entropy quantile thresholds for phases A, B, C (defaults: 0.3 0.6 0.95)",
+    )
 
     args = parser.parse_args()
 
@@ -47,6 +69,26 @@ def main():
     print("Resampled dataset shape %s" % Counter(y_train_selected.tolist()))
     print(f"Reduction: {selector.reduction_:.4f}")
     print("==========================================")
+
+    if args.curriculum:
+        q_low, q_mid, q_high = args.curriculum_q
+        print(
+            f"Running BIOIS-Curriculum (beta={args.curriculum_beta}, "
+            f"q_low={q_low}, q_mid={q_mid}, q_high={q_high})..."
+        )
+        curriculum = BIOISCurriculum(
+            beta=args.curriculum_beta,
+            q_low=q_low,
+            q_mid=q_mid,
+            q_high=q_high,
+            random_state=args.random_state,
+        )
+        curriculum.fit(selector, X_train, y_train, X_test=X_test, y_test=y_test)
+
+        print("Curriculum history (per phase):")
+        for row in curriculum.history_:
+            print(f"  {row}")
+        print("==========================================")
 
 
 if __name__ == "__main__":

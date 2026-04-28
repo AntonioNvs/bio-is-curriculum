@@ -160,7 +160,6 @@ class BIOIS(InstanceSelectionMixin):
         return correctPredictedProba
     
     def identifyNoiseByLowerNNEntropy(self, X, y):
-        print("identifyNoiseByLowerNNEntropy")
         wrongpredictedIdx = y != self._pred
        
         nnentropy = [stats.entropy(_) for _ in self._probaEveryone[wrongpredictedIdx]]
