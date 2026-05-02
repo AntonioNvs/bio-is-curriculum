@@ -10,7 +10,7 @@ O modelo utilizado em cada fase e fornecido como uma abstracao
 implementacao concreta.
 """
 import time
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 from scipy import stats
@@ -19,6 +19,9 @@ from sklearn.metrics import accuracy_score, f1_score
 
 from src.curriculum.base import CurriculumBase
 from src.curriculum.models import CurriculumModel, LogisticRegressionModel
+
+if TYPE_CHECKING:
+    from src.results.run import RunRecorder
 
 
 class BIOISCurriculum(CurriculumBase):
@@ -140,12 +143,43 @@ class BIOISCurriculum(CurriculumBase):
         mask = ent >= threshold
         if mask.sum() == 0:
             return float("nan")
-        preds = model.predict(X_test[mask])
+        preds = model.predict(X_test[mask] if not isinstance(X_test, list) else [X_test[i] for i in np.where(mask)[0]])
         return f1_score(y_test[mask], preds, average="macro")
 
-    def fit(self, selector, X, y, X_test=None, y_test=None):
+    def fit(
+        self,
+        selector,
+        X,
+        y,
+        X_test=None,
+        y_test=None,
+        X_text=None,
+        X_test_text=None,
+        recorder: "Optional[RunRecorder]" = None,
+    ):
+        """Executa o curriculum faseado.
+
+        Parameters
+        ----------
+        selector : BIOIS (ja ajustado)
+        X : csr_matrix -- features TF-IDF (usadas pelo LogisticRegressionModel)
+        y : ndarray -- labels de treino
+        X_test, y_test : csr_matrix, ndarray -- conjunto de teste para metricas
+        X_text : list[str], optional -- textos de treino (usados pelo RobertaModel)
+        X_test_text : list[str], optional -- textos de teste
+        recorder : RunRecorder, optional -- grava metricas em disco
+        """
+        t0_signals = time.perf_counter()
         r, e = self._extract_signals(selector, y)
+        signal_time = time.perf_counter() - t0_signals
+
+        t0_phases = time.perf_counter()
         self.phases_ = self._build_phases(r, e)
+        phases_time = time.perf_counter() - t0_phases
+
+        if recorder is not None:
+            recorder.log_timing("cl_signal_extract", signal_time)
+            recorder.log_timing("cl_phase_build", phases_time)
 
         self.model_ = (
             self.model
@@ -153,33 +187,65 @@ class BIOISCurriculum(CurriculumBase):
             else LogisticRegressionModel(random_state=self.random_state)
         )
 
+        # Informa o nome da fase ao modelo (usado para logs por RobertaModel)
+        has_set_phase = hasattr(self.model_, "set_phase")
+
+        # Decide qual representacao usar: texto (RoBERTa) ou matriz (LR)
+        use_text = X_text is not None
+
         self.history_ = []
+        t0_cl = time.perf_counter()
+
         for phase in self.phases_:
             indices = phase["indices"]
             weights = phase["weights"]
-            X_phase = X[indices]
+
+            if has_set_phase:
+                self.model_.set_phase(phase["name"])
+
+            if use_text:
+                X_phase = [X_text[i] for i in indices]
+            else:
+                X_phase = X[indices]
             y_phase = y[indices]
 
-            t0 = time.perf_counter()
+            t0_train = time.perf_counter()
             self.model_.fit_stage(X_phase, y_phase, sample_weight=weights)
-            elapsed = time.perf_counter() - t0
+            train_time = time.perf_counter() - t0_train
 
             row = {
                 "phase": phase["name"],
                 "n_samples": int(len(indices)),
                 "n_iter": self.model_.n_iter,
-                "elapsed_s": float(elapsed),
+                "train_time_s": float(train_time),
+                "pred_time_s": float("nan"),
+                "micro_f1": float("nan"),
+                "macro_f1": float("nan"),
+                "accuracy": float("nan"),
+                "hard_slice_macro_f1": float("nan"),
             }
 
             if X_test is not None and y_test is not None:
-                preds = self.model_.predict(X_test)
+                X_eval = X_test_text if use_text else X_test
+
+                t0_pred = time.perf_counter()
+                preds = self.model_.predict(X_eval)
+                pred_time = time.perf_counter() - t0_pred
+
+                row["pred_time_s"] = float(pred_time)
                 row["micro_f1"] = float(f1_score(y_test, preds, average="micro"))
                 row["macro_f1"] = float(f1_score(y_test, preds, average="macro"))
                 row["accuracy"] = float(accuracy_score(y_test, preds))
                 row["hard_slice_macro_f1"] = float(
-                    self._hard_slice_f1(self.model_, X_test, y_test)
+                    self._hard_slice_f1(self.model_, X_eval, y_test)
                 )
 
             self.history_.append(row)
+            if recorder is not None:
+                recorder.log_phase(row)
+
+        cl_total = time.perf_counter() - t0_cl
+        if recorder is not None:
+            recorder.log_timing("cl_total", cl_total)
 
         return self

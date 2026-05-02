@@ -55,6 +55,35 @@ class DatasetLoader:
         df_splits = pd.read_pickle(pkl_path)
         return df_splits
 
+    def load_texts_fold(self, fold: int, n_splits: int = 10):
+        """Load raw texts and labels for a given fold, aligned with load_tfidf_fold.
+
+        The split .pkl stores train_idxs/test_idxs that match the rows of the
+        pre-built TF-IDF files (same upstream generation pipeline), so index i
+        from BIOIS/curriculum maps to texts_train[i] for the same instance.
+
+        Returns:
+            texts_train (list[str]), y_train (ndarray),
+            texts_test (list[str]),  y_test  (ndarray)
+        """
+        texts, scores = self.load_texts_and_scores()
+        df = self.load_splits(n_splits=n_splits)
+        row = df[df["fold_id"] == fold].iloc[0]
+        train_idx = list(row["train_idxs"])
+        test_idx = list(row["test_idxs"])
+
+        train_scores = [scores[i] for i in train_idx]
+        test_scores = [scores[i] for i in test_idx]
+
+        le = LabelEncoder().fit(train_scores)
+        y_train = le.transform(train_scores)
+        y_test = le.transform(test_scores)
+
+        texts_train = [texts[i] for i in train_idx]
+        texts_test = [texts[i] for i in test_idx]
+
+        return texts_train, y_train, texts_test, y_test
+
     def load_tfidf_fold(self, fold: int):
         """Load the prebuilt per-fold TF-IDF matrices and labels.
 
