@@ -19,9 +19,10 @@ CPUS="${CPUS:-16}"
 MEMORY="${MEMORY:-32g}"
 
 IMAGE="${IMAGE:-bio-is-curriculum:latest}"
-HOST_DIR="/workdir/antonioneves"
-CONTAINER_DIR="/workspace/antonioneves"
-WORKDIR="${CONTAINER_DIR}/bio-is-curriculum"
+# Diretório do projeto no HOST (onde estão datasets/ e results/)
+HOST_PROJECT_DIR="${HOST_PROJECT_DIR:-$(pwd)}"
+# WORKDIR dentro do container, definido no Dockerfile como /app
+CONTAINER_WORKDIR="/app"
 CPUS="${CPUS:-16}"
 MEMORY="${MEMORY:-32g}"
 
@@ -39,7 +40,7 @@ echo "============================================================"
 echo "  Image   : ${IMAGE}"
 echo "  GPU     : device=${GPU_ID}"
 echo "  Dataset : ${DATASET}  |  Fold: ${FOLD}"
-echo "  Workdir : ${WORKDIR}"
+  echo "  Host dir: ${HOST_PROJECT_DIR}"
 echo "============================================================"
 
 # ── Execução ───────────────────────────────────────────────────────────────────
@@ -52,8 +53,9 @@ for CMD in "${COMMANDS[@]}"; do
     --gpus "device=${GPU_ID}" \
     --cpus="${CPUS}" \
     --memory="${MEMORY}" \
-    -v "${HOST_DIR}:${CONTAINER_DIR}" \
-    -w "${WORKDIR}" \
+    -v "${HOST_PROJECT_DIR}/datasets:${CONTAINER_WORKDIR}/datasets" \
+    -v "${HOST_PROJECT_DIR}/results:${CONTAINER_WORKDIR}/results" \
+    -w "${CONTAINER_WORKDIR}" \
     "${IMAGE}" \
     bash -c "${CMD}"
 
