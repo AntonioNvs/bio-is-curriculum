@@ -10,6 +10,3 @@ wheels/
 .venv
 
 datasets/**
-
-# Run results
-results/
