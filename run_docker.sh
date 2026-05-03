@@ -27,10 +27,10 @@ MEMORY="${MEMORY:-32g}"
 # ── Comandos a executar dentro do container ────────────────────────────────────
 # Cada linha é um experimento independente (os 4 modos da matriz IS × CL).
 COMMANDS=(
-  "uv run python main.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode baseline --epochs 6"
-  "uv run python main.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode is --epochs 6 --beta 0.3 --theta 0.2"
-  "uv run python main.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode cl --epochs-per-phase 2"
-  "uv run python main.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode is_cl --epochs-per-phase 2 --beta 0.3 --theta 0.2"
+  "uv run python src/cli.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode baseline --epochs 6"
+  "uv run python src/cli.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode is --epochs 6 --beta 0.3 --theta 0.2"
+  "uv run python src/cli.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode cl --epochs-per-phase 2"
+  "uv run python src/cli.py ${DATASET} --data_dir datasets --fold ${FOLD} --mode is_cl --epochs-per-phase 2 --beta 0.3 --theta 0.2"
 )
 
 # ── Resumo ─────────────────────────────────────────────────────────────────────

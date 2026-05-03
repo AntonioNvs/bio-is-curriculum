@@ -31,4 +31,4 @@ COPY src/ ./src/
 # Variável para que o torch encontre a GPU corretamente
 ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT ["uv", "run", "python", "main.py"]
+ENTRYPOINT ["uv", "run", "python", "src/cli.py"]
