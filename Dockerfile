@@ -24,4 +24,4 @@ COPY src/ ./src/
 ENV PYTHONPATH="/app/src"
 ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT ["python", "main.py"]
+CMD ["bash"]
