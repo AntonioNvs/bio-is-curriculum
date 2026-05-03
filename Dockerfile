@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl git \
     && curl -Ls https://astral.sh/uv/install.sh | sh \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/.local/bin:${PATH}"
+ENV PATH="/app/.venv/bin:/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
@@ -24,4 +24,4 @@ COPY src/ ./src/
 ENV PYTHONPATH="/app/src"
 ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT ["uv", "run", "python", "main.py"]
+ENTRYPOINT ["python", "main.py"]
