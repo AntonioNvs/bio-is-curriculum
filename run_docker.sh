@@ -15,6 +15,8 @@ set -euo pipefail
 GPU_ID="${1:-7}"
 DATASET="${2:-webkb}"
 FOLD="${3:-0}"
+CPUS="${CPUS:-16}"
+MEMORY="${MEMORY:-32g}"
 
 IMAGE="my_image:latest"
 HOST_DIR="/workdir/antonioneves"
