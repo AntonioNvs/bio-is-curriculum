@@ -2,13 +2,13 @@
 # Executa os experimentos do biO-IS-Curriculum dentro de um container Docker.
 #
 # Uso:
-#   ./run_docker.sh [GPU_ID] [DATASET] [FOLD]
+#   IMAGE=<imagem> ./run_docker.sh [GPU_ID] [DATASET] [FOLD]
 #
 # Exemplos:
-#   ./run_docker.sh            # GPU 7, dataset webkb, fold 0
-#   ./run_docker.sh 0          # GPU 0
-#   ./run_docker.sh 3 reuters  # GPU 3, dataset reuters
-#   ./run_docker.sh 3 reuters 2  # GPU 3, dataset reuters, fold 2
+#   IMAGE=meu_registry/minha_imagem:latest ./run_docker.sh
+#   IMAGE=meu_registry/minha_imagem:latest ./run_docker.sh 0
+#   IMAGE=meu_registry/minha_imagem:latest ./run_docker.sh 3 reuters
+#   IMAGE=meu_registry/minha_imagem:latest ./run_docker.sh 3 reuters 2
 set -euo pipefail
 
 # ── Configurações ──────────────────────────────────────────────────────────────
@@ -18,10 +18,12 @@ FOLD="${3:-0}"
 CPUS="${CPUS:-16}"
 MEMORY="${MEMORY:-32g}"
 
-IMAGE="my_image:latest"
+IMAGE="${IMAGE:-bio-is-curriculum:latest}"
 HOST_DIR="/workdir/antonioneves"
 CONTAINER_DIR="/workspace/antonioneves"
 WORKDIR="${CONTAINER_DIR}/bio-is-curriculum"
+CPUS="${CPUS:-16}"
+MEMORY="${MEMORY:-32g}"
 
 # ── Comandos a executar dentro do container ────────────────────────────────────
 # Cada linha é um experimento independente (os 4 modos da matriz IS × CL).
