@@ -246,6 +246,6 @@ class BIOISCurriculum(CurriculumBase):
 
         cl_total = time.perf_counter() - t0_cl
         if recorder is not None:
-            recorder.log_timing("cl_total", cl_total)
+            recorder.log_timing("model_train_time_s", cl_total)
 
         return self

@@ -9,6 +9,12 @@ Suporta 4 modos (--mode) que formam a matriz IS x CL:
 
 Todos os resultados sao gravados em results/<run_id>/ como CSVs/JSON
 de facil leitura e comparacao entre modos.
+
+Timings uniformes gravados em timings.csv para todos os modos:
+  data_load_time_s    -- leitura de disco + encoding de labels
+  preprocess_time_s   -- fit do BIOIS (0 para baseline)
+  model_train_time_s  -- treino total do modelo (soma das fases)
+  total_run_time_s    -- wall-clock fim a fim
 """
 import argparse
 import os
@@ -56,7 +62,10 @@ def _build_model(args, recorder: RunRecorder):
         return LogisticRegressionModel(random_state=args.random_state)
 
 
-def _eval_single_stage(model, X_eval, y_test, recorder: RunRecorder, phase: str = "full"):
+def _eval_single_stage(
+    model, X_eval, y_test, recorder: RunRecorder, phase: str = "full",
+    train_time: float = float("nan"),
+):
     """Avalia o modelo apos treino de fase unica e grava phase_metrics."""
     t0 = time.perf_counter()
     preds = model.predict(X_eval)
@@ -76,7 +85,7 @@ def _eval_single_stage(model, X_eval, y_test, recorder: RunRecorder, phase: str 
         "phase": phase,
         "n_samples": int(len(y_test)),
         "n_iter": model.n_iter,
-        "train_time_s": float("nan"),   # gravado em timings.csv separado
+        "train_time_s": float(train_time),
         "pred_time_s": float(pred_time),
         "micro_f1": float(f1_score(y_test, preds, average="micro")),
         "macro_f1": float(f1_score(y_test, preds, average="macro")),
@@ -85,12 +94,6 @@ def _eval_single_stage(model, X_eval, y_test, recorder: RunRecorder, phase: str 
     }
     recorder.log_phase(row)
     return preds, proba, row
-
-
-def _run_is(selector, beta, theta):
-    """Roda BIOIS configurado para reducao completa (beta e theta do usuario)."""
-    selector.beta = beta
-    selector.theta = theta
 
 
 def _slice_selector_signals(selector, idx):
@@ -153,23 +156,33 @@ def main():
 
     # Resultados
     parser.add_argument("--results-dir", dest="results_dir", type=str, default="results")
+    parser.add_argument(
+        "--experiment-id", dest="experiment_id", type=str, default=None,
+        help="ID do experimento grupo (ex: webkb-10cv-20260504-ab12cd). "
+             "Se fornecido, salva em results/<experiment_id>/<mode>_fold<k>/",
+    )
     parser.add_argument("--run-id", dest="run_id", type=str, default=None,
-                        help="ID da execucao (default: <mode>-<timestamp>-<hex6>)")
+                        help="ID da execucao individual (ignorado se --experiment-id for fornecido)")
 
     args = parser.parse_args()
 
     # ------------------------------------------------------------------ setup
-    run_id = args.run_id or f"{args.mode}-"  # RunRecorder vai completar com timestamp
-    recorder = RunRecorder(base_dir=args.results_dir, run_id=args.run_id)
-    if args.run_id is None:
-        # Renomeia com prefixo do modo
-        import shutil
-        old_dir = recorder.run_dir
-        new_id = f"{args.mode}-{recorder.run_id}"
-        new_dir = os.path.join(args.results_dir, new_id)
-        os.rename(old_dir, new_dir)
-        recorder.run_dir = new_dir
-        recorder.run_id = new_id
+    if args.experiment_id is not None:
+        # Estrutura agrupada: results/<experiment_id>/<mode>_fold<k>/
+        base_dir = os.path.join(args.results_dir, args.experiment_id)
+        run_id = f"{args.mode}_fold{args.fold}"
+        recorder = RunRecorder(base_dir=base_dir, run_id=run_id)
+    else:
+        # Estrutura legada: results/<mode>-<timestamp>-<hex6>/
+        recorder = RunRecorder(base_dir=args.results_dir, run_id=args.run_id)
+        if args.run_id is None:
+            import shutil
+            old_dir = recorder.run_dir
+            new_id = f"{args.mode}-{recorder.run_id}"
+            new_dir = os.path.join(args.results_dir, new_id)
+            os.rename(old_dir, new_dir)
+            recorder.run_dir = new_dir
+            recorder.run_id = new_id
 
     print("=" * 50)
     print(f"run_id : {recorder.run_id}")
@@ -185,6 +198,7 @@ def main():
     loader = DatasetLoader(data_dir=args.data_dir, dataset_name=args.dataset)
 
     print("Carregando TF-IDF...")
+    t0_load = time.perf_counter()
     X_train, y_train, X_test, y_test = loader.load_tfidf_fold(args.fold)
     print(f"  X_train: {X_train.shape}  X_test: {X_test.shape}")
     print(f"  Classes treino: {Counter(y_train.tolist())}")
@@ -195,6 +209,9 @@ def main():
         texts_train, _, texts_test, _ = loader.load_texts_fold(args.fold, n_splits=args.n_splits)
         print(f"  {len(texts_train)} textos de treino, {len(texts_test)} de teste")
 
+    data_load_time = time.perf_counter() - t0_load
+    recorder.log_timing("data_load_time_s", data_load_time)
+    print(f"  Carregamento: {data_load_time:.1f}s")
     print("=" * 50)
 
     # ------------------------------------------------------------------ BIOIS
@@ -203,6 +220,7 @@ def main():
     run_biois = needs_is or needs_signals
 
     selector = None
+    preprocess_time = 0.0
     if run_biois:
         biois_beta = args.beta if needs_is else 0.0
         biois_theta = args.theta if needs_is else 0.0
@@ -210,10 +228,12 @@ def main():
         selector = BIOIS(beta=biois_beta, theta=biois_theta, random_state=args.random_state)
         t0_is = time.perf_counter()
         selector.fit(X_train, y_train)
-        is_time = time.perf_counter() - t0_is
-        recorder.log_timing("is_fit", is_time)
+        preprocess_time = time.perf_counter() - t0_is
+        recorder.log_timing("is_fit_time_s", preprocess_time)
         print(f"  Reducao: {selector.reduction_:.4f}  ({len(selector.sample_indices_)} instancias)")
-        print(f"  Tempo IS: {is_time:.1f}s")
+        print(f"  Tempo IS: {preprocess_time:.1f}s")
+
+    recorder.log_timing("preprocess_time_s", preprocess_time)
 
     # ------------------------------------------------------------------ dispatcher
     model = _build_model(args, recorder)
@@ -229,9 +249,11 @@ def main():
         t0_train = time.perf_counter()
         model.fit_stage(X_train_input, y_train)
         train_time = time.perf_counter() - t0_train
-        recorder.log_timing("train_total", train_time)
+        recorder.log_timing("model_train_time_s", train_time)
         print(f"  Treino concluido em {train_time:.1f}s")
-        preds, proba, metrics = _eval_single_stage(model, X_test_input, y_test, recorder)
+        preds, proba, metrics = _eval_single_stage(
+            model, X_test_input, y_test, recorder, train_time=train_time,
+        )
 
     elif args.mode == "is":
         idx = selector.sample_indices_
@@ -247,9 +269,11 @@ def main():
         t0_train = time.perf_counter()
         model.fit_stage(X_train_input, y_sub)
         train_time = time.perf_counter() - t0_train
-        recorder.log_timing("train_total", train_time)
+        recorder.log_timing("model_train_time_s", train_time)
         print(f"  Treino concluido em {train_time:.1f}s")
-        preds, proba, metrics = _eval_single_stage(model, X_test_input, y_test, recorder)
+        preds, proba, metrics = _eval_single_stage(
+            model, X_test_input, y_test, recorder, train_time=train_time,
+        )
 
     else:
         # cl ou is_cl
@@ -305,7 +329,7 @@ def main():
 
     # ------------------------------------------------------------------ finalize
     total_time = time.perf_counter() - t0_total
-    recorder.log_timing("total_run", total_time)
+    recorder.log_timing("total_run_time_s", total_time)
     recorder.save_predictions(y_test, preds, proba)
 
     print("=" * 50)

@@ -17,7 +17,7 @@ COPY pyproject.toml README.md ./
 RUN uv sync --no-install-project
 
 # Copia o código
-COPY main.py ./
+COPY main.py run_experiment.py ./
 COPY src/ ./src/
 
 # Garante que os módulos em src/ sejam encontrados diretamente
