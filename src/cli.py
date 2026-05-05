@@ -199,15 +199,22 @@ def main():
 
     print("Carregando TF-IDF...")
     t0_load = time.perf_counter()
-    X_train, y_train, X_test, y_test = loader.load_tfidf_fold(args.fold)
-    print(f"  X_train: {X_train.shape}  X_test: {X_test.shape}")
+    X_train, y_train, X_val, y_val, X_test, y_test = loader.load_tfidf_fold(args.fold, with_val=True)
+    print(f"  X_train: {X_train.shape}  X_val: {X_val.shape}  X_test: {X_test.shape}")
     print(f"  Classes treino: {Counter(y_train.tolist())}")
 
-    texts_train = texts_test = None
+    texts_train = texts_test = texts_val = None
+    y_val_texts = None
     if args.model == "roberta":
         print("Carregando textos crus...")
-        texts_train, _, texts_test, _ = loader.load_texts_fold(args.fold, n_splits=args.n_splits)
-        print(f"  {len(texts_train)} textos de treino, {len(texts_test)} de teste")
+        texts_train, _, texts_val, y_val_texts, texts_test, _ = loader.load_texts_fold(
+            args.fold, n_splits=args.n_splits, with_val=True
+        )
+        print(
+            f"  {len(texts_train)} textos de treino, "
+            f"{len(texts_val)} de validacao, "
+            f"{len(texts_test)} de teste"
+        )
 
     data_load_time = time.perf_counter() - t0_load
     recorder.log_timing("data_load_time_s", data_load_time)
