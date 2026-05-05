@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Executa os experimentos multi-fold do biO-IS-Curriculum dentro de um container Docker.
+# Roda todos os modos (baseline, is, cl, is_cl) em todos os folds do split file,
+# gerando resultados completos com IC 95% em results/<experiment_id>/summary.csv.
 #
 # Uso:
-#   IMAGE=<imagem> ./run_docker.sh [GPU_ID] [DATASET] [N_SPLITS]
+#   IMAGE=<imagem> ./scripts/run_docker_full_cv.sh [GPU_ID] [DATASET] [N_SPLITS]
 #
 # Exemplos:
-#   IMAGE=bio-is-curriculum:latest ./run_docker.sh
-#   IMAGE=bio-is-curriculum:latest ./run_docker.sh 0 webkb 10
-#   IMAGE=bio-is-curriculum:latest ./run_docker.sh 3 reuters 5
+#   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_full_cv.sh
+#   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_full_cv.sh 0 webkb 10
+#   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_full_cv.sh 3 reuters 5
 #
 # Variáveis de ambiente opcionais:
 #   MODEL      modelo a usar: lr | roberta         (default: roberta)
@@ -40,7 +42,7 @@ CPUS="${CPUS:-16}"
 MEMORY="${MEMORY:-32g}"
 
 IMAGE="${IMAGE:-bio-is-curriculum:latest}"
-HOST_PROJECT_DIR="${HOST_PROJECT_DIR:-$(pwd)}"
+HOST_PROJECT_DIR="${HOST_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 CONTAINER_WORKDIR="/app"
 
 # ── Monta o comando run_experiment.py ─────────────────────────────────────────
