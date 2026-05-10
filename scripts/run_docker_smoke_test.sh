@@ -29,7 +29,7 @@ N_SPLITS="${N_SPLITS:-10}"
 MODEL="${MODEL:-roberta}"
 MODE="${MODE:-baseline}"
 FOLD="${FOLD:-0}"
-EPOCHS="${EPOCHS:-1}"
+EPOCHS="${EPOCHS:-10}"
 LR="${LR:-2e-5}"
 
 CPUS="${CPUS:-4}"

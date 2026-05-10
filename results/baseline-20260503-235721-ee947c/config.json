@@ -1,0 +1,28 @@
+{
+  "dataset": "webkb",
+  "data_dir": "datasets",
+  "fold": 0,
+  "n_splits": 10,
+  "mode": "baseline",
+  "beta": 0.3,
+  "theta": 0.2,
+  "random_state": 42,
+  "curriculum_beta": 0.5,
+  "curriculum_q": [
+    0.3,
+    0.6,
+    0.95
+  ],
+  "model": "roberta",
+  "hf_model": "roberta-base",
+  "epochs": 6,
+  "epochs_per_phase": 2,
+  "batch_size": 16,
+  "eval_batch_size": 64,
+  "max_length": 256,
+  "lr": 2e-05,
+  "results_dir": "results",
+  "run_id": "baseline-20260503-235721-ee947c",
+  "timestamp": "2026-05-03T23:57:21.394844",
+  "git_commit": null
+}
