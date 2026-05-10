@@ -26,6 +26,7 @@ from types import SimpleNamespace
 import numpy as np
 from scipy import stats
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import StratifiedShuffleSplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -197,24 +198,41 @@ def main():
     # ------------------------------------------------------------------ load data
     loader = DatasetLoader(data_dir=args.data_dir, dataset_name=args.dataset)
 
-    print("Carregando TF-IDF...")
     t0_load = time.perf_counter()
-    X_train, y_train, X_val, y_val, X_test, y_test = loader.load_tfidf_fold(args.fold, with_val=True)
-    print(f"  X_train: {X_train.shape}  X_val: {X_val.shape}  X_test: {X_test.shape}")
-    print(f"  Classes treino: {Counter(y_train.tolist())}")
 
-    texts_train = texts_test = texts_val = None
-    y_val_texts = None
+    print("Carregando TF-IDF...")
+    X_train_raw, y_train_raw, X_test, y_test = loader.load_tfidf_fold(args.fold)
+    print(f"  X_train_raw: {X_train_raw.shape}  X_test: {X_test.shape}")
+
+    texts_train_raw = texts_test = None
     if args.model == "roberta":
         print("Carregando textos crus...")
-        texts_train, _, texts_val, y_val_texts, texts_test, _ = loader.load_texts_fold(
-            args.fold, n_splits=args.n_splits, with_val=True
+        texts_train_raw, _, texts_test, _ = loader.load_texts_fold(
+            args.fold, n_splits=args.n_splits
         )
-        print(
-            f"  {len(texts_train)} textos de treino, "
-            f"{len(texts_val)} de validacao, "
-            f"{len(texts_test)} de teste"
-        )
+        print(f"  {len(texts_train_raw)} textos de treino raw, {len(texts_test)} de teste")
+
+    # ---- StratifiedShuffleSplit aplicado UMA vez sobre os indices TF-IDF -----
+    # Os mesmos indices sao usados para fatiar X_train, y_train E texts_train,
+    # garantindo alinhamento entre representacoes esparsas e textos crus.
+    sss = StratifiedShuffleSplit(n_splits=2, test_size=0.1, random_state=2018)
+    for _train_idx, _val_idx in sss.split(X_train_raw, y_train_raw):
+        continue  # usa a ultima divisao gerada
+
+    X_train = X_train_raw[_train_idx]
+    y_train = y_train_raw[_train_idx]
+    X_val   = X_train_raw[_val_idx]
+    y_val   = y_train_raw[_val_idx]
+
+    texts_train = texts_val = None
+    if texts_train_raw is not None:
+        texts_train = [texts_train_raw[i] for i in _train_idx]
+        texts_val   = [texts_train_raw[i] for i in _val_idx]
+
+    print(f"  X_train: {X_train.shape}  X_val: {X_val.shape}  X_test: {X_test.shape}")
+    print(f"  Classes treino: {Counter(y_train.tolist())}")
+    if texts_train is not None:
+        print(f"  {len(texts_train)} textos treino, {len(texts_val)} validacao, {len(texts_test)} teste")
 
     data_load_time = time.perf_counter() - t0_load
     recorder.log_timing("data_load_time_s", data_load_time)

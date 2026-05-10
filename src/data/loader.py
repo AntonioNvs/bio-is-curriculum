@@ -4,7 +4,6 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_svmlight_file
-from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -57,25 +56,20 @@ class DatasetLoader:
         df_splits = pd.read_pickle(pkl_path)
         return df_splits
 
-    def load_texts_fold(self, fold: int, n_splits: int = 10, with_val: bool = False):
+    def load_texts_fold(self, fold: int, n_splits: int = 10):
         """Load raw texts and labels for a given fold, aligned with load_tfidf_fold.
 
         The split .pkl stores train_idxs/test_idxs that match the rows of the
         pre-built TF-IDF files (same upstream generation pipeline), so index i
         from BIOIS/curriculum maps to texts_train[i] for the same instance.
 
-        Training data is shuffled using StratifiedShuffleSplit to avoid issues
-        with class-sequential ordering in the original split files.
-
-        Args:
-            fold: Fold index to load.
-            n_splits: Total number of folds (used to locate the split file).
-            with_val: If True, carves out a stratified 10% validation set from
-                training data and returns it as a 6-tuple.
+        Shuffling/validation splitting is intentionally left to the caller (cli.py)
+        so that the same indices are applied consistently to both the TF-IDF matrix
+        and the raw texts, keeping them aligned.
 
         Returns:
-            without with_val: (texts_train, y_train, texts_test, y_test)
-            with    with_val: (texts_train, y_train, texts_val, y_val, texts_test, y_test)
+            texts_train (list[str]), y_train (ndarray),
+            texts_test (list[str]),  y_test  (ndarray)
         """
         texts, scores = self.load_texts_and_scores()
         df = self.load_splits(n_splits=n_splits)
@@ -87,27 +81,15 @@ class DatasetLoader:
         test_scores = [scores[i] for i in test_idx]
 
         le = LabelEncoder().fit(train_scores)
-        y_train_full = le.transform(train_scores)
+        y_train = le.transform(train_scores)
         y_test = le.transform(test_scores)
 
-        texts_train_full = [texts[i] for i in train_idx]
+        texts_train = [texts[i] for i in train_idx]
         texts_test = [texts[i] for i in test_idx]
-
-        sss = StratifiedShuffleSplit(n_splits=2, test_size=0.1, random_state=2026)
-        for sss_train_idx, sss_val_idx in sss.split(texts_train_full, y_train_full):
-            continue
-
-        texts_train = [texts_train_full[i] for i in sss_train_idx]
-        y_train = y_train_full[sss_train_idx]
-
-        if with_val:
-            texts_val = [texts_train_full[i] for i in sss_val_idx]
-            y_val = y_train_full[sss_val_idx]
-            return texts_train, y_train, texts_val, y_val, texts_test, y_test
 
         return texts_train, y_train, texts_test, y_test
 
-    def load_tfidf_fold(self, fold: int, with_val: bool = False):
+    def load_tfidf_fold(self, fold: int):
         """Load the prebuilt per-fold TF-IDF matrices and labels.
 
         Mirrors the upstream bio-is loader (``utils/general.py::get_data``):
@@ -116,17 +98,12 @@ class DatasetLoader:
         encodes labels to a 0..n-1 contiguous integer range using a
         ``LabelEncoder`` fitted on the training labels.
 
-        Training data is shuffled using StratifiedShuffleSplit to avoid issues
-        with class-sequential ordering in the original split files.
-
-        Args:
-            fold: Fold index to load.
-            with_val: If True, carves out a stratified 10% validation set from
-                training data and returns it as a 6-tuple.
+        Shuffling/validation splitting is intentionally left to the caller (cli.py)
+        so that the same indices are applied consistently to both the TF-IDF matrix
+        and the raw texts, keeping them aligned.
 
         Returns:
-            without with_val: (X_train, y_train, X_test, y_test)
-            with    with_val: (X_train, y_train, X_val, y_val, X_test, y_test)
+            X_train (csr_matrix), y_train (ndarray), X_test (csr_matrix), y_test (ndarray)
         """
         tfidf_dir = os.path.join(self.dataset_path, "tfidf")
         train_path = os.path.join(tfidf_dir, f"train{fold}.gz")
@@ -137,12 +114,12 @@ class DatasetLoader:
                 f"Missing prebuilt TF-IDF files for fold {fold} in {tfidf_dir}"
             )
 
-        X_train_full, y_train_raw = load_svmlight_file(train_path, dtype=np.float64)
+        X_train, y_train_raw = load_svmlight_file(train_path, dtype=np.float64)
         X_test, y_test_raw = load_svmlight_file(test_path, dtype=np.float64)
 
-        if X_train_full.shape[1] != X_test.shape[1]:
-            n_features = max(X_train_full.shape[1], X_test.shape[1])
-            X_train_full, y_train_raw = load_svmlight_file(
+        if X_train.shape[1] != X_test.shape[1]:
+            n_features = max(X_train.shape[1], X_test.shape[1])
+            X_train, y_train_raw = load_svmlight_file(
                 train_path, dtype=np.float64, n_features=n_features
             )
             X_test, y_test_raw = load_svmlight_file(
@@ -150,19 +127,7 @@ class DatasetLoader:
             )
 
         le = LabelEncoder().fit(y_train_raw)
-        y_train_full = le.transform(y_train_raw)
+        y_train = le.transform(y_train_raw)
         y_test = le.transform(y_test_raw)
-
-        sss = StratifiedShuffleSplit(n_splits=2, test_size=0.1, random_state=2018)
-        for sss_train_idx, sss_val_idx in sss.split(X_train_full, y_train_full):
-            continue
-
-        X_train = X_train_full[sss_train_idx]
-        y_train = y_train_full[sss_train_idx]
-
-        if with_val:
-            X_val = X_train_full[sss_val_idx]
-            y_val = y_train_full[sss_val_idx]
-            return X_train, y_train, X_val, y_val, X_test, y_test
 
         return X_train, y_train, X_test, y_test
