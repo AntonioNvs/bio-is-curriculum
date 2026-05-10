@@ -204,17 +204,21 @@ def main():
     X_train_raw, y_train_raw, X_test, y_test = loader.load_tfidf_fold(args.fold)
     print(f"  X_train_raw: {X_train_raw.shape}  X_test: {X_test.shape}")
 
+    # Para RoBERTa, textos e labels devem vir da MESMA fonte (texts.txt + split_pkl)
+    # para garantir alinhamento. Labels do arquivo svmlight (TF-IDF) sao usados
+    # apenas pelo BIOIS, que opera exclusivamente no espaco esparso.
     texts_train_raw = texts_test = None
+    y_texts_raw = y_test_texts = None
     if args.model == "roberta":
         print("Carregando textos crus...")
-        texts_train_raw, _, texts_test, _ = loader.load_texts_fold(
+        texts_train_raw, y_texts_raw, texts_test, y_test_texts = loader.load_texts_fold(
             args.fold, n_splits=args.n_splits
         )
         print(f"  {len(texts_train_raw)} textos de treino raw, {len(texts_test)} de teste")
 
     # ---- StratifiedShuffleSplit aplicado UMA vez sobre os indices TF-IDF -----
-    # Os mesmos indices sao usados para fatiar X_train, y_train E texts_train,
-    # garantindo alinhamento entre representacoes esparsas e textos crus.
+    # Os mesmos indices sao usados para fatiar X_train, y_train (para BIOIS)
+    # E texts_train, y_texts_train (para o modelo de linguagem).
     sss = StratifiedShuffleSplit(n_splits=2, test_size=0.1, random_state=2018)
     for _train_idx, _val_idx in sss.split(X_train_raw, y_train_raw):
         continue  # usa a ultima divisao gerada
@@ -225,12 +229,14 @@ def main():
     y_val   = y_train_raw[_val_idx]
 
     texts_train = texts_val = None
+    y_texts_train = None
     if texts_train_raw is not None:
-        texts_train = [texts_train_raw[i] for i in _train_idx]
-        texts_val   = [texts_train_raw[i] for i in _val_idx]
+        texts_train   = [texts_train_raw[i] for i in _train_idx]
+        texts_val     = [texts_train_raw[i] for i in _val_idx]
+        y_texts_train = y_texts_raw[_train_idx]
 
     print(f"  X_train: {X_train.shape}  X_val: {X_val.shape}  X_test: {X_test.shape}")
-    print(f"  Classes treino: {Counter(y_train.tolist())}")
+    print(f"  Classes treino (TF-IDF): {Counter(y_train.tolist())}")
     if texts_train is not None:
         print(f"  {len(texts_train)} textos treino, {len(texts_val)} validacao, {len(texts_test)} teste")
 
@@ -264,7 +270,9 @@ def main():
     model = _build_model(args, recorder)
 
     if args.mode == "baseline":
-        print(f"\n[baseline] Treinando {args.model} em {len(y_train)} instancias por {args.epochs} epocas...")
+        y_tr = y_texts_train if y_texts_train is not None else y_train
+        y_te = y_test_texts  if y_test_texts  is not None else y_test
+        print(f"\n[baseline] Treinando {args.model} em {len(y_tr)} instancias por {args.epochs} epocas...")
         X_train_input = texts_train if texts_train else X_train
         X_test_input = texts_test if texts_test else X_test
         if hasattr(model, "set_phase"):
@@ -272,12 +280,12 @@ def main():
         if hasattr(model, "epochs_per_stage"):
             model.epochs_per_stage = args.epochs
         t0_train = time.perf_counter()
-        model.fit_stage(X_train_input, y_train)
+        model.fit_stage(X_train_input, y_tr)
         train_time = time.perf_counter() - t0_train
         recorder.log_timing("model_train_time_s", train_time)
         print(f"  Treino concluido em {train_time:.1f}s")
         preds, proba, metrics = _eval_single_stage(
-            model, X_test_input, y_test, recorder, train_time=train_time,
+            model, X_test_input, y_te, recorder, train_time=train_time,
         )
 
     elif args.mode == "is":
@@ -285,7 +293,10 @@ def main():
         X_sub = texts_train if texts_train else X_train
         X_train_input = [X_sub[i] for i in idx] if isinstance(X_sub, list) else X_sub[idx]
         X_test_input = texts_test if texts_test else X_test
-        y_sub = y_train[idx]
+        # Para RoBERTa usa labels da fonte de texto; para LR usa labels do TF-IDF
+        y_src = y_texts_train if y_texts_train is not None else y_train
+        y_te  = y_test_texts  if y_test_texts  is not None else y_test
+        y_sub = y_src[idx]
         print(f"\n[is] Treinando {args.model} em {len(y_sub)} instancias por {args.epochs} epocas...")
         if hasattr(model, "set_phase"):
             model.set_phase("full")
@@ -297,23 +308,27 @@ def main():
         recorder.log_timing("model_train_time_s", train_time)
         print(f"  Treino concluido em {train_time:.1f}s")
         preds, proba, metrics = _eval_single_stage(
-            model, X_test_input, y_test, recorder, train_time=train_time,
+            model, X_test_input, y_te, recorder, train_time=train_time,
         )
 
     else:
         # cl ou is_cl
         q_low, q_mid, q_high = args.curriculum_q
 
+        # Para RoBERTa usa labels da fonte de texto; para LR usa labels do TF-IDF
+        y_src = y_texts_train if y_texts_train is not None else y_train
+        y_te  = y_test_texts  if y_test_texts  is not None else y_test
+
         if args.mode == "cl":
             cl_selector = selector
             X_cl = X_train
-            y_cl = y_train
+            y_cl = y_src
             texts_cl = texts_train
         else:  # is_cl
             idx = selector.sample_indices_
             cl_selector = _slice_selector_signals(selector, idx)
             X_cl = X_train[idx]
-            y_cl = y_train[idx]
+            y_cl = y_src[idx]
             texts_cl = [texts_train[i] for i in idx] if texts_train else None
 
         print(
@@ -337,7 +352,7 @@ def main():
             X_cl,
             y_cl,
             X_test=X_test,
-            y_test=y_test,
+            y_test=y_te,
             X_text=texts_cl,
             X_test_text=texts_test,
             recorder=recorder,
@@ -355,7 +370,8 @@ def main():
     # ------------------------------------------------------------------ finalize
     total_time = time.perf_counter() - t0_total
     recorder.log_timing("total_run_time_s", total_time)
-    recorder.save_predictions(y_test, preds, proba)
+    y_save = y_test_texts if y_test_texts is not None else y_test
+    recorder.save_predictions(y_save, preds, proba)
 
     print("=" * 50)
     print(f"Concluido em {total_time:.1f}s")
