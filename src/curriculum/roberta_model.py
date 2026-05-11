@@ -96,8 +96,9 @@ class RobertaModel(CurriculumModel):
         eval_batch_size: int = 64,
         max_length: int = 256,
         lr: float = 2e-5,
-        weight_decay: float = 0.01,
+        weight_decay: float = 1e-3,
         warmup_ratio: float = 0.06,
+        class_balanced_loss: bool = True,
         device: str | None = None,
         random_state: int = 42,
         history_callback: Callable | None = None,
@@ -111,6 +112,7 @@ class RobertaModel(CurriculumModel):
         self.lr = lr
         self.weight_decay = weight_decay
         self.warmup_ratio = warmup_ratio
+        self.class_balanced_loss = class_balanced_loss
         self.random_state = random_state
         self.history_callback = history_callback
 
@@ -153,12 +155,34 @@ class RobertaModel(CurriculumModel):
         total_steps = len(loader) * self.epochs_per_stage
         warmup_steps = max(1, int(total_steps * self.warmup_ratio))
 
+        no_decay = ("bias", "LayerNorm.weight")
+        decay_params = []
+        no_decay_params = []
+        for name, param in self._model.named_parameters():
+            if not param.requires_grad:
+                continue
+            if any(nd in name for nd in no_decay):
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+
         optimizer = torch.optim.AdamW(
-            self._model.parameters(), lr=self.lr, weight_decay=self.weight_decay
+            [
+                {"params": decay_params, "weight_decay": self.weight_decay},
+                {"params": no_decay_params, "weight_decay": 0.0},
+            ],
+            lr=self.lr,
         )
         scheduler = get_linear_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
         )
+
+        class_weights = None
+        if self.class_balanced_loss:
+            class_counts = np.bincount(y.astype(np.int64), minlength=self.num_labels)
+            # Inverse-frequency weighting scaled to mean ~1 for stable gradients.
+            inv_freq = n / np.maximum(class_counts * self.num_labels, 1)
+            class_weights = torch.tensor(inv_freq, dtype=torch.float, device=self.device)
 
         self._model.train()
         for epoch in range(self.epochs_per_stage):
@@ -173,8 +197,13 @@ class RobertaModel(CurriculumModel):
                 outputs = self._model(input_ids=input_ids, attention_mask=attention_mask)
                 logits = outputs.logits
 
-                loss_per_sample = F.cross_entropy(logits, labels, reduction="none")
-                loss = (loss_per_sample * weights).mean()
+                loss_per_sample = F.cross_entropy(
+                    logits,
+                    labels,
+                    reduction="none",
+                    weight=class_weights,
+                )
+                loss = (loss_per_sample * weights).sum() / weights.sum().clamp_min(1e-12)
                 loss.backward()
 
                 torch.nn.utils.clip_grad_norm_(self._model.parameters(), 1.0)

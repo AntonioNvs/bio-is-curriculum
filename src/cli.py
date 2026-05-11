@@ -56,6 +56,9 @@ def _build_model(args, recorder: RunRecorder):
             eval_batch_size=args.eval_batch_size,
             max_length=args.max_length,
             lr=args.lr,
+            weight_decay=args.weight_decay,
+            warmup_ratio=args.warmup_ratio,
+            class_balanced_loss=args.class_balanced_loss,
             random_state=args.random_state,
             history_callback=recorder.log_train_step,
         )
@@ -154,6 +157,15 @@ def main():
     parser.add_argument("--eval-batch-size", dest="eval_batch_size", type=int, default=64)
     parser.add_argument("--max-length", dest="max_length", type=int, default=256)
     parser.add_argument("--lr", type=float, default=2e-5)
+    parser.add_argument("--weight-decay", dest="weight_decay", type=float, default=1e-3)
+    parser.add_argument("--warmup-ratio", dest="warmup_ratio", type=float, default=0.06)
+    parser.add_argument(
+        "--class-balanced-loss",
+        dest="class_balanced_loss",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Ativa peso por frequencia de classe na cross-entropy (default: True).",
+    )
 
     # Resultados
     parser.add_argument("--results-dir", dest="results_dir", type=str, default="results")
