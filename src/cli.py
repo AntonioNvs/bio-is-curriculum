@@ -228,6 +228,35 @@ def main():
         )
         print(f"  {len(texts_train_raw)} textos de treino raw, {len(texts_test)} de teste")
 
+        # Alguns datasets trazem TF-IDF precomputado apenas para 10 folds.
+        # Se o split textual pedido nao alinhar em tamanho, tenta fallback para 10.
+        if (
+            len(texts_train_raw) != X_train_raw.shape[0]
+            or len(texts_test) != X_test.shape[0]
+        ):
+            if args.n_splits != 10:
+                print(
+                    "  AVISO: tamanho de textos nao alinhou ao TF-IDF para "
+                    f"n_splits={args.n_splits}. Tentando split de 10 folds..."
+                )
+                texts_train_raw, y_texts_raw, texts_test, y_test_texts = loader.load_texts_fold(
+                    args.fold, n_splits=10
+                )
+                print(
+                    f"  fallback 10-fold -> {len(texts_train_raw)} treino, {len(texts_test)} teste"
+                )
+
+            if (
+                len(texts_train_raw) != X_train_raw.shape[0]
+                or len(texts_test) != X_test.shape[0]
+            ):
+                raise ValueError(
+                    "Desalinhamento entre TF-IDF e textos crus para o fold selecionado: "
+                    f"X_train_raw={X_train_raw.shape[0]} vs texts_train_raw={len(texts_train_raw)}, "
+                    f"X_test={X_test.shape[0]} vs texts_test={len(texts_test)}. "
+                    "Use um --n-splits compativel com os arquivos TF-IDF precomputados."
+                )
+
     # ---- StratifiedShuffleSplit aplicado UMA vez sobre os indices TF-IDF -----
     # Os mesmos indices sao usados para fatiar X_train, y_train (para BIOIS)
     # E texts_train, y_texts_train (para o modelo de linguagem).
