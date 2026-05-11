@@ -1,0 +1,2 @@
+phase,n_samples,n_iter,train_time_s,pred_time_s,micro_f1,macro_f1,accuracy,hard_slice_macro_f1
+clean,10,2,6.364818352740258,3.8499632999300957,0.0022222222222222222,5.9127864005912786e-05,0.0022222222222222222,0.0
