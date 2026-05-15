@@ -4,7 +4,7 @@ from scipy import stats
 
 from sklearn.utils.validation import check_X_y
 from sklearn.metrics import f1_score
-from sklearn.linear_model import LogisticRegression
+from curriculum.models import logistic_regression_user_spec
 from sklearn.utils.multiclass import unique_labels
 from sklearn.model_selection import StratifiedKFold
 
@@ -119,7 +119,7 @@ class BIOIS(InstanceSelectionMixin):
             X_train, y_train = X[train_index], y[train_index]
             X_val, y_val = X[val_index], y[val_index]
 
-            classifier = LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000)
+            classifier = logistic_regression_user_spec()
             print(classifier)
             classifier.fit(X_train, y_train)
 

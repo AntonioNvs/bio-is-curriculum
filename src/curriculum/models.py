@@ -7,8 +7,38 @@ construcao das fases ou o registro de metricas.
 """
 from abc import ABCMeta, abstractmethod
 
+import inspect
+
 import numpy as np
+import sklearn as sk
 from sklearn.linear_model import LogisticRegression
+
+
+def sklearn_at_least(major: int, minor: int) -> bool:
+    toks = sk.__version__.split(".")[:4]
+    def _digits(s: str) -> int:
+        d = "".join(ch for ch in s if ch.isdigit())
+        return int(d) if d else 0
+
+    mj = _digits(toks[0])
+    mn = _digits(toks[1]) if len(toks) > 1 else 0
+    return (mj, mn) >= (major, minor)
+
+
+def logistic_regression_user_spec(**kwargs) -> LogisticRegression:
+    """C=1 e n_jobs=-1.
+
+    Solicitacao de API: solver/multi_class ``'warn'`` em sklearn herdado (<1.8).
+    sklearn>=1.8 rejeita ``'warn'`` e ``'warn'`` so e validado em tempo de fit;
+    omitimos solver/multi_class nos modernos para equivaler aos defaults implicitos dos placeholders antigos.
+    """
+    params: dict = {"C": 1.0, "n_jobs": -1}
+    if not sklearn_at_least(1, 8):
+        params["solver"] = "warn"
+        if "multi_class" in inspect.signature(LogisticRegression.__init__).parameters:
+            params["multi_class"] = "warn"
+    params.update(kwargs)
+    return LogisticRegression(**params)
 
 
 class CurriculumModel(metaclass=ABCMeta):
@@ -50,10 +80,9 @@ class LogisticRegressionModel(CurriculumModel):
     def __init__(self, max_iter: int = 200, random_state: int = 42, **kwargs):
         self.max_iter = max_iter
         self.random_state = random_state
-        self._clf = LogisticRegression(
+        self._clf = logistic_regression_user_spec(
             warm_start=True,
             max_iter=max_iter,
-            solver="lbfgs",
             random_state=random_state,
             **kwargs,
         )

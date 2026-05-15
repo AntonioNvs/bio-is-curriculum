@@ -35,6 +35,21 @@ from curriculum.models import LogisticRegressionModel
 from data.loader import DatasetLoader
 from iSel.biois import BIOIS
 from results.run import RunRecorder
+from data.rare_class_upsampling import upsample_min_per_class
+
+
+BIOIS_STRATKFOLD_SPLITS = 5  # alinhado ao StratifiedKFold em BIOIS.fitting_alpha
+
+
+def _print_oversampling(stage: str, stats) -> None:
+    if stats.n_added == 0:
+        print(f"  Oversampling ({stage}): sem alteracoes (n={stats.n_before})")
+    else:
+        print(
+            f"  Oversampling ({stage}): {stats.n_before} -> {stats.n_after} "
+            f"(+{stats.n_added} instancias)"
+        )
+
 
 
 def _build_model(args, recorder: RunRecorder):
@@ -272,9 +287,34 @@ def main():
     texts_train = texts_val = None
     y_texts_train = None
     if texts_train_raw is not None:
-        texts_train   = [texts_train_raw[i] for i in _train_idx]
-        texts_val     = [texts_train_raw[i] for i in _val_idx]
+        texts_train = [texts_train_raw[i] for i in _train_idx]
+        texts_val = [texts_train_raw[i] for i in _val_idx]
         y_texts_train = y_texts_raw[_train_idx]
+
+    needs_is_early = args.mode in ("is", "is_cl")
+    needs_signals_early = args.mode in ("cl", "is_cl")
+    run_biois_early = needs_is_early or needs_signals_early
+
+    if run_biois_early:
+        if texts_train is not None:
+            X_train, y_train, st_biois, txs = upsample_min_per_class(
+                X_train,
+                y_train,
+                min_count=BIOIS_STRATKFOLD_SPLITS,
+                random_state=args.random_state,
+                texts=texts_train,
+            )
+            texts_train = txs
+            y_texts_train = np.asarray(y_train)
+            _print_oversampling("pre-IS (treino vista pelo BIOIS)", st_biois)
+        else:
+            X_train, y_train, st_biois, _ = upsample_min_per_class(
+                X_train,
+                y_train,
+                min_count=BIOIS_STRATKFOLD_SPLITS,
+                random_state=args.random_state,
+            )
+            _print_oversampling("pre-IS (treino vista pelo BIOIS)", st_biois)
 
     print(f"  X_train: {X_train.shape}  X_val: {X_val.shape}  X_test: {X_test.shape}")
     print(f"  Classes treino (TF-IDF): {Counter(y_train.tolist())}")
@@ -337,7 +377,19 @@ def main():
         # Para RoBERTa usa labels da fonte de texto; para LR usa labels do TF-IDF
         y_src = y_texts_train if y_texts_train is not None else y_train
         y_te  = y_test_texts  if y_test_texts  is not None else y_test
-        y_sub = y_src[idx]
+        y_sub = np.asarray(y_src[idx])
+        assert len(y_sub) == (
+            len(X_train_input)
+            if isinstance(X_train_input, list)
+            else X_train_input.shape[0]
+        )
+        X_train_input, y_sub, st_post_is, _ = upsample_min_per_class(
+            X_train_input,
+            y_sub,
+            min_count=BIOIS_STRATKFOLD_SPLITS,
+            random_state=args.random_state,
+        )
+        _print_oversampling("pos-IS (conjunto efetivamente treinado)", st_post_is)
         print(f"\n[is] Treinando {args.model} em {len(y_sub)} instancias por {args.epochs} epocas...")
         if hasattr(model, "set_phase"):
             model.set_phase("full")
@@ -371,6 +423,32 @@ def main():
             X_cl = X_train[idx]
             y_cl = y_src[idx]
             texts_cl = [texts_train[i] for i in idx] if texts_train else None
+
+        if args.mode == "is_cl":
+            y_ic = np.asarray(y_cl)
+            assert len(y_ic) == (
+                len(texts_cl)
+                if texts_cl is not None
+                else X_cl.shape[0]
+            )
+            if texts_cl is not None:
+                X_cl, y_ic, st_post_ic, txs_ic = upsample_min_per_class(
+                    X_cl,
+                    y_ic,
+                    min_count=BIOIS_STRATKFOLD_SPLITS,
+                    random_state=args.random_state,
+                    texts=texts_cl,
+                )
+                texts_cl = txs_ic
+            else:
+                X_cl, y_ic, st_post_ic, _ = upsample_min_per_class(
+                    X_cl,
+                    y_ic,
+                    min_count=BIOIS_STRATKFOLD_SPLITS,
+                    random_state=args.random_state,
+                )
+            _print_oversampling("pos-IS (subset curriculo is_cl)", st_post_ic)
+            y_cl = y_ic
 
         print(
             f"\n[{args.mode}] BIOISCurriculum em {len(y_cl)} instancias "
