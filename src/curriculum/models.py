@@ -26,9 +26,9 @@ def sklearn_at_least(major: int, minor: int) -> bool:
 
 
 def logistic_regression_user_spec(**kwargs) -> LogisticRegression:
-    """C=1 e max_iter=100.
+    """C=1, max_iter=100, and n_jobs=-1 for parallel training.
     """
-    params: dict = {"C": 1.0, "max_iter": 100}
+    params: dict = {"C": 1.0, "max_iter": 100, "n_jobs": -1}
     params.update(kwargs)
     return LogisticRegression(**params)
 
