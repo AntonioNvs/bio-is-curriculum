@@ -99,9 +99,6 @@ class BIOIS(InstanceSelectionMixin):
         
     def fitting_alpha(self, X, y):
         print('fitting_alpha_by_lr_default')
-        # Setting the approximated KNN solution
-        #classifier = NMSlibKNNClassifier(n_neighbors=10, n_jobs=10)
-        #classifier.fit(X, y)
 
         nrows = X.shape[0]
         self.classes_ = unique_labels(y)

@@ -1,0 +1,32 @@
+{
+  "dataset": "webkb",
+  "data_dir": "datasets",
+  "fold": 0,
+  "n_splits": 10,
+  "mode": "is",
+  "beta": 0.3,
+  "theta": 0.2,
+  "random_state": 42,
+  "curriculum_beta": 0.5,
+  "curriculum_q": [
+    0.3,
+    0.6,
+    0.95
+  ],
+  "model": "roberta",
+  "hf_model": "roberta-base",
+  "epochs": 5,
+  "epochs_per_phase": 5,
+  "batch_size": 16,
+  "eval_batch_size": 64,
+  "max_length": 256,
+  "lr": 2e-05,
+  "weight_decay": 0.001,
+  "warmup_ratio": 0.06,
+  "class_balanced_loss": true,
+  "results_dir": "results",
+  "experiment_id": null,
+  "run_id": "is-20260519-203135-7f07b4",
+  "timestamp": "2026-05-19T20:31:35.139674",
+  "git_commit": null
+}

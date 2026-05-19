@@ -26,17 +26,9 @@ def sklearn_at_least(major: int, minor: int) -> bool:
 
 
 def logistic_regression_user_spec(**kwargs) -> LogisticRegression:
-    """C=1 e n_jobs=-1.
-
-    Solicitacao de API: solver/multi_class ``'warn'`` em sklearn herdado (<1.8).
-    sklearn>=1.8 rejeita ``'warn'`` e ``'warn'`` so e validado em tempo de fit;
-    omitimos solver/multi_class nos modernos para equivaler aos defaults implicitos dos placeholders antigos.
+    """C=1 e max_iter=100.
     """
-    params: dict = {"C": 1.0, "n_jobs": -1}
-    if not sklearn_at_least(1, 8):
-        params["solver"] = "warn"
-        if "multi_class" in inspect.signature(LogisticRegression.__init__).parameters:
-            params["multi_class"] = "warn"
+    params: dict = {"C": 1.0, "max_iter": 100}
     params.update(kwargs)
     return LogisticRegression(**params)
 

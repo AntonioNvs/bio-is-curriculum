@@ -27,7 +27,7 @@ DATASET="${2:-webkb}"
 N_SPLITS="${N_SPLITS:-10}"
 
 MODEL="${MODEL:-roberta}"
-MODE="${MODE:-baseline}"
+MODE="${MODE:-is}"
 FOLD="${FOLD:-0}"
 EPOCHS="${EPOCHS:-5}"
 LR="${LR:-2e-5}"
