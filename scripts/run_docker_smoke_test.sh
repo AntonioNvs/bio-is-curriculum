@@ -30,7 +30,7 @@ MODEL="${MODEL:-roberta}"
 MODE="${MODE:-is}"
 FOLD="${FOLD:-0}"
 EPOCHS="${EPOCHS:-5}"
-LR="${LR:-2e-5}"
+LR="${LR:-3e-5}"
 
 CPUS="${CPUS:-4}"
 MEMORY="${MEMORY:-16g}"

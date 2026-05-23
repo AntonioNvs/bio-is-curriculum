@@ -172,8 +172,8 @@ def main():
     parser.add_argument("--eval-batch-size", dest="eval_batch_size", type=int, default=64)
     parser.add_argument("--max-length", dest="max_length", type=int, default=256)
     parser.add_argument("--lr", type=float, default=2e-5)
-    parser.add_argument("--weight-decay", dest="weight_decay", type=float, default=1e-3)
-    parser.add_argument("--warmup-ratio", dest="warmup_ratio", type=float, default=0.06)
+    parser.add_argument("--weight-decay", dest="weight_decay", type=float, default=1e-2)
+    parser.add_argument("--warmup-ratio", dest="warmup_ratio", type=float, default=0.02)
     parser.add_argument(
         "--class-balanced-loss",
         dest="class_balanced_loss",
@@ -344,6 +344,19 @@ def main():
         recorder.log_timing("is_fit_time_s", preprocess_time)
         print(f"  Reducao: {selector.reduction_:.4f}  ({len(selector.sample_indices_)} instancias)")
         print(f"  Tempo IS: {preprocess_time:.1f}s")
+        y_train_arr = np.asarray(y_train)
+        selected_mask = np.zeros(len(y_train_arr), dtype=bool)
+        selected_mask[selector.sample_indices_] = True
+        removed_y = y_train_arr[~selected_mask]
+        total_by_class = Counter(y_train_arr.tolist())
+        removed_by_class = Counter(removed_y.tolist())
+        if removed_by_class:
+            print("  Remocao por classe:")
+            for cls in sorted(total_by_class):
+                removed = removed_by_class.get(cls, 0)
+                total = total_by_class[cls]
+                pct = (100.0 * removed / total) if total else 0.0
+                print(f"    classe {cls}: {removed}/{total} ({pct:.1f}%)")
 
     recorder.log_timing("preprocess_time_s", preprocess_time)
 

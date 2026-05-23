@@ -117,6 +117,7 @@ class BIOIS(InstanceSelectionMixin):
             X_val, y_val = X[val_index], y[val_index]
 
             classifier = logistic_regression_user_spec()
+
             print(classifier)
             classifier.fit(X_train, y_train)
 

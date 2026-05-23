@@ -30,7 +30,7 @@ DATASET="${2:-webkb}"
 N_SPLITS="${3:-10}"
 
 MODEL="${MODEL:-roberta}"
-MODES="${MODES:-baseline is cl is_cl}"
+MODES="${MODES:-is cl is_cl}"
 FOLDS="${FOLDS:-}"           # vazio = descoberta automática pelo run_experiment.py
 BETA="${BETA:-0.3}"
 THETA="${THETA:-0.2}"

@@ -26,9 +26,12 @@ def sklearn_at_least(major: int, minor: int) -> bool:
 
 
 def logistic_regression_user_spec(**kwargs) -> LogisticRegression:
-    """C=1, max_iter=100, and n_jobs=-1 for parallel training.
-    """
-    params: dict = {"C": 1.0, "max_iter": 100, "n_jobs": -1}
+    """Defaults robustos para texto esparso e cenarios multiclasses."""
+    params: dict = {
+        "C": 1.0,
+        "solver": "saga",
+        "max_iter": 1000
+    }
     params.update(kwargs)
     return LogisticRegression(**params)
 
@@ -69,7 +72,7 @@ class LogisticRegressionModel(CurriculumModel):
     treinamento da fase anterior.
     """
 
-    def __init__(self, max_iter: int = 200, random_state: int = 42, **kwargs):
+    def __init__(self, max_iter: int = 100, random_state: int = 42, **kwargs):
         self.max_iter = max_iter
         self.random_state = random_state
         self._clf = logistic_regression_user_spec(
