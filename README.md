@@ -76,3 +76,10 @@ Para comparar os 4 modos, basta carregar os `phase_metrics.csv` de cada pasta.
 --curriculum-beta                Peso de redundância na Fase Hard: w=1-beta*r (default: 0.5)
 --results-dir                    Diretório base de resultados (default: results/)
 ```
+
+TO-DO para 26/05
+- [ ] Colocar a macro-f1 como todo foco de métrica de análise
+- [ ] Fazer projeto 2^2 com a macro f1
+- [ ] Implementação de algum baseline da literatura
+- [ ] Adicionar variação de balanceamento de classes e weighting no curriculum learning
+- [ ] Apresentação em slides interessantey
