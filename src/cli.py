@@ -239,50 +239,31 @@ def main():
 
     t0_load = time.perf_counter()
 
-    print("Carregando TF-IDF...")
-    X_train_raw, y_train_raw, X_test, y_test = loader.load_tfidf_fold(args.fold)
-    print(f"  X_train_raw: {X_train_raw.shape}  X_test: {X_test.shape}")
-
-    # Para RoBERTa, textos e labels devem vir da MESMA fonte (texts.txt + split_pkl)
-    # para garantir alinhamento. Labels do arquivo svmlight (TF-IDF) sao usados
-    # apenas pelo BIOIS, que opera exclusivamente no espaco esparso.
     texts_train_raw = texts_test = None
     y_texts_raw = y_test_texts = None
     if args.model == "roberta":
-        print("Carregando textos crus...")
-        texts_train_raw, y_texts_raw, texts_test, y_test_texts = loader.load_texts_fold(
-            args.fold, n_splits=args.n_splits
-        )
+        # Loader alinhado: TF-IDF e calculado em memoria a partir de texts.txt,
+        # garantindo que linha i de X_train corresponda a texts_train[i] e
+        # y_train[i]. Os arquivos svmlight pre-construidos usam uma ordem
+        # diferente do split.pkl, o que corrompia o pareamento (texto, label)
+        # quando BIOIS rodava sobre TF-IDF e o RoBERTa treinava nos textos.
+        print("Carregando TF-IDF (recomputado dos textos para alinhamento)...")
+        (
+            X_train_raw,
+            y_train_raw,
+            X_test,
+            y_test,
+            texts_train_raw,
+            texts_test,
+        ) = loader.load_aligned_fold(args.fold, n_splits=args.n_splits)
+        y_texts_raw = y_train_raw
+        y_test_texts = y_test
+        print(f"  X_train_raw: {X_train_raw.shape}  X_test: {X_test.shape}")
         print(f"  {len(texts_train_raw)} textos de treino raw, {len(texts_test)} de teste")
-
-        # Alguns datasets trazem TF-IDF precomputado apenas para 10 folds.
-        # Se o split textual pedido nao alinhar em tamanho, tenta fallback para 10.
-        if (
-            len(texts_train_raw) != X_train_raw.shape[0]
-            or len(texts_test) != X_test.shape[0]
-        ):
-            if args.n_splits != 10:
-                print(
-                    "  AVISO: tamanho de textos nao alinhou ao TF-IDF para "
-                    f"n_splits={args.n_splits}. Tentando split de 10 folds..."
-                )
-                texts_train_raw, y_texts_raw, texts_test, y_test_texts = loader.load_texts_fold(
-                    args.fold, n_splits=10
-                )
-                print(
-                    f"  fallback 10-fold -> {len(texts_train_raw)} treino, {len(texts_test)} teste"
-                )
-
-            if (
-                len(texts_train_raw) != X_train_raw.shape[0]
-                or len(texts_test) != X_test.shape[0]
-            ):
-                raise ValueError(
-                    "Desalinhamento entre TF-IDF e textos crus para o fold selecionado: "
-                    f"X_train_raw={X_train_raw.shape[0]} vs texts_train_raw={len(texts_train_raw)}, "
-                    f"X_test={X_test.shape[0]} vs texts_test={len(texts_test)}. "
-                    "Use um --n-splits compativel com os arquivos TF-IDF precomputados."
-                )
+    else:
+        print("Carregando TF-IDF (svmlight pre-construido)...")
+        X_train_raw, y_train_raw, X_test, y_test = loader.load_tfidf_fold(args.fold)
+        print(f"  X_train_raw: {X_train_raw.shape}  X_test: {X_test.shape}")
 
     # ---- StratifiedShuffleSplit aplicado UMA vez sobre os indices TF-IDF -----
     # Os mesmos indices sao usados para fatiar X_train, y_train (para BIOIS)

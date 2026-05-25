@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_svmlight_file
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -131,3 +132,44 @@ class DatasetLoader:
         y_test = le.transform(y_test_raw)
 
         return X_train, y_train, X_test, y_test
+
+    def load_aligned_fold(self, fold: int, n_splits: int = 10):
+        """Load texts + TF-IDF + labels com alinhamento garantido por linha.
+
+        Os arquivos svmlight pre-construidos em ``tfidf/train{fold}.gz`` foram
+        gerados por um pipeline upstream com ordem propria, que NAO coincide com
+        a ordem dos indices em ``splits/split_{n_splits}.pkl``. Misturar essas
+        duas fontes corrompe o pareamento (texto, label) e leva o RoBERTa ao
+        colapso em uma unica classe.
+
+        Aqui montamos tudo a partir da MESMA fonte: ``texts.txt`` + ``score.txt``
+        + indices do split. O TF-IDF e recomputado em memoria com
+        ``TfidfVectorizer`` ajustado no treino do fold, garantindo que linha ``i``
+        de ``X_train`` corresponda exatamente a ``texts_train[i]`` e
+        ``y_train[i]``.
+
+        Returns:
+            X_train (csr_matrix), y_train (ndarray),
+            X_test  (csr_matrix), y_test  (ndarray),
+            texts_train (list[str]), texts_test (list[str])
+        """
+        texts, scores = self.load_texts_and_scores()
+        df = self.load_splits(n_splits=n_splits)
+        row = df[df["fold_id"] == fold].iloc[0]
+        train_idx = list(row["train_idxs"])
+        test_idx = list(row["test_idxs"])
+
+        texts_train = [texts[i] for i in train_idx]
+        texts_test = [texts[i] for i in test_idx]
+        train_scores = [scores[i] for i in train_idx]
+        test_scores = [scores[i] for i in test_idx]
+
+        le = LabelEncoder().fit(train_scores)
+        y_train = le.transform(train_scores)
+        y_test = le.transform(test_scores)
+
+        vec = TfidfVectorizer()
+        X_train = vec.fit_transform(texts_train)
+        X_test = vec.transform(texts_test)
+
+        return X_train, y_train, X_test, y_test, texts_train, texts_test
