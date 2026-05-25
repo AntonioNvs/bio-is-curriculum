@@ -11,6 +11,8 @@ O loop de treino e feito manualmente (sem `Trainer`) para:
 """
 from __future__ import annotations
 
+import os
+import random
 from typing import Callable
 
 import numpy as np
@@ -27,9 +29,40 @@ from transformers import (
 from src.curriculum.models import CurriculumModel
 
 
+def _seed_all(seed: int) -> None:
+    """Fixa seeds e o backend determinístico do cuDNN/cuBLAS.
+
+    Necessário para que execuções com o mesmo (seed, dados, hiperparâmetros)
+    produzam métricas idênticas — independente de mudanças no número de
+    CPUs/threads do container ou da ordem dos kernels heurísticos da GPU.
+
+    Pequeno custo de throughput (cuDNN não pode escolher o kernel não
+    determinístico mais rápido), em troca de reprodutibilidade entre
+    `run_docker_smoke_test.sh` e `run_docker_full_cv.sh`.
+    """
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    os.environ.setdefault("PYTHONHASHSEED", str(seed))
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 class _TextDataset(Dataset):
-    def __init__(self, encodings: dict, labels: np.ndarray, weights: np.ndarray):
-        self.encodings = encodings
+    """Guarda apenas os textos crus + labels/pesos; tokenização é per-batch.
+
+    Tokenizar tudo upfront com `padding=True` faz cada batch carregar o
+    comprimento do MAIOR texto do dataset inteiro, gastando muito compute
+    em padding. Aqui passamos os textos crus para o `collate_fn` que
+    tokeniza por batch com `padding="longest"` (apenas dentro do batch),
+    reduzindo drasticamente o tempo de fine-tuning sem afetar a efetividade.
+    """
+
+    def __init__(self, texts: list[str], labels: np.ndarray, weights: np.ndarray):
+        self.texts = list(texts)
         self.labels = labels
         self.weights = weights
 
@@ -37,10 +70,32 @@ class _TextDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        item = {k: v[idx] for k, v in self.encodings.items()}
-        item["labels"] = torch.tensor(self.labels[idx], dtype=torch.long)
-        item["weights"] = torch.tensor(self.weights[idx], dtype=torch.float)
-        return item
+        return {
+            "text": self.texts[idx],
+            "label": int(self.labels[idx]),
+            "weight": float(self.weights[idx]),
+        }
+
+
+class _DynamicPadCollator:
+    """Tokeniza por batch para padding mínimo. Determinístico por construção."""
+
+    def __init__(self, tokenizer, max_length: int):
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __call__(self, batch):
+        texts = [b["text"] for b in batch]
+        enc = self.tokenizer(
+            texts,
+            truncation=True,
+            padding="longest",
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+        enc["labels"] = torch.tensor([b["label"] for b in batch], dtype=torch.long)
+        enc["weights"] = torch.tensor([b["weight"] for b in batch], dtype=torch.float)
+        return enc
 
 
 class RobertaModel(CurriculumModel):
@@ -121,6 +176,8 @@ class RobertaModel(CurriculumModel):
         else:
             self.device = torch.device(device)
 
+        _seed_all(self.random_state)
+
         self._tokenizer = None
         self._model = None
         self.global_step_: int = 0
@@ -132,7 +189,8 @@ class RobertaModel(CurriculumModel):
 
     def fit_stage(self, texts: list[str], y: np.ndarray, sample_weight: np.ndarray | None = None):
         """Continua (ou inicia) o fine-tuning por `epochs_per_stage` epocas."""
-        torch.manual_seed(self.random_state + self.global_step_)
+        stage_seed = self.random_state + self.global_step_
+        _seed_all(stage_seed)
 
         n = len(y)
         if sample_weight is None:
@@ -142,15 +200,17 @@ class RobertaModel(CurriculumModel):
         num_labels = int(np.max(y)) + 1
         self._lazy_init(num_labels)
 
-        encodings = self._tokenizer(
-            list(texts),
-            truncation=True,
-            padding=True,
-            max_length=self.max_length,
-            return_tensors="pt",
+        dataset = _TextDataset(list(texts), y.astype(np.int64), sample_weight)
+        collator = _DynamicPadCollator(self._tokenizer, self.max_length)
+        shuffle_gen = torch.Generator()
+        shuffle_gen.manual_seed(stage_seed)
+        loader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            collate_fn=collator,
+            generator=shuffle_gen,
         )
-        dataset = _TextDataset(encodings, y.astype(np.int64), sample_weight)
-        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
         total_steps = len(loader) * self.epochs_per_stage
         warmup_steps = max(1, int(total_steps * self.warmup_ratio))
@@ -232,19 +292,18 @@ class RobertaModel(CurriculumModel):
         self._lazy_init(self.num_labels)
         self._model.eval()
 
-        encodings = self._tokenizer(
-            list(texts),
-            truncation=True,
-            padding=True,
-            max_length=self.max_length,
-            return_tensors="pt",
-        )
         dataset = _TextDataset(
-            encodings,
+            list(texts),
             np.zeros(len(texts), dtype=np.int64),
             np.ones(len(texts), dtype=np.float64),
         )
-        loader = DataLoader(dataset, batch_size=self.eval_batch_size, shuffle=False)
+        collator = _DynamicPadCollator(self._tokenizer, self.max_length)
+        loader = DataLoader(
+            dataset,
+            batch_size=self.eval_batch_size,
+            shuffle=False,
+            collate_fn=collator,
+        )
 
         all_proba = []
         with torch.no_grad():

@@ -18,10 +18,16 @@ Timings uniformes gravados em timings.csv para todos os modos:
 """
 import argparse
 import os
+import random
 import sys
 import time
 from collections import Counter
 from types import SimpleNamespace
+
+# Determinismo: tem que ser setado ANTES de importar torch/transformers.
+# CUBLAS_WORKSPACE_CONFIG e exigido por torch p/ algumas GEMMs deterministicas.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+os.environ.setdefault("PYTHONHASHSEED", "42")
 
 import numpy as np
 from scipy import stats
@@ -205,6 +211,10 @@ def main():
                         help="ID da execucao individual (ignorado se --experiment-id for fornecido)")
 
     args = parser.parse_args()
+
+    # Seeds globais antes de qualquer chamada estocastica (BIOIS, sklearn, etc.)
+    random.seed(args.random_state)
+    np.random.seed(args.random_state)
 
     # ------------------------------------------------------------------ setup
     if args.experiment_id is not None:

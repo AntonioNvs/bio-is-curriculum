@@ -80,6 +80,10 @@ docker run --rm \
   --gpus "device=${GPU_ID}" \
   --cpus="${CPUS}" \
   --memory="${MEMORY}" \
+  -e CUBLAS_WORKSPACE_CONFIG=":4096:8" \
+  -e PYTHONHASHSEED="42" \
+  -e OMP_NUM_THREADS="${CPUS}" \
+  -e MKL_NUM_THREADS="${CPUS}" \
   -v "${HOST_PROJECT_DIR}/datasets:${CONTAINER_WORKDIR}/datasets" \
   -v "${HOST_PROJECT_DIR}/results:${CONTAINER_WORKDIR}/results" \
   -w "${CONTAINER_WORKDIR}" \
