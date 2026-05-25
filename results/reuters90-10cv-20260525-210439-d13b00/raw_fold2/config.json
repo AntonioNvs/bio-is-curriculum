@@ -1,0 +1,33 @@
+{
+  "dataset": "reuters90",
+  "data_dir": "datasets",
+  "fold": 2,
+  "n_splits": 10,
+  "mode": "raw",
+  "baseline": null,
+  "beta": 0.3,
+  "theta": 0.2,
+  "random_state": 42,
+  "curriculum_beta": 0.5,
+  "curriculum_q": [
+    0.3,
+    0.6,
+    0.95
+  ],
+  "model": "roberta",
+  "hf_model": "roberta-base",
+  "epochs": 6,
+  "epochs_per_phase": 2,
+  "batch_size": 32,
+  "eval_batch_size": 64,
+  "max_length": 256,
+  "lr": 2e-05,
+  "weight_decay": 0.001,
+  "warmup_ratio": 0.06,
+  "class_balanced_loss": true,
+  "results_dir": "results",
+  "experiment_id": "reuters90-10cv-20260525-210439-d13b00",
+  "run_id": "raw_fold2",
+  "timestamp": "2026-05-25T21:55:10.258436",
+  "git_commit": null
+}
