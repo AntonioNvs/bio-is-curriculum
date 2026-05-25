@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Executa os experimentos multi-fold do biO-IS-Curriculum dentro de um container Docker.
-# Roda todos os modos (baseline, is, cl, is_cl) em todos os folds do split file,
+# Roda todos os modos (raw, is, cl, is_cl) em todos os folds do split file,
 # gerando resultados completos com IC 95% em results/<experiment_id>/summary.csv.
 #
 # Uso:
@@ -13,11 +13,11 @@
 #
 # Variáveis de ambiente opcionais:
 #   MODEL      modelo a usar: lr | roberta         (default: roberta)
-#   MODES      modos separados por espaço           (default: "baseline is cl is_cl")
+#   MODES      modos separados por espaço           (default: "raw is cl is_cl")
 #   FOLDS      folds separados por espaço           (default: todos do split file)
 #   BETA       taxa de redundância BIOIS            (default: 0.3)
 #   THETA      taxa de ruído BIOIS                  (default: 0.2)
-#   EPOCHS     épocas treino único (baseline/is)    (default: 6)
+#   EPOCHS     épocas treino único (raw/is)         (default: 6)
 #   EPOCHS_PP  épocas por fase (cl/is_cl)           (default: 2)
 #   LR         learning rate                        (default: 2e-5)
 #   CPUS       limite de CPUs do container          (default: 16)
