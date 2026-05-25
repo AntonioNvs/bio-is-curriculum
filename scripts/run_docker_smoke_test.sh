@@ -1,33 +1,42 @@
 #!/usr/bin/env bash
-# Executa um único experimento (fold 0, modo baseline) dentro de um container
-# Docker para verificar rapidamente se as métricas estão sendo calculadas e
-# registradas corretamente, sem a sobrecarga de um CV completo.
+# Smoke test multi-mode: roda 1 fold para cada token de MODES dentro de um único
+# container Docker, agrupados em results/<experiment_id>/<mode>_fold<k>/.
+# Útil para validar rápido o pipeline ponta-a-ponta antes de disparar o full CV.
 #
 # Uso:
 #   IMAGE=<imagem> ./scripts/run_docker_smoke_test.sh [GPU_ID] [DATASET]
 #
 # Exemplos:
+#   # Default: roda só 'is' no fold 0 do webkb
 #   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_smoke_test.sh
-#   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_smoke_test.sh 0 webkb
+#
+#   # Compara baseline (sem IS/CL), is, cl, is_cl e o baseline 1 da literatura
+#   IMAGE=bio-is-curriculum:latest MODES="baseline is cl is_cl b1" \
+#     ./scripts/run_docker_smoke_test.sh 0 webkb
+#
+#   # Token "bN" (regex ^b[0-9]+$) é mapeado para --baseline N (ver BASELINES.md);
+#   # qualquer outro token é tratado como --mode <token>.
 #
 # Variáveis de ambiente opcionais:
-#   MODEL      modelo a usar: lr | roberta    (default: roberta)
-#   MODE       modo de execução               (default: baseline)
-#   FOLD       fold a usar                    (default: 0)
-#   N_SPLITS   número de splits do dataset    (default: 10)
-#   EPOCHS     épocas de treino (baseline/is)  (default: 6)
-#   EPOCHS_PP  épocas por fase (cl/is_cl)      (default: 2)
-#   LR         learning rate                   (default: 2e-5)
-#   WEIGHT_DECAY  L2 weight decay              (default: 1e-3)
-#   WARMUP_RATIO  fração de warmup linear      (default: 0.06)
-#   BETA       beta do BIOIS                   (default: 0.3)
-#   THETA      theta do BIOIS                  (default: 0.2)
-#   CPUS       limite de CPUs do container     (default: 16)
-#   MEMORY     limite de memória do container  (default: 32g)
+#   MODEL         lr | roberta                     (default: roberta)
+#   MODES         lista separada por espaço         (default: "is")
+#   FOLD          fold único usado para todos       (default: 0)
+#   N_SPLITS      n splits do dataset               (default: 10)
+#   EPOCHS        épocas de treino (baseline/is)    (default: 6)
+#   EPOCHS_PP     épocas por fase (cl/is_cl/bN)     (default: 2)
+#   BATCH_SIZE    batch de treino                   (default: 32)
+#   LR            learning rate                     (default: 2e-5)
+#   WEIGHT_DECAY  L2 weight decay                   (default: 1e-3)
+#   WARMUP_RATIO  fração de warmup linear           (default: 0.06)
+#   BETA          beta do BIOIS                     (default: 0.3)
+#   THETA         theta do BIOIS                    (default: 0.2)
+#   EXPERIMENT_ID força um experiment-id especifico (default: smoke-YYYYmmdd-HHMMSS)
+#   CPUS          limite de CPUs do container       (default: 16)
+#   MEMORY        limite de memória do container    (default: 32g)
 #
-# Os limites de CPU/MEMORY casam com run_docker_full_cv.sh para garantir que
-# (smoke, full) produzam métricas idênticas no mesmo (fold, mode) — qualquer
-# diferença de threading do BLAS/saga vira fonte de drift numérico.
+# Os limites de CPU/MEMORY casam com run_docker_full_cv.sh para que o mesmo
+# (fold, mode) produza métricas idênticas entre smoke e full — caso contrário
+# diferenças de threading do BLAS/saga viram drift numérico.
 set -euo pipefail
 
 # ── Configurações ──────────────────────────────────────────────────────────────
@@ -36,17 +45,19 @@ DATASET="${2:-webkb}"
 N_SPLITS="${N_SPLITS:-10}"
 
 MODEL="${MODEL:-roberta}"
-MODE="${MODE:-is}"
+MODES="${MODES:-is}"
 FOLD="${FOLD:-0}"
 EPOCHS="${EPOCHS:-6}"
 EPOCHS_PP="${EPOCHS_PP:-2}"
+BATCH_SIZE="${BATCH_SIZE:-32}"
 LR="${LR:-2e-5}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-1e-3}"
 WARMUP_RATIO="${WARMUP_RATIO:-0.06}"
 BETA="${BETA:-0.3}"
 THETA="${THETA:-0.2}"
 
-# Mesma envelope de recursos do full_cv para evitar drift de threads/BLAS.
+EXPERIMENT_ID="${EXPERIMENT_ID:-smoke-$(date +%Y%m%d-%H%M%S)}"
+
 CPUS="${CPUS:-16}"
 MEMORY="${MEMORY:-32g}"
 
@@ -54,34 +65,59 @@ IMAGE="${IMAGE:-bio-is-curriculum:latest}"
 HOST_PROJECT_DIR="${HOST_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 CONTAINER_WORKDIR="/app"
 
-# ── Monta o comando main.py ────────────────────────────────────────────────────
-CMD="python main.py ${DATASET}"
-CMD="${CMD} --mode ${MODE}"
-CMD="${CMD} --fold ${FOLD}"
-CMD="${CMD} --n-splits ${N_SPLITS}"
-CMD="${CMD} --model ${MODEL}"
-CMD="${CMD} --beta ${BETA}"
-CMD="${CMD} --theta ${THETA}"
-CMD="${CMD} --epochs ${EPOCHS}"
-CMD="${CMD} --epochs-per-phase ${EPOCHS_PP}"
-CMD="${CMD} --lr ${LR}"
-CMD="${CMD} --weight-decay ${WEIGHT_DECAY}"
-CMD="${CMD} --warmup-ratio ${WARMUP_RATIO}"
-CMD="${CMD} --data_dir datasets"
-CMD="${CMD} --results-dir results"
+# ── Monta o comando interno: loop pelos MODES, agrupados em um experiment-id ──
+# Para cada token: se for "bN" vira --baseline N, senao vira --mode <token>.
+# Tudo continua mesmo se um modo falhar (||true) para ter o relatorio completo.
+COMMON_ARGS=(
+  "--fold ${FOLD}"
+  "--n-splits ${N_SPLITS}"
+  "--experiment-id ${EXPERIMENT_ID}"
+  "--model ${MODEL}"
+  "--beta ${BETA}"
+  "--theta ${THETA}"
+  "--epochs ${EPOCHS}"
+  "--epochs-per-phase ${EPOCHS_PP}"
+  "--batch-size ${BATCH_SIZE}"
+  "--lr ${LR}"
+  "--weight-decay ${WEIGHT_DECAY}"
+  "--warmup-ratio ${WARMUP_RATIO}"
+  "--data_dir datasets"
+  "--results-dir results"
+)
+COMMON_STR="${COMMON_ARGS[*]}"
+
+INNER=""
+for tok in ${MODES}; do
+  if [[ "${tok}" =~ ^b[0-9]+$ ]]; then
+    bln_n="${tok#b}"
+    mode_flag="--baseline ${bln_n}"
+    label="baseline ${bln_n}"
+  else
+    mode_flag="--mode ${tok}"
+    label="mode ${tok}"
+  fi
+  INNER+="echo; echo '============================================================'; "
+  INNER+="echo '>> Rodando ${label} (fold ${FOLD})'; "
+  INNER+="echo '============================================================'; "
+  INNER+="python main.py ${DATASET} ${mode_flag} ${COMMON_STR} || echo '!! ${label} falhou (continuando)'; "
+done
 
 # ── Resumo ─────────────────────────────────────────────────────────────────────
 echo "============================================================"
-echo "  SMOKE TEST — verificacao de metricas (execucao unica)"
+echo "  SMOKE TEST multi-mode"
 echo "============================================================"
-echo "  Image    : ${IMAGE}"
-echo "  GPU      : device=${GPU_ID}"
-echo "  Dataset  : ${DATASET}  |  N-splits: ${N_SPLITS}"
-echo "  Mode     : ${MODE}  |  Fold: ${FOLD}"
-echo "  Model    : ${MODEL}  |  Epochs: ${EPOCHS}"
-echo "  LR       : ${LR}  |  WD: ${WEIGHT_DECAY}  |  Warmup: ${WARMUP_RATIO}"
-echo "  Host dir : ${HOST_PROJECT_DIR}"
-echo "  Comando  : ${CMD}"
+echo "  Image          : ${IMAGE}"
+echo "  GPU            : device=${GPU_ID}"
+echo "  Dataset        : ${DATASET}  |  N-splits: ${N_SPLITS}"
+echo "  Modes          : ${MODES}"
+echo "  Fold           : ${FOLD}"
+echo "  Model          : ${MODEL}"
+echo "  Epochs (is/bs) : ${EPOCHS}   |  per-phase (cl/is_cl/bN): ${EPOCHS_PP}"
+echo "  Batch          : ${BATCH_SIZE}"
+echo "  LR             : ${LR}  |  WD: ${WEIGHT_DECAY}  |  Warmup: ${WARMUP_RATIO}"
+echo "  Beta/Theta     : ${BETA}/${THETA}"
+echo "  Experiment ID  : ${EXPERIMENT_ID}"
+echo "  Host dir       : ${HOST_PROJECT_DIR}"
 echo "============================================================"
 
 # ── Execução ───────────────────────────────────────────────────────────────────
@@ -97,10 +133,10 @@ docker run --rm \
   -v "${HOST_PROJECT_DIR}/results:${CONTAINER_WORKDIR}/results" \
   -w "${CONTAINER_WORKDIR}" \
   "${IMAGE}" \
-  bash -c "${CMD}"
+  bash -c "${INNER}"
 
 echo ""
 echo "============================================================"
-echo "  Smoke test concluido. Verifique as metricas acima."
-echo "  Resultados salvos em: results/<run_id>/"
+echo "  Smoke test concluido."
+echo "  Resultados : results/${EXPERIMENT_ID}/<mode>_fold${FOLD}/"
 echo "============================================================"

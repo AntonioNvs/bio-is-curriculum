@@ -42,6 +42,7 @@ from data.loader import DatasetLoader
 from iSel.biois import BIOIS
 from results.run import RunRecorder
 from data.rare_class_upsampling import upsample_min_per_class
+from baselines import get_baseline, baseline_run_id
 
 
 BIOIS_STRATKFOLD_SPLITS = 5  # alinhado ao StratifiedKFold em BIOIS.fitting_alpha
@@ -149,7 +150,15 @@ def main():
         "--mode",
         choices=["baseline", "is", "cl", "is_cl"],
         default="is_cl",
-        help="Modo de execucao: baseline | is | cl | is_cl (default: is_cl)",
+        help="Modo de execucao: baseline | is | cl | is_cl (default: is_cl). "
+             "Ignorado quando --baseline N e fornecido.",
+    )
+    parser.add_argument(
+        "--baseline",
+        type=int,
+        default=None,
+        help="Indice de baseline da literatura (ver BASELINES.md). "
+             "Quando fornecido, sobrescreve --mode e roda apenas o baseline N.",
     )
 
     # BIOIS
@@ -174,7 +183,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=6, help="Epocas para treino unico (baseline/is)")
     parser.add_argument("--epochs-per-phase", dest="epochs_per_phase", type=int, default=2,
                         help="Epocas por fase (cl/is_cl)")
-    parser.add_argument("--batch-size", dest="batch_size", type=int, default=16)
+    parser.add_argument("--batch-size", dest="batch_size", type=int, default=32)
     parser.add_argument("--eval-batch-size", dest="eval_batch_size", type=int, default=64)
     parser.add_argument("--max-length", dest="max_length", type=int, default=256)
     parser.add_argument("--lr", type=float, default=2e-5)
@@ -215,6 +224,13 @@ def main():
     # Seeds globais antes de qualquer chamada estocastica (BIOIS, sklearn, etc.)
     random.seed(args.random_state)
     np.random.seed(args.random_state)
+
+    # --baseline N sobrescreve --mode. Valida e ja resolve a classe do registry
+    # para falhar cedo se o indice nao existir.
+    baseline_cls = None
+    if args.baseline is not None:
+        baseline_cls = get_baseline(args.baseline)
+        args.mode = baseline_run_id(args.baseline)  # ex.: "b1"
 
     # ------------------------------------------------------------------ setup
     if args.experiment_id is not None:
@@ -295,7 +311,7 @@ def main():
         y_texts_train = y_texts_raw[_train_idx]
 
     needs_is_early = args.mode in ("is", "is_cl")
-    needs_signals_early = args.mode in ("cl", "is_cl")
+    needs_signals_early = args.mode in ("cl", "is_cl") or baseline_cls is not None
     run_biois_early = needs_is_early or needs_signals_early
 
     if run_biois_early:
@@ -331,7 +347,7 @@ def main():
 
     # ------------------------------------------------------------------ BIOIS
     needs_is = args.mode in ("is", "is_cl")
-    needs_signals = args.mode in ("cl", "is_cl")
+    needs_signals = args.mode in ("cl", "is_cl") or baseline_cls is not None
     run_biois = needs_is or needs_signals
 
     selector = None
@@ -421,24 +437,25 @@ def main():
         )
 
     else:
-        # cl ou is_cl
+        # cl, is_cl ou baseline da literatura (b1, b2, ...)
         q_low, q_mid, q_high = args.curriculum_q
 
         # Para RoBERTa usa labels da fonte de texto; para LR usa labels do TF-IDF
         y_src = y_texts_train if y_texts_train is not None else y_train
         y_te  = y_test_texts  if y_test_texts  is not None else y_test
 
-        if args.mode == "cl":
-            cl_selector = selector
-            X_cl = X_train
-            y_cl = y_src
-            texts_cl = texts_train
-        else:  # is_cl
+        if args.mode == "is_cl":
             idx = selector.sample_indices_
             cl_selector = _slice_selector_signals(selector, idx)
             X_cl = X_train[idx]
             y_cl = y_src[idx]
             texts_cl = [texts_train[i] for i in idx] if texts_train else None
+        else:
+            # cl ou qualquer baseline da literatura: roda sobre o conjunto inteiro
+            cl_selector = selector
+            X_cl = X_train
+            y_cl = y_src
+            texts_cl = texts_train
 
         if args.mode == "is_cl":
             y_ic = np.asarray(y_cl)
@@ -466,15 +483,22 @@ def main():
             _print_oversampling("pos-IS (subset curriculo is_cl)", st_post_ic)
             y_cl = y_ic
 
+        if baseline_cls is not None:
+            CurriculumCls = baseline_cls
+            cl_label = f"baseline {baseline_cls.INDEX} ({baseline_cls.NAME})"
+        else:
+            CurriculumCls = BIOISCurriculum
+            cl_label = "BIOISCurriculum"
+
         print(
-            f"\n[{args.mode}] BIOISCurriculum em {len(y_cl)} instancias "
+            f"\n[{args.mode}] {cl_label} em {len(y_cl)} instancias "
             f"(q={q_low}/{q_mid}/{q_high}, {args.epochs_per_phase} ep/fase)..."
         )
 
         if hasattr(model, "epochs_per_stage"):
             model.epochs_per_stage = args.epochs_per_phase
 
-        curriculum = BIOISCurriculum(
+        curriculum = CurriculumCls(
             model=model,
             beta=args.curriculum_beta,
             q_low=q_low,

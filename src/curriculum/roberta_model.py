@@ -147,7 +147,7 @@ class RobertaModel(CurriculumModel):
         model_name: str = "roberta-base",
         num_labels: int | None = None,
         epochs_per_stage: int = 2,
-        batch_size: int = 16,
+        batch_size: int = 32,
         eval_batch_size: int = 64,
         max_length: int = 256,
         lr: float = 2e-5,

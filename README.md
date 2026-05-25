@@ -77,9 +77,22 @@ Para comparar os 4 modos, basta carregar os `phase_metrics.csv` de cada pasta.
 --results-dir                    Diretório base de resultados (default: results/)
 ```
 
-TO-DO para 26/05
-- [ ] Colocar a macro-f1 como todo foco de métrica de análise
-- [ ] Fazer projeto 2^2 com a macro f1
-- [ ] Implementação de algum baseline da literatura
-- [ ] Adicionar variação de balanceamento de classes e weighting no curriculum learning
-- [ ] Apresentação em slides interessantey
+TO-DO para 26/05 (entregáveis da reunião)
+
+Código
+- [ ] Implementar flag `--baseline N` (índice de baseline da literatura — ver `BASELINES.md`). Começar com `--baseline 1` (Bengio et al. 2009 confidence-paced CL) reusando `_probaEveryone` do BIOIS, sem mask de ruído nem peso de redundância
+
+Experimentos (em ordem de prioridade)
+- [ ] webkb 10cv × {baseline, baseline=1, is, cl, is_cl} — 50 runs, foco no 2² + ablação CL ingênuo
+- [ ] reuters90 5cv × 5 modos, começando por `FOLDS="0 1 2"` (`--n-splits 5` para caber no tempo; manter `upsample_min_per_class` ligado pelas classes <5 ex.)
+- [ ] mpqa 10cv × 5 modos
+
+Análises pro slide
+- [ ] Tabela macro-f1 média ± IC95 com Wilcoxon pareado (baseline vs cada modo, `cl` vs `is_cl`, `--baseline 1` vs `is_cl`)
+- [ ] Gráfico Pareto tempo×macro-f1 (`timings.csv::model_train_time_s`)
+- [ ] Bar chart macro-f1 por classe ordenada por frequência, evidenciando ganho nas raras
+- [ ] Dois números-âncora pro título: macro-f1 nas raras (baseline → is_cl) e redução de tempo (cl → is_cl)
+
+Adiados (não cabem em 1 dia)
+- [ ] Variação de balanceamento/weighting no CL — segundo experimento, sem ele o 2² já fica limpo
+- [ ] Baseline externo SOTA — comparação interessante é interna (cl vs is_cl vs cl_bengio); SOTA fica como next-step
