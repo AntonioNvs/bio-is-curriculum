@@ -4,7 +4,7 @@ from scipy import stats
 
 from sklearn.utils.validation import check_X_y
 from sklearn.metrics import f1_score
-from curriculum.models import logistic_regression_user_spec
+from sklearn.linear_model import LogisticRegression
 from sklearn.utils.multiclass import unique_labels
 from sklearn.model_selection import StratifiedKFold
 
@@ -99,6 +99,9 @@ class BIOIS(InstanceSelectionMixin):
         
     def fitting_alpha(self, X, y):
         print('fitting_alpha_by_lr_default')
+        # Setting the approximated KNN solution
+        #classifier = NMSlibKNNClassifier(n_neighbors=10, n_jobs=10)
+        #classifier.fit(X, y)
 
         nrows = X.shape[0]
         self.classes_ = unique_labels(y)
@@ -116,8 +119,7 @@ class BIOIS(InstanceSelectionMixin):
             X_train, y_train = X[train_index], y[train_index]
             X_val, y_val = X[val_index], y[val_index]
 
-            classifier = logistic_regression_user_spec()
-
+            classifier = LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000)
             print(classifier)
             classifier.fit(X_train, y_train)
 
