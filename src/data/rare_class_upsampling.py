@@ -9,10 +9,17 @@ from scipy import sparse
 
 @dataclass(frozen=True)
 class UpsampleStats:
-    """Estatisticas de um passe de oversampling."""
+    """Estatisticas de um passe de oversampling.
+
+    `dup_row_idx` traz os indices (na ordem `X` original) que foram
+    duplicados — exposto para que codigos chamadores possam estender, com
+    o MESMO conjunto de duplicacoes, arrays paralelos ao X (e.g., sinais
+    do BIOIS no curriculum is_cl).
+    """
 
     n_before: int
     n_after: int
+    dup_row_idx: np.ndarray  # shape (n_added,)
 
     @property
     def n_added(self) -> int:
@@ -64,7 +71,11 @@ def upsample_min_per_class(
             dup_row_idx.extend(rng.choice(cls_idx, size=need, replace=True).tolist())
 
     if not dup_row_idx:
-        stats = UpsampleStats(n_before=n_before, n_after=n_before)
+        stats = UpsampleStats(
+            n_before=n_before,
+            n_after=n_before,
+            dup_row_idx=np.empty(0, dtype=int),
+        )
         if plain_list_rows:
             return list(X), np.asarray(y, dtype=y.dtype), stats, texts
         return X, np.asarray(y, dtype=y.dtype), stats, texts
@@ -82,7 +93,9 @@ def upsample_min_per_class(
         else:
             texts_new = list(texts)
             texts_new.extend(texts[i] for i in dup_row_idx)
-        stats = UpsampleStats(n_before=n_before, n_after=len(X_new_list))
+        stats = UpsampleStats(
+            n_before=n_before, n_after=len(X_new_list), dup_row_idx=dup_arr,
+        )
         return X_new_list, yt, stats, texts_new
 
     X_extra = X[dup_arr]
@@ -97,5 +110,7 @@ def upsample_min_per_class(
     else:
         texts_new = None
 
-    stats = UpsampleStats(n_before=n_before, n_after=int(X_new.shape[0]))
+    stats = UpsampleStats(
+        n_before=n_before, n_after=int(X_new.shape[0]), dup_row_idx=dup_arr,
+    )
     return X_new, yt, stats, texts_new

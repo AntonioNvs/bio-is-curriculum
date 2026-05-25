@@ -197,7 +197,14 @@ class RobertaModel(CurriculumModel):
             sample_weight = np.ones(n, dtype=np.float64)
         sample_weight = np.array(sample_weight, dtype=np.float64)
 
-        num_labels = int(np.max(y)) + 1
+        # Prefere `self.num_labels` se foi definido externamente (caso comum no
+        # curriculum: a fase 1 pode não cobrir todas as classes, então inferir
+        # `max(y_phase)+1` aqui daria num_labels menor e quebraria a fase 2).
+        # Se nao foi definido, infere do batch atual (caminho `raw`/`is`).
+        if self.num_labels is not None:
+            num_labels = int(self.num_labels)
+        else:
+            num_labels = int(np.max(y)) + 1
         self._lazy_init(num_labels)
 
         dataset = _TextDataset(list(texts), y.astype(np.int64), sample_weight)

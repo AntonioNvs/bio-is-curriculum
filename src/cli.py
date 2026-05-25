@@ -382,6 +382,17 @@ def main():
     # ------------------------------------------------------------------ dispatcher
     model = _build_model(args, recorder)
 
+    # Fixa num_labels uma vez no modelo a partir do espaco completo de classes
+    # (train + test), para que fases do curriculum que nao contenham TODAS as
+    # classes (comum em datasets long-tail como reuters90) nao causem
+    # subinicializacao do classificador.
+    y_all_for_labels = np.concatenate([
+        np.asarray(y_texts_train if y_texts_train is not None else y_train),
+        np.asarray(y_test_texts if y_test_texts is not None else y_test),
+    ])
+    if hasattr(model, "num_labels"):
+        model.num_labels = int(np.max(y_all_for_labels)) + 1
+
     if args.mode == "raw":
         y_tr = y_texts_train if y_texts_train is not None else y_train
         y_te = y_test_texts  if y_test_texts  is not None else y_test
@@ -482,6 +493,23 @@ def main():
                 )
             _print_oversampling("pos-IS (subset curriculo is_cl)", st_post_ic)
             y_cl = y_ic
+
+            # O upsample duplicou linhas em X_cl/y_cl/texts_cl, mas cl_selector
+            # ainda tem os signals do tamanho original. Estende-os pelos mesmos
+            # indices duplicados para o curriculum casar shapes em _extract_signals.
+            if st_post_ic.n_added > 0:
+                dup = st_post_ic.dup_row_idx
+                cl_selector = SimpleNamespace(
+                    _probaEveryone=np.concatenate(
+                        [cl_selector._probaEveryone, cl_selector._probaEveryone[dup]], axis=0
+                    ),
+                    _y_proba_of_pred=np.concatenate(
+                        [cl_selector._y_proba_of_pred, cl_selector._y_proba_of_pred[dup]], axis=0
+                    ),
+                    _pred=np.concatenate(
+                        [cl_selector._pred, cl_selector._pred[dup]], axis=0
+                    ),
+                )
 
         if baseline_cls is not None:
             CurriculumCls = baseline_cls
