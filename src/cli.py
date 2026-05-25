@@ -2,7 +2,7 @@
 
 Suporta 4 modos (--mode) que formam a matriz IS x CL:
 
-  baseline -- sem IS, sem CL (fine-tuning padrao no train completo)
+  raw      -- sem IS, sem CL (fine-tuning padrao no train completo)
   is       -- com IS, sem CL (reducao por BIOIS, treino unico no subset)
   cl       -- sem IS, com CL (BIOIS so gera sinais, curriculum no train completo)
   is_cl    -- com IS e CL  (reducao + curriculum no subset)
@@ -12,7 +12,7 @@ de facil leitura e comparacao entre modos.
 
 Timings uniformes gravados em timings.csv para todos os modos:
   data_load_time_s    -- leitura de disco + encoding de labels
-  preprocess_time_s   -- fit do BIOIS (0 para baseline)
+  preprocess_time_s   -- fit do BIOIS (0 para raw)
   model_train_time_s  -- treino total do modelo (soma das fases)
   total_run_time_s    -- wall-clock fim a fim
 """
@@ -148,9 +148,9 @@ def main():
     # Modo de execucao
     parser.add_argument(
         "--mode",
-        choices=["baseline", "is", "cl", "is_cl"],
+        choices=["raw", "is", "cl", "is_cl"],
         default="is_cl",
-        help="Modo de execucao: baseline | is | cl | is_cl (default: is_cl). "
+        help="Modo de execucao: raw | is | cl | is_cl (default: is_cl). "
              "Ignorado quando --baseline N e fornecido.",
     )
     parser.add_argument(
@@ -180,7 +180,7 @@ def main():
     # Modelo
     parser.add_argument("--model", choices=["lr", "roberta"], default="roberta")
     parser.add_argument("--hf-model", dest="hf_model", type=str, default="roberta-base")
-    parser.add_argument("--epochs", type=int, default=6, help="Epocas para treino unico (baseline/is)")
+    parser.add_argument("--epochs", type=int, default=6, help="Epocas para treino unico (raw/is)")
     parser.add_argument("--epochs-per-phase", dest="epochs_per_phase", type=int, default=2,
                         help="Epocas por fase (cl/is_cl)")
     parser.add_argument("--batch-size", dest="batch_size", type=int, default=32)
@@ -382,10 +382,10 @@ def main():
     # ------------------------------------------------------------------ dispatcher
     model = _build_model(args, recorder)
 
-    if args.mode == "baseline":
+    if args.mode == "raw":
         y_tr = y_texts_train if y_texts_train is not None else y_train
         y_te = y_test_texts  if y_test_texts  is not None else y_test
-        print(f"\n[baseline] Treinando {args.model} em {len(y_tr)} instancias por {args.epochs} epocas...")
+        print(f"\n[raw] Treinando {args.model} em {len(y_tr)} instancias por {args.epochs} epocas...")
         X_train_input = texts_train if texts_train else X_train
         X_test_input = texts_test if texts_test else X_test
         if hasattr(model, "set_phase"):

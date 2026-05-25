@@ -1,11 +1,11 @@
 """Executor de experimentos multi-fold para biO-IS-Curriculum.
 
-Roda todos os modos (baseline, is, cl, is_cl) em todos os folds
+Roda todos os modos (raw, is, cl, is_cl) em todos os folds
 disponibles no split file, salvando os artefatos em:
 
     results/<experiment_id>/
-        baseline_fold0/
-        baseline_fold1/
+        raw_fold0/
+        raw_fold1/
         ...
         is_fold0/
         cl_fold0/
@@ -187,8 +187,8 @@ def main():
     parser.add_argument(
         "--modes",
         nargs="+",
-        choices=["baseline", "is", "cl", "is_cl"],
-        default=["baseline", "is", "cl", "is_cl"],
+        choices=["raw", "is", "cl", "is_cl"],
+        default=["raw", "is", "cl", "is_cl"],
         help="Modos a executar (default: todos os 4)",
     )
     parser.add_argument(

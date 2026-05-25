@@ -10,8 +10,8 @@
 #   # Default: roda só 'is' no fold 0 do webkb
 #   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_smoke_test.sh
 #
-#   # Compara baseline (sem IS/CL), is, cl, is_cl e o baseline 1 da literatura
-#   IMAGE=bio-is-curriculum:latest MODES="baseline is cl is_cl b1" \
+#   # Compara raw (sem IS/CL), is, cl, is_cl e o baseline 1 da literatura
+#   IMAGE=bio-is-curriculum:latest MODES="raw is cl is_cl b1" \
 #     ./scripts/run_docker_smoke_test.sh 0 webkb
 #
 #   # Token "bN" (regex ^b[0-9]+$) é mapeado para --baseline N (ver BASELINES.md);
@@ -22,7 +22,7 @@
 #   MODES         lista separada por espaço         (default: "is")
 #   FOLD          fold único usado para todos       (default: 0)
 #   N_SPLITS      n splits do dataset               (default: 10)
-#   EPOCHS        épocas de treino (baseline/is)    (default: 6)
+#   EPOCHS        épocas de treino (raw/is)         (default: 6)
 #   EPOCHS_PP     épocas por fase (cl/is_cl/bN)     (default: 2)
 #   BATCH_SIZE    batch de treino                   (default: 32)
 #   LR            learning rate                     (default: 2e-5)
