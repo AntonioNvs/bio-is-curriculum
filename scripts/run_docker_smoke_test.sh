@@ -15,8 +15,10 @@
 #   MODE       modo de execução               (default: baseline)
 #   FOLD       fold a usar                    (default: 0)
 #   N_SPLITS   número de splits do dataset    (default: 10)
-#   EPOCHS     épocas de treino               (default: 1)
+#   EPOCHS     épocas de treino               (default: 6)
 #   LR         learning rate                  (default: 2e-5)
+#   WEIGHT_DECAY  L2 weight decay             (default: 1e-3)
+#   WARMUP_RATIO  fração de warmup linear     (default: 0.06)
 #   CPUS       limite de CPUs do container    (default: 4)
 #   MEMORY     limite de memória do container (default: 16g)
 set -euo pipefail
@@ -29,8 +31,10 @@ N_SPLITS="${N_SPLITS:-10}"
 MODEL="${MODEL:-roberta}"
 MODE="${MODE:-is}"
 FOLD="${FOLD:-0}"
-EPOCHS="${EPOCHS:-5}"
-LR="${LR:-3e-5}"
+EPOCHS="${EPOCHS:-6}"
+LR="${LR:-2e-5}"
+WEIGHT_DECAY="${WEIGHT_DECAY:-1e-3}"
+WARMUP_RATIO="${WARMUP_RATIO:-0.06}"
 
 CPUS="${CPUS:-4}"
 MEMORY="${MEMORY:-16g}"
@@ -48,6 +52,8 @@ CMD="${CMD} --model ${MODEL}"
 CMD="${CMD} --epochs ${EPOCHS}"
 CMD="${CMD} --epochs-per-phase ${EPOCHS}"
 CMD="${CMD} --lr ${LR}"
+CMD="${CMD} --weight-decay ${WEIGHT_DECAY}"
+CMD="${CMD} --warmup-ratio ${WARMUP_RATIO}"
 CMD="${CMD} --data_dir datasets"
 CMD="${CMD} --results-dir results"
 
@@ -60,6 +66,7 @@ echo "  GPU      : device=${GPU_ID}"
 echo "  Dataset  : ${DATASET}  |  N-splits: ${N_SPLITS}"
 echo "  Mode     : ${MODE}  |  Fold: ${FOLD}"
 echo "  Model    : ${MODEL}  |  Epochs: ${EPOCHS}"
+echo "  LR       : ${LR}  |  WD: ${WEIGHT_DECAY}  |  Warmup: ${WARMUP_RATIO}"
 echo "  Host dir : ${HOST_PROJECT_DIR}"
 echo "  Comando  : ${CMD}"
 echo "============================================================"
