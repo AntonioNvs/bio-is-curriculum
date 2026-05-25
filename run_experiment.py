@@ -1,21 +1,26 @@
 """Executor de experimentos multi-fold para biO-IS-Curriculum.
 
-Roda todos os modos (raw, is, cl, is_cl) em todos os folds
-disponibles no split file, salvando os artefatos em:
+Roda todos os modos (raw, is, cl, is_cl) e/ou baselines da literatura
+(b1, b2, ... — ver BASELINES.md) em todos os folds disponiveis no
+split file, salvando os artefatos em:
 
     results/<experiment_id>/
         raw_fold0/
-        raw_fold1/
-        ...
         is_fold0/
         cl_fold0/
         is_cl_fold0/
+        b1_fold0/       <- baseline 1 (despachado como --baseline 1)
+        b2_fold0/       <- baseline 2 (despachado como --baseline 2)
         ...
-        summary.csv   <- metricas com IC 95% por modo
+        summary.csv     <- metricas com IC 95% por modo
 
 Uso:
     python run_experiment.py webkb --n-splits 10 --model lr
     python run_experiment.py webkb --n-splits 5 --folds 0 1 2 --model roberta
+    python run_experiment.py webkb --modes raw is cl is_cl b1   # com baseline literatura
+
+Tokens no formato `b<N>` (regex ^b[0-9]+$) sao despachados ao main.py
+como `--baseline N`. Os outros tokens devem ser modos validos do --mode.
 
 Todos os argumentos extras (--beta, --theta, --epochs, --lr, etc.)
 sao repassados diretamente ao main.py de cada execucao.
@@ -23,6 +28,7 @@ sao repassados diretamente ao main.py de cada execucao.
 import argparse
 import csv
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -31,6 +37,30 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+
+# ---------------------------------------------------------------------------
+# Tokens aceitos em --modes
+# ---------------------------------------------------------------------------
+
+_BUILTIN_MODES = {"raw", "is", "cl", "is_cl"}
+_BASELINE_RE = re.compile(r"^b([0-9]+)$")
+
+
+def _parse_mode_token(tok: str) -> str:
+    """Valida um token do --modes. Aceita built-ins ou `bN` (baseline N).
+
+    Retorna o proprio token (normalizado). A traducao para flag de CLI do
+    main.py acontece em `_run_single`.
+    """
+    if tok in _BUILTIN_MODES:
+        return tok
+    if _BASELINE_RE.match(tok):
+        return tok
+    raise argparse.ArgumentTypeError(
+        f"Token invalido em --modes: {tok!r}. "
+        f"Aceitos: {sorted(_BUILTIN_MODES)} ou bN (ex.: b1, b2 — ver BASELINES.md)."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -60,18 +90,30 @@ def _run_single(
 ) -> int:
     """Spawna 'python main.py ...' para um unico (mode, fold).
 
+    Para tokens `bN` (baselines da literatura), despacha como
+    `--baseline N` em vez de `--mode bN`. O cli.py renomeia internamente
+    `args.mode` para `b{N}` para o naming da pasta de resultados, entao
+    a estrutura `<exp_id>/b{N}_fold<k>/` segue valida.
+
     Retorna o exit code do subprocesso.
     """
     cmd = [
         sys.executable, "main.py", dataset,
-        "--mode", mode,
         "--fold", str(fold),
         "--experiment-id", experiment_id,
         "--results-dir", results_dir,
-    ] + extra_args
+    ]
+    m = _BASELINE_RE.match(mode)
+    if m:
+        cmd += ["--baseline", m.group(1)]
+        label = f"baseline {m.group(1)}"
+    else:
+        cmd += ["--mode", mode]
+        label = mode
+    cmd += extra_args
 
     print(f"\n{'='*60}")
-    print(f"[{mode} | fold {fold}]  {' '.join(cmd)}")
+    print(f"[{label} | fold {fold}]  {' '.join(cmd)}")
     print(f"{'='*60}")
 
     result = subprocess.run(cmd, check=False)
@@ -187,9 +229,13 @@ def main():
     parser.add_argument(
         "--modes",
         nargs="+",
-        choices=["raw", "is", "cl", "is_cl"],
+        type=_parse_mode_token,
         default=["raw", "is", "cl", "is_cl"],
-        help="Modos a executar (default: todos os 4)",
+        help=(
+            "Modos a executar. Aceita built-ins (raw, is, cl, is_cl) e/ou "
+            "baselines da literatura no formato bN (ex.: b1, b2 — ver "
+            "BASELINES.md). Default: raw is cl is_cl."
+        ),
     )
     parser.add_argument(
         "--folds",

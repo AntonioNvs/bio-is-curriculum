@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
 # Executa os experimentos multi-fold do biO-IS-Curriculum dentro de um container Docker.
-# Roda todos os modos (raw, is, cl, is_cl) em todos os folds do split file,
+# Roda todos os modos (raw, is, cl, is_cl) e/ou baselines da literatura
+# (b1, b2, ... — ver BASELINES.md) em todos os folds do split file,
 # gerando resultados completos com IC 95% em results/<experiment_id>/summary.csv.
 #
 # Uso:
 #   IMAGE=<imagem> ./scripts/run_docker_full_cv.sh [GPU_ID] [DATASET] [N_SPLITS]
 #
 # Exemplos:
-#   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_full_cv.sh
+#   # Default — só os 4 modos próprios:
 #   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_full_cv.sh 0 webkb 10
-#   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_full_cv.sh 3 reuters 5
+#
+#   # Com baseline 1 (Bengio) na comparação:
+#   IMAGE=bio-is-curriculum:latest MODES="raw is cl is_cl b1" \
+#     ./scripts/run_docker_full_cv.sh 0 webkb 10
+#
+#   # Reuters (5-fold) só baseline + raw para validação rápida:
+#   IMAGE=bio-is-curriculum:latest MODES="raw b1" \
+#     ./scripts/run_docker_full_cv.sh 3 reuters 5
 #
 # Variáveis de ambiente opcionais:
 #   MODEL      modelo a usar: lr | roberta         (default: roberta)
 #   MODES      modos separados por espaço           (default: "raw is cl is_cl")
+#              tokens válidos: raw | is | cl | is_cl | bN (N = índice de baseline)
 #   FOLDS      folds separados por espaço           (default: todos do split file)
 #   BETA       taxa de redundância BIOIS            (default: 0.3)
 #   THETA      taxa de ruído BIOIS                  (default: 0.2)
