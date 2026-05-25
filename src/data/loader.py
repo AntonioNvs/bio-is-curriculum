@@ -168,7 +168,17 @@ class DatasetLoader:
         y_train = le.transform(train_scores)
         y_test = le.transform(test_scores)
 
-        vec = TfidfVectorizer()
+        # Pré-processamento alinhado à prática-padrão do upstream svmlight:
+        # sublinear_tf + min_df>=2 + max_df<=0.95 + stopwords removidas.
+        # Defaults sklearn produzem vocab grande e mal-calibrado, o que estraga
+        # a calibração do LR fraco do BIOIS — especialmente o sinal de entropia
+        # que define a fase clean do curriculum.
+        vec = TfidfVectorizer(
+            sublinear_tf=True,
+            min_df=2,
+            max_df=0.95,
+            stop_words="english",
+        )
         X_train = vec.fit_transform(texts_train)
         X_test = vec.transform(texts_test)
 

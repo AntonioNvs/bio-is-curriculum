@@ -109,18 +109,34 @@ class BIOISCurriculum(CurriculumBase):
         return r, e
 
     def _build_phases(self, r, e):
-        """Constroi os indices e pesos cumulativos para A, B e C."""
+        """Constroi os indices e pesos cumulativos para A, B e C.
+
+        A partição das fases usa APENAS entropia (`e`): fase A = 30% mais
+        confiantes, B = 60%, C = 95% — pacing fácil→difícil.
+
+        O sinal `r` (redundância/confiança na classe predita) era usado
+        originalmente como filtro AND na fase A (`mask_a = (e<=e_low) & (r<=r_thr)`),
+        mas isso colapsa: `e` e `r` são fortemente anti-correlacionados por
+        construção (confiante e correto ⇒ e baixa + r alta), então a
+        interseção `low e AND low r` representa basicamente "confidently
+        wrong" — fração ínfima (~1%) quando o LR fraco é decente. Resultado:
+        fase clean com ~100 exemplos, modelo não converge, curriculum
+        quebra.
+
+        `r` segue sendo usado como peso na fase hard (`w = 1 - β·r`),
+        preservando o uso dos dois sinais do BIOIS — só desacoplado da
+        definição das fases.
+        """
         n = len(e)
         e_low = np.quantile(e, self.q_low)
         e_mid = np.quantile(e, self.q_mid)
         e_high = np.quantile(e, self.q_high)
-        r_threshold = np.quantile(r, self.r_cap)
 
         idx_all = np.arange(n)
 
-        mask_a = (e <= e_low) & (r <= r_threshold)
-        mask_b = mask_a | ((e > e_low) & (e <= e_mid))
-        mask_c = mask_b | ((e > e_mid) & (e <= e_high))
+        mask_a = e <= e_low
+        mask_b = e <= e_mid
+        mask_c = e <= e_high
 
         phases = []
         for name, mask in zip(self.PHASE_NAMES, (mask_a, mask_b, mask_c)):
