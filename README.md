@@ -80,7 +80,7 @@ Para comparar os 4 modos, basta carregar os `phase_metrics.csv` de cada pasta.
 TO-DO para 26/05 (entregáveis da reunião)
 
 Código
-- [ ] Implementar flag `--baseline N` (índice de baseline da literatura — ver `BASELINES.md`). Começar com `--baseline 1` (Bengio et al. 2009 confidence-paced CL) reusando `_probaEveryone` do BIOIS, sem mask de ruído nem peso de redundância
+- [X] Implementar flag `--baseline N` (índice de baseline da literatura — ver `BASELINES.md`). Começar com `--baseline 1` (Bengio et al. 2009 confidence-paced CL) reusando `_probaEveryone` do BIOIS, sem mask de ruído nem peso de redundância
 
 Experimentos (em ordem de prioridade)
 - [ ] webkb 10cv × {raw, baseline=1, is, cl, is_cl} — 50 runs, foco no 2² + ablação CL ingênuo
