@@ -4,3 +4,5 @@ is_fit_time_s,77.78766192588955
 preprocess_time_s,77.78766192588955
 cl_signal_extract,1.221747601404786
 cl_phase_build,0.0007407478988170624
+model_train_time_s,841.5788802877069
+total_run_time_s,933.5758243659511
