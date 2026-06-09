@@ -1,0 +1,16 @@
+{
+  "n_train_before": 8590,
+  "n_train_after": 5675,
+  "n_removed": 2915,
+  "reduction": 0.3393480791618161,
+  "beta": 0.3,
+  "theta": 0.2,
+  "removed_by_class": {
+    "0": 2221,
+    "1": 694
+  },
+  "total_by_class": {
+    "1": 2683,
+    "0": 5907
+  }
+}

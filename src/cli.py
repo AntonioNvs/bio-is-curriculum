@@ -1,11 +1,14 @@
 """CLI principal do biO-IS-Curriculum.
 
-Suporta 4 modos (--mode) que formam a matriz IS x CL:
+Suporta modos (--mode) que formam a matriz IS x CL:
 
-  raw      -- sem IS, sem CL (fine-tuning padrao no train completo)
-  is       -- com IS, sem CL (reducao por BIOIS, treino unico no subset)
-  cl       -- sem IS, com CL (BIOIS so gera sinais, curriculum no train completo)
-  is_cl    -- com IS e CL  (reducao + curriculum no subset)
+  raw              -- sem IS, sem CL (fine-tuning padrao no train completo)
+  is               -- com IS, sem CL (reducao por BIOIS, treino unico no subset)
+  cl               -- sem IS, com CL (BIOIS so gera sinais, curriculum no train completo)
+  is_cl            -- com IS e CL  (reducao + curriculum no subset)
+  is_continuos_cl  -- alias IS+CL com metodo spcl_soft por default
+
+Metodos de curriculum (--curriculum-method): biois_discrete, spcl_soft, spcl_loss.
 
 Todos os resultados sao gravados em results/<run_id>/ como CSVs/JSON
 de facil leitura e comparacao entre modos.
@@ -30,22 +33,25 @@ os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 os.environ.setdefault("PYTHONHASHSEED", "42")
 
 import numpy as np
-from scipy import stats
-from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedShuffleSplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from curriculum.biois_curriculum import BIOISCurriculum
+from curriculum.methods.registry import build_curriculum_kwargs, get_curriculum_method, resolve_method_id
 from curriculum.models import LogisticRegressionModel
 from data.loader import DatasetLoader
 from iSel.biois import BIOIS
+from results.metrics import build_phase_metrics_row
 from results.run import RunRecorder
 from data.rare_class_upsampling import upsample_min_per_class
 from baselines import get_baseline, baseline_run_id
 
 
 BIOIS_STRATKFOLD_SPLITS = 5  # alinhado ao StratifiedKFold em BIOIS.fitting_alpha
+
+IS_MODES = frozenset({"is", "is_cl", "is_continuos_cl"})
+CL_MODES = frozenset({"cl", "is_cl", "is_continuos_cl"})
+IS_CL_MODES = frozenset({"is_cl", "is_continuos_cl"})
 
 
 def _print_oversampling(stage: str, stats) -> None:
@@ -91,33 +97,27 @@ def _build_model(args, recorder: RunRecorder):
 def _eval_single_stage(
     model, X_eval, y_test, recorder: RunRecorder, phase: str = "full",
     train_time: float = float("nan"),
+    hard_slice_quantile: float = 0.8,
 ):
     """Avalia o modelo apos treino de fase unica e grava phase_metrics."""
     t0 = time.perf_counter()
-    preds = model.predict(X_eval)
-    pred_time = time.perf_counter() - t0
-
     proba = model.predict_proba(X_eval)
-    ent = np.array([stats.entropy(p) for p in proba])
-    threshold = np.quantile(ent, 0.8)
-    mask_hard = ent >= threshold
-    hard_f1 = (
-        float(f1_score(y_test[mask_hard], preds[mask_hard], average="macro"))
-        if mask_hard.sum() > 0
-        else float("nan")
+    preds = np.argmax(proba, axis=1)
+    pred_time = time.perf_counter() - t0
+    training_stats = {}
+    if hasattr(model, "get_training_stats"):
+        training_stats = model.get_training_stats()
+    row = build_phase_metrics_row(
+        phase=phase,
+        y_true=y_test,
+        y_pred=preds,
+        proba=proba,
+        n_iter=model.n_iter,
+        train_time_s=train_time,
+        pred_time_s=pred_time,
+        hard_slice_quantile=hard_slice_quantile,
+        training_stats=training_stats,
     )
-
-    row = {
-        "phase": phase,
-        "n_samples": int(len(y_test)),
-        "n_iter": model.n_iter,
-        "train_time_s": float(train_time),
-        "pred_time_s": float(pred_time),
-        "micro_f1": float(f1_score(y_test, preds, average="micro")),
-        "macro_f1": float(f1_score(y_test, preds, average="macro")),
-        "accuracy": float(accuracy_score(y_test, preds)),
-        "hard_slice_macro_f1": hard_f1,
-    }
     recorder.log_phase(row)
     return preds, proba, row
 
@@ -148,9 +148,9 @@ def main():
     # Modo de execucao
     parser.add_argument(
         "--mode",
-        choices=["raw", "is", "cl", "is_cl"],
+        choices=["raw", "is", "cl", "is_cl", "is_continuos_cl"],
         default="is_cl",
-        help="Modo de execucao: raw | is | cl | is_cl (default: is_cl). "
+        help="Modo de execucao: raw | is | cl | is_cl | is_continuos_cl (default: is_cl). "
              "Ignorado quando --baseline N e fornecido.",
     )
     parser.add_argument(
@@ -167,6 +167,14 @@ def main():
     parser.add_argument("--random-state", dest="random_state", type=int, default=42)
 
     # Curriculum
+    parser.add_argument(
+        "--curriculum-method",
+        dest="curriculum_method",
+        type=str,
+        default=None,
+        help="Metodo de curriculum: biois_discrete | spcl_soft | spcl_loss "
+             "(default: biois_discrete; is_continuos_cl usa spcl_soft).",
+    )
     parser.add_argument("--curriculum-beta", dest="curriculum_beta", type=float, default=0.5)
     parser.add_argument(
         "--curriculum-q",
@@ -175,6 +183,41 @@ def main():
         nargs=3,
         default=(0.3, 0.6, 0.95),
         metavar=("Q_LOW", "Q_MID", "Q_HIGH"),
+    )
+    parser.add_argument(
+        "--curriculum-n-steps",
+        dest="curriculum_n_steps",
+        type=int,
+        default=10,
+        help="Passos do curriculum continuo/SPCL (default: 10).",
+    )
+    parser.add_argument(
+        "--curriculum-alpha-decay",
+        dest="curriculum_alpha_decay",
+        type=float,
+        default=10.0,
+        help="Suavidade do soft-pacing SPCL (default: 10.0).",
+    )
+    parser.add_argument(
+        "--curriculum-lambda-init",
+        dest="curriculum_lambda_init",
+        type=float,
+        default=0.1,
+        help="Lambda inicial do SPCL baseado em loss (default: 0.1).",
+    )
+    parser.add_argument(
+        "--curriculum-lambda-mult",
+        dest="curriculum_lambda_mult",
+        type=float,
+        default=1.5,
+        help="Multiplicador de lambda por passo no SPCL loss (default: 1.5).",
+    )
+    parser.add_argument(
+        "--curriculum-min-weight",
+        dest="curriculum_min_weight",
+        type=float,
+        default=1e-3,
+        help="Peso minimo para manter amostra no SPCL loss (default: 1e-3).",
     )
 
     # Modelo
@@ -208,6 +251,13 @@ def main():
         default=True,
         help="Ativa peso por frequencia de classe na cross-entropy (default: True).",
     )
+    parser.add_argument(
+        "--hard-slice-quantile",
+        dest="hard_slice_quantile",
+        type=float,
+        default=0.8,
+        help="Quantil de entropia para hard-slice (default: 0.8 = top 20%%).",
+    )
 
     # Resultados
     parser.add_argument("--results-dir", dest="results_dir", type=str, default="results")
@@ -220,6 +270,12 @@ def main():
                         help="ID da execucao individual (ignorado se --experiment-id for fornecido)")
 
     args = parser.parse_args()
+
+    if args.curriculum_method is None:
+        args.curriculum_method = (
+            "spcl_soft" if args.mode == "is_continuos_cl" else "biois_discrete"
+        )
+    args.curriculum_method = resolve_method_id(args.curriculum_method)
 
     # Seeds globais antes de qualquer chamada estocastica (BIOIS, sklearn, etc.)
     random.seed(args.random_state)
@@ -292,8 +348,19 @@ def main():
         print(f"  X_train_raw: {X_train_raw.shape}  X_test: {X_test.shape}")
 
     # ---- StratifiedShuffleSplit aplicado UMA vez sobre os indices TF-IDF -----
-    # Os mesmos indices sao usados para fatiar X_train, y_train (para BIOIS)
-    # E texts_train, y_texts_train (para o modelo de linguagem).
+    # Garante pelo menos 2 instâncias por classe para permitir o split estratificado.
+    # Isso evita o erro "The least populated classes in y have only 1 member" no reuters90.
+    X_train_raw, y_train_raw, st_raw, texts_train_raw = upsample_min_per_class(
+        X_train_raw,
+        y_train_raw,
+        min_count=2,
+        random_state=args.random_state,
+        texts=texts_train_raw,
+    )
+    if y_texts_raw is not None:
+        y_texts_raw = y_train_raw
+    _print_oversampling("pre-split (estabilizacao de classes raras)", st_raw)
+
     sss = StratifiedShuffleSplit(n_splits=2, test_size=0.1, random_state=2018)
     for _train_idx, _val_idx in sss.split(X_train_raw, y_train_raw):
         continue  # usa a ultima divisao gerada
@@ -304,14 +371,15 @@ def main():
     y_val   = y_train_raw[_val_idx]
 
     texts_train = texts_val = None
-    y_texts_train = None
+    y_texts_train = y_texts_val = None
     if texts_train_raw is not None:
         texts_train = [texts_train_raw[i] for i in _train_idx]
         texts_val = [texts_train_raw[i] for i in _val_idx]
         y_texts_train = y_texts_raw[_train_idx]
+        y_texts_val = y_texts_raw[_val_idx]
 
-    needs_is_early = args.mode in ("is", "is_cl")
-    needs_signals_early = args.mode in ("cl", "is_cl") or baseline_cls is not None
+    needs_is_early = args.mode in IS_MODES
+    needs_signals_early = args.mode in CL_MODES or baseline_cls is not None
     run_biois_early = needs_is_early or needs_signals_early
 
     if run_biois_early:
@@ -346,8 +414,8 @@ def main():
     print("=" * 50)
 
     # ------------------------------------------------------------------ BIOIS
-    needs_is = args.mode in ("is", "is_cl")
-    needs_signals = args.mode in ("cl", "is_cl") or baseline_cls is not None
+    needs_is = args.mode in IS_MODES
+    needs_signals = args.mode in CL_MODES or baseline_cls is not None
     run_biois = needs_is or needs_signals
 
     selector = None
@@ -377,6 +445,27 @@ def main():
                 pct = (100.0 * removed / total) if total else 0.0
                 print(f"    classe {cls}: {removed}/{total} ({pct:.1f}%)")
 
+        if needs_is:
+            recorder.save_instance_selection(
+                n_train_before=len(y_train_arr),
+                n_train_after=len(selector.sample_indices_),
+                reduction=selector.reduction_,
+                beta=biois_beta,
+                theta=biois_theta,
+                removed_by_class=dict(removed_by_class),
+                total_by_class=dict(total_by_class),
+            )
+        else:
+            recorder.save_instance_selection(
+                n_train_before=len(y_train_arr),
+                n_train_after=len(y_train_arr),
+                reduction=0.0,
+                beta=biois_beta,
+                theta=biois_theta,
+                removed_by_class={},
+                total_by_class=dict(total_by_class),
+            )
+
     recorder.log_timing("preprocess_time_s", preprocess_time)
 
     # ------------------------------------------------------------------ dispatcher
@@ -398,28 +487,38 @@ def main():
         y_te = y_test_texts  if y_test_texts  is not None else y_test
         print(f"\n[raw] Treinando {args.model} em {len(y_tr)} instancias por {args.epochs} epocas...")
         X_train_input = texts_train if texts_train else X_train
+        X_val_input = texts_val if texts_val else X_val
         X_test_input = texts_test if texts_test else X_test
+        y_val_input = y_texts_val if y_texts_val is not None else y_val
         if hasattr(model, "set_phase"):
             model.set_phase("full")
         if hasattr(model, "epochs_per_stage"):
             model.epochs_per_stage = args.epochs
         t0_train = time.perf_counter()
-        model.fit_stage(X_train_input, y_tr)
+        model.fit_stage(X_train_input, y_tr, X_val=X_val_input, y_val=y_val_input)
         train_time = time.perf_counter() - t0_train
         recorder.log_timing("model_train_time_s", train_time)
         print(f"  Treino concluido em {train_time:.1f}s")
         preds, proba, metrics = _eval_single_stage(
-            model, X_test_input, y_te, recorder, train_time=train_time,
+            model,
+            X_test_input,
+            y_te,
+            recorder,
+            train_time=train_time,
+            hard_slice_quantile=args.hard_slice_quantile,
         )
+        recorder.log_timing("metric_eval_time_s", float(metrics.get("pred_time_s", float("nan"))))
 
     elif args.mode == "is":
         idx = selector.sample_indices_
         X_sub = texts_train if texts_train else X_train
         X_train_input = [X_sub[i] for i in idx] if isinstance(X_sub, list) else X_sub[idx]
+        X_val_input = texts_val if texts_val else X_val
         X_test_input = texts_test if texts_test else X_test
         # Para RoBERTa usa labels da fonte de texto; para LR usa labels do TF-IDF
         y_src = y_texts_train if y_texts_train is not None else y_train
         y_te  = y_test_texts  if y_test_texts  is not None else y_test
+        y_val_input = y_texts_val if y_texts_val is not None else y_val
         y_sub = np.asarray(y_src[idx])
         assert len(y_sub) == (
             len(X_train_input)
@@ -439,13 +538,19 @@ def main():
         if hasattr(model, "epochs_per_stage"):
             model.epochs_per_stage = args.epochs
         t0_train = time.perf_counter()
-        model.fit_stage(X_train_input, y_sub)
+        model.fit_stage(X_train_input, y_sub, X_val=X_val_input, y_val=y_val_input)
         train_time = time.perf_counter() - t0_train
         recorder.log_timing("model_train_time_s", train_time)
         print(f"  Treino concluido em {train_time:.1f}s")
         preds, proba, metrics = _eval_single_stage(
-            model, X_test_input, y_te, recorder, train_time=train_time,
+            model,
+            X_test_input,
+            y_te,
+            recorder,
+            train_time=train_time,
+            hard_slice_quantile=args.hard_slice_quantile,
         )
+        recorder.log_timing("metric_eval_time_s", float(metrics.get("pred_time_s", float("nan"))))
 
     else:
         # cl, is_cl ou baseline da literatura (b1, b2, ...)
@@ -455,7 +560,7 @@ def main():
         y_src = y_texts_train if y_texts_train is not None else y_train
         y_te  = y_test_texts  if y_test_texts  is not None else y_test
 
-        if args.mode == "is_cl":
+        if args.mode in IS_CL_MODES:
             idx = selector.sample_indices_
             cl_selector = _slice_selector_signals(selector, idx)
             X_cl = X_train[idx]
@@ -468,7 +573,7 @@ def main():
             y_cl = y_src
             texts_cl = texts_train
 
-        if args.mode == "is_cl":
+        if args.mode in IS_CL_MODES:
             y_ic = np.asarray(y_cl)
             assert len(y_ic) == (
                 len(texts_cl)
@@ -514,33 +619,45 @@ def main():
         if baseline_cls is not None:
             CurriculumCls = baseline_cls
             cl_label = f"baseline {baseline_cls.INDEX} ({baseline_cls.NAME})"
+            curriculum_kwargs = {
+                "model": model,
+                "beta": args.curriculum_beta,
+                "q_low": q_low,
+                "q_mid": q_mid,
+                "q_high": q_high,
+                "random_state": args.random_state,
+                "hard_slice_quantile": args.hard_slice_quantile,
+            }
         else:
-            CurriculumCls = BIOISCurriculum
-            cl_label = "BIOISCurriculum"
+            CurriculumCls = get_curriculum_method(args.curriculum_method)
+            cl_label = f"{args.curriculum_method} ({CurriculumCls.__name__})"
+            curriculum_kwargs = build_curriculum_kwargs(args.curriculum_method, args)
+            curriculum_kwargs["model"] = model
 
+        method_detail = (
+            f"q={q_low}/{q_mid}/{q_high}"
+            if args.curriculum_method == "biois_discrete"
+            else f"n_steps={args.curriculum_n_steps}"
+        )
         print(
             f"\n[{args.mode}] {cl_label} em {len(y_cl)} instancias "
-            f"(q={q_low}/{q_mid}/{q_high}, {args.epochs_per_phase} ep/fase)..."
+            f"({method_detail}, {args.epochs_per_phase} ep/fase)..."
         )
 
         if hasattr(model, "epochs_per_stage"):
             model.epochs_per_stage = args.epochs_per_phase
 
-        curriculum = CurriculumCls(
-            model=model,
-            beta=args.curriculum_beta,
-            q_low=q_low,
-            q_mid=q_mid,
-            q_high=q_high,
-            random_state=args.random_state,
-        )
+        curriculum = CurriculumCls(**curriculum_kwargs)
         curriculum.fit(
             cl_selector,
             X_cl,
             y_cl,
             X_test=X_test,
             y_test=y_te,
+            X_val=X_val,
+            y_val=(y_texts_val if y_texts_val is not None else y_val),
             X_text=texts_cl,
+            X_val_text=texts_val,
             X_test_text=texts_test,
             recorder=recorder,
         )
@@ -564,6 +681,7 @@ def main():
     print(f"Concluido em {total_time:.1f}s")
     print(f"Macro-F1 final: {metrics.get('macro_f1', float('nan')):.4f}")
     print(f"Micro-F1 final: {metrics.get('micro_f1', float('nan')):.4f}")
+    print(f"F1-weighted final: {metrics.get('f1_weighted', float('nan')):.4f}")
     print(f"Accuracy final: {metrics.get('accuracy', float('nan')):.4f}")
     print(f"Resultados em : {recorder.run_dir}/")
     print("=" * 50)

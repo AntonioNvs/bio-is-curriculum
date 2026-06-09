@@ -20,13 +20,14 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score, f1_score
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     get_linear_schedule_with_warmup,
 )
 
-from src.curriculum.models import CurriculumModel
+from curriculum.models import CurriculumModel
 
 
 def _seed_all(seed: int) -> None:
@@ -182,12 +183,24 @@ class RobertaModel(CurriculumModel):
         self._model = None
         self.global_step_: int = 0
         self._current_phase: str = "unknown"
+        self._token_count_total: int = 0
+        self._sample_count_total: int = 0
+        self._best_val_macro_f1: float = float("nan")
+        self._best_val_epoch: float = float("nan")
+        self._steps_to_best_val: float = float("nan")
 
     # ------------------------------------------------------------------
     # CurriculumModel interface
     # ------------------------------------------------------------------
 
-    def fit_stage(self, texts: list[str], y: np.ndarray, sample_weight: np.ndarray | None = None):
+    def fit_stage(
+        self,
+        texts: list[str],
+        y: np.ndarray,
+        sample_weight: np.ndarray | None = None,
+        X_val: list[str] | None = None,
+        y_val: np.ndarray | None = None,
+    ):
         """Continua (ou inicia) o fine-tuning por `epochs_per_stage` epocas."""
         stage_seed = self.random_state + self.global_step_
         _seed_all(stage_seed)
@@ -279,14 +292,48 @@ class RobertaModel(CurriculumModel):
 
                 self.global_step_ += 1
                 epoch_loss += loss.item()
+                self._token_count_total += int(attention_mask.sum().item())
+                self._sample_count_total += int(attention_mask.shape[0])
 
                 if self.history_callback is not None:
                     self.history_callback({
+                        "event": "train_step",
                         "phase": self._current_phase,
                         "epoch": epoch + 1,
                         "step": self.global_step_,
                         "loss": round(loss.item(), 6),
                         "lr": scheduler.get_last_lr()[0],
+                        "avg_seq_len": self._avg_seq_len(),
+                        "compute_proxy": self._compute_proxy(),
+                    })
+
+            if X_val is not None and y_val is not None and len(y_val) > 0:
+                val_proba = self.predict_proba(X_val)
+                val_preds = np.argmax(val_proba, axis=1)
+                val_macro = float(f1_score(y_val, val_preds, average="macro"))
+                val_micro = float(f1_score(y_val, val_preds, average="micro"))
+                val_weighted = float(f1_score(y_val, val_preds, average="weighted"))
+                val_acc = float(accuracy_score(y_val, val_preds))
+
+                if np.isnan(self._best_val_macro_f1) or val_macro > self._best_val_macro_f1:
+                    self._best_val_macro_f1 = val_macro
+                    self._best_val_epoch = float(epoch + 1)
+                    self._steps_to_best_val = float(self.global_step_)
+
+                if self.history_callback is not None:
+                    self.history_callback({
+                        "event": "epoch_end",
+                        "phase": self._current_phase,
+                        "epoch": epoch + 1,
+                        "step": self.global_step_,
+                        "loss": round(epoch_loss / max(len(loader), 1), 6),
+                        "lr": scheduler.get_last_lr()[0],
+                        "val_macro_f1": val_macro,
+                        "val_micro_f1": val_micro,
+                        "val_f1_weighted": val_weighted,
+                        "val_accuracy": val_acc,
+                        "avg_seq_len": self._avg_seq_len(),
+                        "compute_proxy": self._compute_proxy(),
                     })
 
         return self
@@ -327,6 +374,15 @@ class RobertaModel(CurriculumModel):
     def n_iter(self) -> int:
         return self.global_step_
 
+    def get_training_stats(self) -> dict:
+        return {
+            "avg_seq_len": self._avg_seq_len(),
+            "compute_proxy": self._compute_proxy(),
+            "best_val_macro_f1": self._best_val_macro_f1,
+            "best_val_epoch": self._best_val_epoch,
+            "steps_to_best_val": self._steps_to_best_val,
+        }
+
     # ------------------------------------------------------------------
 
     def set_phase(self, phase_name: str) -> None:
@@ -350,3 +406,14 @@ class RobertaModel(CurriculumModel):
                 f"num_labels mudou entre fases ({self.num_labels} -> {num_labels}). "
                 "Isso indica inconsistencia no dataset."
             )
+
+    def _avg_seq_len(self) -> float:
+        if self._sample_count_total == 0:
+            return float("nan")
+        return float(self._token_count_total / self._sample_count_total)
+
+    def _compute_proxy(self) -> float:
+        avg_seq_len = self._avg_seq_len()
+        if np.isnan(avg_seq_len):
+            return float("nan")
+        return float(self.global_step_ * avg_seq_len)

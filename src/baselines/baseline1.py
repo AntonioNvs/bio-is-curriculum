@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.baselines.base import BaselineBase
+from baselines.base import BaselineBase
 
 
 class Baseline1(BaselineBase):

@@ -43,7 +43,7 @@ from scipy import stats
 # Tokens aceitos em --modes
 # ---------------------------------------------------------------------------
 
-_BUILTIN_MODES = {"raw", "is", "cl", "is_cl"}
+_BUILTIN_MODES = {"raw", "is", "cl", "is_cl", "is_continuos_cl"}
 _BASELINE_RE = re.compile(r"^b([0-9]+)$")
 
 
@@ -133,7 +133,17 @@ def _aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.Da
     Retorna DataFrame com colunas:
         mode, metric, mean, std, ci_95_low, ci_95_high, n_folds
     """
-    metrics_of_interest = ["micro_f1", "macro_f1", "accuracy", "hard_slice_macro_f1"]
+    metrics_of_interest = [
+        "micro_f1",
+        "macro_f1",
+        "f1_weighted",
+        "accuracy",
+        "hard_slice_macro_f1",
+        "avg_seq_len",
+        "compute_proxy",
+        "best_val_macro_f1",
+        "steps_to_best_val",
+    ]
     records: dict[str, dict[str, list[float]]] = {m: {k: [] for k in metrics_of_interest} for m in modes}
 
     missing: list[str] = []
@@ -232,9 +242,9 @@ def main():
         type=_parse_mode_token,
         default=["raw", "is", "cl", "is_cl"],
         help=(
-            "Modos a executar. Aceita built-ins (raw, is, cl, is_cl) e/ou "
-            "baselines da literatura no formato bN (ex.: b1, b2 — ver "
-            "BASELINES.md). Default: raw is cl is_cl."
+            "Modos a executar. Aceita built-ins (raw, is, cl, is_cl, "
+            "is_continuos_cl) e/ou baselines da literatura no formato bN "
+            "(ex.: b1, b2 — ver BASELINES.md). Default: raw is cl is_cl."
         ),
     )
     parser.add_argument(

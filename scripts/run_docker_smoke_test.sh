@@ -30,6 +30,8 @@
 #   WARMUP_RATIO  fração de warmup linear           (default: 0.06)
 #   BETA          beta do BIOIS                     (default: 0.3)
 #   THETA         theta do BIOIS                    (default: 0.2)
+#   CURRICULUM_METHOD metodo de curriculum (cl/is_cl/bN)
+#                                                  (default: biois_discrete)
 #   EXPERIMENT_ID força um experiment-id especifico (default: smoke-YYYYmmdd-HHMMSS)
 #   CPUS          limite de CPUs do container       (default: 16)
 #   MEMORY        limite de memória do container    (default: 32g)
@@ -41,11 +43,11 @@ set -euo pipefail
 
 # ── Configurações ──────────────────────────────────────────────────────────────
 GPU_ID="${1:-7}"
-DATASET="${2:-webkb}"
+DATASET="${2:-reuters90}"
 N_SPLITS="${N_SPLITS:-10}"
 
 MODEL="${MODEL:-roberta}"
-MODES="${MODES:-is}"
+MODES="${MODES:-is_cl}"
 FOLD="${FOLD:-0}"
 EPOCHS="${EPOCHS:-6}"
 EPOCHS_PP="${EPOCHS_PP:-2}"
@@ -55,6 +57,7 @@ WEIGHT_DECAY="${WEIGHT_DECAY:-1e-3}"
 WARMUP_RATIO="${WARMUP_RATIO:-0.06}"
 BETA="${BETA:-0.3}"
 THETA="${THETA:-0.2}"
+CURRICULUM_METHOD="${CURRICULUM_METHOD:-spcl_soft}"
 
 EXPERIMENT_ID="${EXPERIMENT_ID:-smoke-$(date +%Y%m%d-%H%M%S)}"
 
@@ -75,6 +78,7 @@ COMMON_ARGS=(
   "--model ${MODEL}"
   "--beta ${BETA}"
   "--theta ${THETA}"
+  "--curriculum-method ${CURRICULUM_METHOD}"
   "--epochs ${EPOCHS}"
   "--epochs-per-phase ${EPOCHS_PP}"
   "--batch-size ${BATCH_SIZE}"
@@ -116,6 +120,7 @@ echo "  Epochs (is/bs) : ${EPOCHS}   |  per-phase (cl/is_cl/bN): ${EPOCHS_PP}"
 echo "  Batch          : ${BATCH_SIZE}"
 echo "  LR             : ${LR}  |  WD: ${WEIGHT_DECAY}  |  Warmup: ${WARMUP_RATIO}"
 echo "  Beta/Theta     : ${BETA}/${THETA}"
+echo "  Curriculum     : ${CURRICULUM_METHOD}"
 echo "  Experiment ID  : ${EXPERIMENT_ID}"
 echo "  Host dir       : ${HOST_PROJECT_DIR}"
 echo "============================================================"

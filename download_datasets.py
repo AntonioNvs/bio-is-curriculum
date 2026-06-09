@@ -45,6 +45,26 @@ DATASETS: list[dict] = [
         "name": "mpqa",
         "zenodo_id": "7555268",
         "zip_file": "mpqa.zip",
+    },
+    {
+        "name": "twitter",
+        "zenodo_id": "7554707",
+        "zip_file": "twitter.zip",
+    },
+    {
+        "name": "sst1",
+        "zenodo_id": "7555319",
+        "zip_file": "sst1.zip",
+    },
+    {
+        "name": "yelp_reviews",
+        "zenodo_id": "7555396",
+        "zip_file": "yelp_reviews_2L.zip"
+    },
+    {
+        "name": "ohsumed",
+        "zenodo_id": "7555276",
+        "zip_file": "ohsumed.zip",
     }
 ]
 

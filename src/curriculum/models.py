@@ -1,6 +1,6 @@
 """Abstracoes de modelo usadas pelo curriculum learning.
 
-A logica do curriculum (`BIOISCurriculum`) interage com um modelo
+A logica do curriculum (`BIOISDiscreteCurriculum`) interage com um modelo
 unicamente atraves desta interface, de modo que novos backends
 (p. ex. transformers, SGD, etc.) possam ser plugados sem alterar a
 construcao das fases ou o registro de metricas.
@@ -45,7 +45,7 @@ class CurriculumModel(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def fit_stage(self, X, y, sample_weight=None):
+    def fit_stage(self, X, y, sample_weight=None, X_val=None, y_val=None):
         """Continua o treinamento por mais uma fase do curriculum."""
         ...
 
@@ -60,8 +60,21 @@ class CurriculumModel(metaclass=ABCMeta):
     @property
     @abstractmethod
     def n_iter(self) -> int:
-        """Numero de iteracoes executadas na ultima fase (proxy de steps)."""
+        """Numero acumulado de iteracoes/steps de treino."""
         ...
+
+    def get_training_stats(self) -> dict:
+        """Estatisticas opcionais de treino para logging unificado.
+
+        Backends que nao operam em sequencias podem retornar NaN.
+        """
+        return {
+            "avg_seq_len": float("nan"),
+            "compute_proxy": float("nan"),
+            "best_val_macro_f1": float("nan"),
+            "best_val_epoch": float("nan"),
+            "steps_to_best_val": float("nan"),
+        }
 
 
 class LogisticRegressionModel(CurriculumModel):
@@ -82,7 +95,7 @@ class LogisticRegressionModel(CurriculumModel):
             **kwargs,
         )
 
-    def fit_stage(self, X, y, sample_weight=None):
+    def fit_stage(self, X, y, sample_weight=None, X_val=None, y_val=None):
         self._clf.fit(X, y, sample_weight=sample_weight)
         return self
 

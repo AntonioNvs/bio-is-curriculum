@@ -2,6 +2,8 @@
 
 Catálogo dos baselines reproduzidos para comparação com o `is_cl` (BIOIS-Curriculum). Cada baseline tem um índice estável, ativado via `--baseline N` no `main.py`. O backbone e os hiperparâmetros de fine-tuning (otimizador, lr, batch size, max_length) são mantidos idênticos aos demais modos para isolar o efeito do método.
 
+**Nota:** baselines da literatura (`--baseline N`) são distintos dos métodos de curriculum (`--curriculum-method`), que incluem `biois_discrete`, `spcl_soft` e `spcl_loss`. O modo `is_continuos_cl` é um alias IS+CL com `spcl_soft` por default.
+
 | Índice | Nome curto | Tipo | Referência |
 |---|---|---|---|
 | 1 | Confidence-paced CL (Bengio 2009) | Currículo ingênuo | Bengio et al. (2009) |

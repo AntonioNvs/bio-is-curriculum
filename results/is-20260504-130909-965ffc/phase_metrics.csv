@@ -1,2 +1,0 @@
-phase,n_samples,n_iter,train_time_s,pred_time_s,micro_f1,macro_f1,accuracy,hard_slice_macro_f1
-full,823,1812,nan,2.3411797741428018,0.4507897934386391,0.08877721943048576,0.4507897934386391,0.09407665505226481

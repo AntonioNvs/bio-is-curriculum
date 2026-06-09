@@ -23,19 +23,33 @@ class RunRecorder:
     Arquivos gerados:
     - config.json            -- hyperparametros + dataset + fold + commit git
     - timings.csv            -- colunas: name, seconds
-    - phase_metrics.csv      -- colunas: phase, n_samples, n_iter,
-                                train_time_s, pred_time_s, micro_f1,
-                                macro_f1, accuracy, hard_slice_macro_f1
-    - train_history.csv      -- colunas: phase, epoch, step, loss, lr
+    - phase_metrics.csv      -- colunas principais:
+                                phase, n_samples, n_iter, train_time_s, pred_time_s,
+                                micro_f1, macro_f1, f1_weighted, accuracy,
+                                hard_slice_quantile, hard_slice_macro_f1,
+                                avg_seq_len, compute_proxy,
+                                best_val_macro_f1, best_val_epoch, steps_to_best_val
+    - train_history.csv      -- colunas principais:
+                                event, phase, epoch, step, loss, lr,
+                                val_macro_f1, val_micro_f1, val_f1_weighted, val_accuracy,
+                                avg_seq_len, compute_proxy
     - predictions_test.csv   -- colunas: idx, y_true, y_pred, pred_entropy
+    - instance_selection.json -- metricas de selecao de instancias (IS)
     """
 
     PHASE_METRICS_COLS = [
         "phase", "n_samples", "n_iter",
         "train_time_s", "pred_time_s",
-        "micro_f1", "macro_f1", "accuracy", "hard_slice_macro_f1",
+        "micro_f1", "macro_f1", "f1_weighted", "accuracy",
+        "hard_slice_quantile", "hard_slice_macro_f1",
+        "avg_seq_len", "compute_proxy",
+        "best_val_macro_f1", "best_val_epoch", "steps_to_best_val",
     ]
-    TRAIN_HISTORY_COLS = ["phase", "epoch", "step", "loss", "lr"]
+    TRAIN_HISTORY_COLS = [
+        "event", "phase", "epoch", "step", "loss", "lr",
+        "val_macro_f1", "val_micro_f1", "val_f1_weighted", "val_accuracy",
+        "avg_seq_len", "compute_proxy",
+    ]
     TIMINGS_COLS = ["name", "seconds"]
     PREDICTIONS_COLS = ["idx", "y_true", "y_pred", "pred_entropy"]
 
@@ -81,6 +95,31 @@ class RunRecorder:
     def log_train_step(self, row: dict[str, Any]) -> None:
         """Appenda uma linha a train_history.csv."""
         self._append_csv("train_history.csv", self.TRAIN_HISTORY_COLS, row)
+
+    def save_instance_selection(
+        self,
+        *,
+        n_train_before: int,
+        n_train_after: int,
+        reduction: float,
+        beta: float,
+        theta: float,
+        removed_by_class: dict,
+        total_by_class: dict,
+    ) -> None:
+        """Salva metricas de instance selection em instance_selection.json."""
+        payload = {
+            "n_train_before": int(n_train_before),
+            "n_train_after": int(n_train_after),
+            "n_removed": int(n_train_before - n_train_after),
+            "reduction": float(reduction),
+            "beta": float(beta),
+            "theta": float(theta),
+            "removed_by_class": {str(k): int(v) for k, v in removed_by_class.items()},
+            "total_by_class": {str(k): int(v) for k, v in total_by_class.items()},
+        }
+        with open(self.path("instance_selection.json"), "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
 
     def save_predictions(
         self,

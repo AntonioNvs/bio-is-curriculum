@@ -8,9 +8,17 @@ Treinamento curricular guiado por redundância e ruído para classificação de 
 uv sync
 ```
 
-## 4 modos de execução (matriz IS × CL)
+## Modos de execução (matriz IS × CL)
 
-A flag `--mode` seleciona uma das 4 combinações de teste. Use `--model lr` para trocar RoBERTa por Regressão Logística (mais rápido para testes rápidos).
+A flag `--mode` seleciona a combinação de instance selection (IS) e curriculum learning (CL). Use `--model lr` para trocar RoBERTa por Regressão Logística (mais rápido para testes rápidos).
+
+Métodos de curriculum (`--curriculum-method`):
+
+| Método | Descrição |
+|---|---|
+| `biois_discrete` | 3 fases discretas Clean → Diverse → Hard (default) |
+| `spcl_soft` | Soft-pacing contínuo sobre sinais BIOIS (entropia/redundância) |
+| `spcl_loss` | Self-Paced CL canônico com pacing por loss por amostra |
 
 ### raw — sem IS, sem CL
 
@@ -48,6 +56,40 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
     --mode is_cl --epochs-per-phase 2 --beta 0.3 --theta 0.2
 ```
 
+### is_continuos_cl — IS + CL contínuo (SPCL soft)
+
+Alias para IS+CL com `--curriculum-method spcl_soft` por default.
+
+```sh
+uv run python main.py webkb --data_dir datasets --fold 0 \
+    --mode is_continuos_cl --epochs-per-phase 2 --beta 0.3 --theta 0.2
+```
+
+### Exemplo: SPCL baseado em loss
+
+```sh
+uv run python main.py webkb --data_dir datasets --fold 0 \
+    --mode is_cl --curriculum-method spcl_loss \
+    --curriculum-n-steps 10 --epochs-per-phase 2
+```
+
+## Organização do código (`src/`)
+
+```
+src/
+├── curriculum/
+│   ├── core.py              # orquestrador compartilhado
+│   ├── methods/             # estratégias de curriculum
+│   │   ├── biois_discrete.py
+│   │   ├── spcl_soft.py
+│   │   ├── spcl_loss.py
+│   │   └── registry.py
+│   └── models.py
+├── baselines/               # baselines da literatura (--baseline N)
+├── iSel/                    # instance selection (BIOIS)
+└── results/                 # gravação de métricas CL e IS
+```
+
 ## Resultados
 
 Cada execução gera uma pasta `results/<mode>-<timestamp>-<hex6>/` com:
@@ -59,13 +101,15 @@ Cada execução gera uma pasta `results/<mode>-<timestamp>-<hex6>/` com:
 | `phase_metrics.csv` | `phase, n_samples, n_iter, train_time_s, pred_time_s, micro_f1, macro_f1, accuracy, hard_slice_macro_f1` |
 | `train_history.csv` | `phase, epoch, step, loss, lr` — uma linha por step de treino |
 | `predictions_test.csv` | `idx, y_true, y_pred, pred_entropy` — predições finais no teste |
+| `instance_selection.json` | Métricas de IS: redução, n_before/after, remoção por classe |
 
-Para comparar os 4 modos, basta carregar os `phase_metrics.csv` de cada pasta.
+Para comparar modos, basta carregar os `phase_metrics.csv` de cada pasta.
 
 ## Opções principais
 
 ```
---mode {raw,is,cl,is_cl}        Modo de execução (default: is_cl)
+--mode {raw,is,cl,is_cl,is_continuos_cl}  Modo de execução (default: is_cl)
+--curriculum-method {biois_discrete,spcl_soft,spcl_loss}  Estratégia de CL
 --model {lr,roberta}             Modelo (default: roberta)
 --hf-model                       Checkpoint HuggingFace (default: roberta-base)
 --epochs                         Épocas para treino único / raw / is (default: 6)
@@ -74,6 +118,10 @@ Para comparar os 4 modos, basta carregar os `phase_metrics.csv` de cada pasta.
 --max-length                     Comprimento máximo de tokenização (default: 256)
 --beta / --theta                 Taxas de redução do BIOIS (default: 0.3 / 0.2)
 --curriculum-beta                Peso de redundância na Fase Hard: w=1-beta*r (default: 0.5)
+--curriculum-n-steps             Passos para spcl_soft / spcl_loss (default: 10)
+--curriculum-alpha-decay         Suavidade do soft-pacing (default: 10.0)
+--curriculum-lambda-init         Lambda inicial do SPCL loss (default: 0.1)
+--curriculum-lambda-mult         Multiplicador de lambda por passo (default: 1.5)
 --results-dir                    Diretório base de resultados (default: results/)
 ```
 
