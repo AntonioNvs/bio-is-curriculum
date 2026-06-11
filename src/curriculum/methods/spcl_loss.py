@@ -42,7 +42,7 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
         Coeficiente do prior `a_i = e_i + beta * r_i * e_i` (Theorem 1).
     scheme : {"binary", "linear", "log", "mixture"}, default="linear"
         Self-paced function f(v; lambda) usada para fechar v*.
-    n_steps : int, default=10
+    n_steps : int, default=6
         Numero de iteracoes ACS (linha 3 do Algorithm 1).
     lambda_init : float, default=0.5
         Lambda inicial (model "age"). Cross-entropy multiclass tipica
@@ -77,7 +77,7 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
         model=None,
         beta: float = 0.5,
         scheme: str = "linear",
-        n_steps: int = 10,
+        n_steps: int = 6,
         lambda_init: float = 0.5,
         lambda_step: float = 0.5,
         lambda_mult: float = 1.0,
@@ -313,6 +313,13 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
         self.model_ = self._init_model()
         self.phases_ = []
         self.history_ = []
+
+        # Match total epoch budget to the discrete baseline (3 phases x
+        # epochs_per_stage). Without this, n_steps SPCL iterations each
+        # train for the full epochs_per_stage, blowing the budget ~Nx.
+        if hasattr(self.model_, "epochs_per_stage"):
+            baseline_total = 3 * int(self.model_.epochs_per_stage)
+            self.model_.epochs_per_stage = max(1, baseline_total // self.n_steps)
 
         if recorder is not None:
             recorder.log_timing("cl_signal_extract", signal_time)

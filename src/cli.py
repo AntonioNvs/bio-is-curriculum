@@ -188,8 +188,8 @@ def main():
         "--curriculum-n-steps",
         dest="curriculum_n_steps",
         type=int,
-        default=10,
-        help="Passos nominais do curriculum continuo/SPCL (default: 10).",
+        default=6,
+        help="Passos nominais do curriculum continuo/SPCL (default: 6).",
     )
     parser.add_argument(
         "--curriculum-alpha-decay",
