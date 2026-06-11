@@ -306,6 +306,14 @@ def main():
         default=1e-3,
         help="Peso minimo para manter amostra no SPCL loss (default: 1e-3).",
     )
+    parser.add_argument(
+        "--curriculum-loss-recompute-every",
+        dest="curriculum_loss_recompute_every",
+        type=int,
+        default=2,
+        help="Recomputa losses do conjunto de treino completo a cada K steps "
+             "do SPCL (default: 2). K=1 reproduz o comportamento antigo.",
+    )
 
     # Modelo
     parser.add_argument("--model", choices=["lr", "roberta"], default="roberta")

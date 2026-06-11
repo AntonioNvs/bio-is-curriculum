@@ -85,5 +85,8 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
                 args, "curriculum_loss_prior_reliability", True
             ),
             "min_weight": args.curriculum_min_weight,
+            "loss_recompute_every": getattr(
+                args, "curriculum_loss_recompute_every", 2
+            ),
         }
     raise ValueError(f"Metodo sem factory de kwargs: {method_id}")

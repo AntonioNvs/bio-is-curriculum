@@ -64,6 +64,10 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
     min_weight : float, default=1e-3
         Limiar para considerar amostra ativa numa fase (evita batches
         com pesos numericamente nulos).
+    loss_recompute_every : int, default=2
+        Recomputa as losses do conjunto de treino completo apenas a cada
+        K steps; nos demais steps, reaproveita o vetor anterior. Reduz
+        passes de inferencia sobre N amostras a cada iteracao SPCL.
     hard_slice_quantile : float, default=0.8
         Quantil para metricas de hard slice (passado para a base).
     random_state : int, default=42
@@ -85,6 +89,7 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
         lambda2: Optional[float] = None,
         prior_use_reliability: bool = True,
         min_weight: float = 1e-3,
+        loss_recompute_every: int = 2,
         hard_slice_quantile: float = 0.8,
         random_state: int = 42,
     ):
@@ -107,6 +112,7 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
         self.lambda2 = None if lambda2 is None else float(lambda2)
         self.prior_use_reliability = bool(prior_use_reliability)
         self.min_weight = float(max(0.0, min_weight))
+        self.loss_recompute_every = max(1, int(loss_recompute_every))
 
     def _build_phases(self, r, e):
         """Nao usado - schedule e construido iterativamente em fit()."""
@@ -335,13 +341,24 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
         metric_eval_total = 0.0
         t0_cl = time.perf_counter()
 
+        losses = None
+        steps_since_recompute = 0
+
         for step in range(1, self.n_steps + 1):
             # Losses para atualizar v (Step 5 do Algorithm 1).
             t0_build = time.perf_counter()
             if self._model_is_fitted():
-                losses = self._compute_sample_losses(
-                    self.model_, X, y, X_text=X_text
+                # Recomputa losses na base inteira apenas a cada K steps.
+                # Sempre recomputa no primeiro pos-treino (losses is None).
+                need_recompute = (
+                    losses is None
+                    or steps_since_recompute >= self.loss_recompute_every
                 )
+                if need_recompute:
+                    losses = self._compute_sample_losses(
+                        self.model_, X, y, X_text=X_text
+                    )
+                    steps_since_recompute = 0
             else:
                 # Antes do primeiro treino, usa entropia BIOIS como proxy
                 # (escalado para a faixa de lambda atual): preserva a
@@ -392,6 +409,7 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
                 y_val=y_val,
             )
             train_time = time.perf_counter() - t0_train
+            steps_since_recompute += 1
 
             from results.metrics import build_phase_metrics_row
 
