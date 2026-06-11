@@ -189,7 +189,7 @@ def main():
         dest="curriculum_n_steps",
         type=int,
         default=10,
-        help="Passos do curriculum continuo/SPCL (default: 10).",
+        help="Passos nominais do curriculum continuo/SPCL (default: 10).",
     )
     parser.add_argument(
         "--curriculum-alpha-decay",
@@ -197,6 +197,55 @@ def main():
         type=float,
         default=10.0,
         help="Suavidade do soft-pacing SPCL (default: 10.0).",
+    )
+    parser.add_argument(
+        "--curriculum-soft-lambda-init",
+        dest="curriculum_soft_lambda_init",
+        type=float,
+        default=0.25,
+        help="Lambda inicial do SPCL soft loss-driven (default: 0.25).",
+    )
+    parser.add_argument(
+        "--curriculum-soft-lambda-growth",
+        dest="curriculum_soft_lambda_growth",
+        type=float,
+        default=1.4,
+        help="Fator de crescimento de lambda no SPCL soft (default: 1.4).",
+    )
+    parser.add_argument(
+        "--curriculum-soft-lambda-max",
+        dest="curriculum_soft_lambda_max",
+        type=float,
+        default=1.0,
+        help="Lambda maximo no SPCL soft (default: 1.0).",
+    )
+    parser.add_argument(
+        "--curriculum-soft-min-weight",
+        dest="curriculum_soft_min_weight",
+        type=float,
+        default=1e-3,
+        help="Peso minimo para manter amostra ativa no SPCL soft (default: 1e-3).",
+    )
+    parser.add_argument(
+        "--curriculum-soft-stability-tol",
+        dest="curriculum_soft_stability_tol",
+        type=float,
+        default=5e-3,
+        help="Tolerancia para pular fases quase identicas no SPCL soft (default: 5e-3).",
+    )
+    parser.add_argument(
+        "--curriculum-soft-saturation-patience",
+        dest="curriculum_soft_saturation_patience",
+        type=int,
+        default=2,
+        help="Paciencia de saturacao para early-stop de fases no SPCL soft (default: 2).",
+    )
+    parser.add_argument(
+        "--curriculum-soft-max-effective-steps",
+        dest="curriculum_soft_max_effective_steps",
+        type=int,
+        default=6,
+        help="Limite de passos efetivos treinados no SPCL soft (default: 6).",
     )
     parser.add_argument(
         "--curriculum-lambda-init",
@@ -224,7 +273,7 @@ def main():
     parser.add_argument("--model", choices=["lr", "roberta"], default="roberta")
     parser.add_argument("--hf-model", dest="hf_model", type=str, default="roberta-base")
     parser.add_argument("--epochs", type=int, default=6, help="Epocas para treino unico (raw/is)")
-    parser.add_argument("--epochs-per-phase", dest="epochs_per_phase", type=int, default=2,
+    parser.add_argument("--epochs-per-phase", dest="epochs_per_phase", type=int, default=1,
                         help="Epocas por fase (cl/is_cl)")
     parser.add_argument("--batch-size", dest="batch_size", type=int, default=32)
     parser.add_argument("--eval-batch-size", dest="eval_batch_size", type=int, default=64)

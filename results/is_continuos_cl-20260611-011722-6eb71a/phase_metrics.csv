@@ -1,0 +1,2 @@
+phase,n_samples,n_iter,train_time_s,pred_time_s,micro_f1,macro_f1,f1_weighted,accuracy,hard_slice_quantile,hard_slice_macro_f1,avg_seq_len,compute_proxy,best_val_macro_f1,best_val_epoch,steps_to_best_val
+spcl_soft_01,823,100,0.1398546565324068,0.0010783374309539795,0.4507897934386391,0.08877721943048576,0.2801390508638779,0.4507897934386391,0.8,0.02810304449648712,nan,nan,nan,nan,nan

@@ -63,6 +63,13 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
             **common,
             "n_steps": args.curriculum_n_steps,
             "alpha_decay": args.curriculum_alpha_decay,
+            "lambda_init": args.curriculum_soft_lambda_init,
+            "lambda_growth": args.curriculum_soft_lambda_growth,
+            "lambda_max": args.curriculum_soft_lambda_max,
+            "min_weight": args.curriculum_soft_min_weight,
+            "stability_tol": args.curriculum_soft_stability_tol,
+            "saturation_patience": args.curriculum_soft_saturation_patience,
+            "max_effective_steps": args.curriculum_soft_max_effective_steps,
         }
     if method_id == "spcl_loss":
         return {
