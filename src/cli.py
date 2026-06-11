@@ -248,18 +248,56 @@ def main():
         help="Limite de passos efetivos treinados no SPCL soft (default: 6).",
     )
     parser.add_argument(
+        "--curriculum-loss-scheme",
+        dest="curriculum_loss_scheme",
+        type=str,
+        choices=("binary", "linear", "log", "mixture"),
+        default="linear",
+        help="Self-paced function f(v;lambda) do SPCL canonico (default: linear).",
+    )
+    parser.add_argument(
         "--curriculum-lambda-init",
         dest="curriculum_lambda_init",
         type=float,
-        default=0.1,
-        help="Lambda inicial do SPCL baseado em loss (default: 0.1).",
+        default=0.5,
+        help="Lambda inicial do SPCL canonico (default: 0.5; CE multiclass tipica).",
+    )
+    parser.add_argument(
+        "--curriculum-lambda-step",
+        dest="curriculum_lambda_step",
+        type=float,
+        default=0.5,
+        help="Incremento aditivo mu de lambda por passo (Alg.1 SPCL, default: 0.5).",
     )
     parser.add_argument(
         "--curriculum-lambda-mult",
         dest="curriculum_lambda_mult",
         type=float,
-        default=1.5,
-        help="Multiplicador de lambda por passo no SPCL loss (default: 1.5).",
+        default=1.0,
+        help="Multiplicador geometrico de lambda (default: 1.0 = usa lambda-step). "
+             "Se >1.0, sobrescreve o passo aditivo (compat. com pacing legado).",
+    )
+    parser.add_argument(
+        "--curriculum-lambda-max",
+        dest="curriculum_lambda_max",
+        type=float,
+        default=None,
+        help="Teto opcional de lambda no SPCL canonico (default: sem teto).",
+    )
+    parser.add_argument(
+        "--curriculum-lambda2",
+        dest="curriculum_lambda2",
+        type=float,
+        default=None,
+        help="Segundo limiar do scheme mixture (lambda1 > lambda2 > 0; "
+             "default: lambda_init / 2).",
+    )
+    parser.add_argument(
+        "--curriculum-loss-prior-reliability",
+        dest="curriculum_loss_prior_reliability",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Usa reliability BIOIS no prior a do SPCL (default: True).",
     )
     parser.add_argument(
         "--curriculum-min-weight",

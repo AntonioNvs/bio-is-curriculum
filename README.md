@@ -18,7 +18,7 @@ Métodos de curriculum (`--curriculum-method`):
 |---|---|
 | `biois_discrete` | 3 fases discretas Clean → Diverse → Hard (default) |
 | `spcl_soft` | Soft-pacing contínuo sobre sinais BIOIS (entropia/redundância) |
-| `spcl_loss` | Self-Paced CL canônico com pacing por loss por amostra |
+| `spcl_loss` | SPCL canônico (Jiang et al. AAAI 2015): região Ψ derivada do BIOIS + scheme em `{binary, linear, log, mixture}` |
 
 ### raw — sem IS, sem CL
 
@@ -65,13 +65,18 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
     --mode is_continuos_cl --epochs-per-phase 2 --beta 0.3 --theta 0.2
 ```
 
-### Exemplo: SPCL baseado em loss
+### Exemplo: SPCL canônico (com região Ψ derivada do BIOIS)
 
 ```sh
 uv run python main.py webkb --data_dir datasets --fold 0 \
     --mode is_cl --curriculum-method spcl_loss \
+    --curriculum-loss-scheme linear \
     --curriculum-n-steps 10 --epochs-per-phase 2
 ```
+
+`--curriculum-loss-scheme` aceita `binary | linear | log | mixture`
+(Eqs. 4–7 do paper SPCL). Use `--no-curriculum-loss-prior-reliability`
+para usar apenas entropia BIOIS no prior `a`.
 
 ## Organização do código (`src/`)
 
@@ -120,8 +125,13 @@ Para comparar modos, basta carregar os `phase_metrics.csv` de cada pasta.
 --curriculum-beta                Peso de redundância na Fase Hard: w=1-beta*r (default: 0.5)
 --curriculum-n-steps             Passos para spcl_soft / spcl_loss (default: 10)
 --curriculum-alpha-decay         Suavidade do soft-pacing (default: 10.0)
---curriculum-lambda-init         Lambda inicial do SPCL loss (default: 0.1)
---curriculum-lambda-mult         Multiplicador de lambda por passo (default: 1.5)
+--curriculum-loss-scheme         Scheme do SPCL canônico: binary|linear|log|mixture (default: linear)
+--curriculum-lambda-init         Lambda inicial do SPCL canônico (default: 0.5)
+--curriculum-lambda-step         Passo aditivo μ de lambda (Alg.1 SPCL, default: 0.5)
+--curriculum-lambda-mult         Multiplicador de lambda (default: 1.0; >1.0 sobrescreve --lambda-step)
+--curriculum-lambda-max          Teto opcional de lambda (default: sem teto)
+--curriculum-lambda2             λ₂ do scheme mixture (default: λ_init/2)
+--curriculum-loss-prior-reliability  Usa reliability BIOIS no prior a (default: True)
 --results-dir                    Diretório base de resultados (default: results/)
 ```
 

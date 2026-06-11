@@ -74,9 +74,16 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
     if method_id == "spcl_loss":
         return {
             **common,
+            "scheme": getattr(args, "curriculum_loss_scheme", "linear"),
             "n_steps": args.curriculum_n_steps,
             "lambda_init": args.curriculum_lambda_init,
             "lambda_mult": args.curriculum_lambda_mult,
+            "lambda_step": getattr(args, "curriculum_lambda_step", 0.5),
+            "lambda_max": getattr(args, "curriculum_lambda_max", None),
+            "lambda2": getattr(args, "curriculum_lambda2", None),
+            "prior_use_reliability": getattr(
+                args, "curriculum_loss_prior_reliability", True
+            ),
             "min_weight": args.curriculum_min_weight,
         }
     raise ValueError(f"Metodo sem factory de kwargs: {method_id}")
