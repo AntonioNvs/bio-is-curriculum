@@ -1,0 +1,40 @@
+# Tier 1 — Validação GPU com DistilRoBERTa (82M params, ~2min/fold).
+#
+# Gate de passagem para Tier 2:
+#   - Nenhum fold falha (exit code 0)
+#   - Sem NaN em phase_metrics.csv
+#   - macro_f1 > 0.5 (problema nao e aleatorio)
+#   - best_val_macro_f1 populado (warm-start entre fases funciona)
+#
+# Uso: uv run python run.py experiments/tier1_distil.yaml
+
+dataset: webkb
+n_splits: 10
+model: roberta
+hf_model: distilroberta-base
+
+modes:
+  - raw
+  - is
+  - cl
+  - is_cl
+
+# Apenas 3 folds para validacao rapida (~24 min total).
+folds: [0, 1, 2]
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  lr: 2.0e-5
+  weight_decay: 1.0e-3

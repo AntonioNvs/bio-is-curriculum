@@ -1,0 +1,24 @@
+# Smoke test: 2 folds, LR rapido, para validar pipeline rapidamente.
+# Uso: python run.py experiments/smoke.yaml
+
+dataset: webkb
+n_splits: 10
+model: lr
+
+modes:
+  - raw
+  - is_cl
+
+folds: [0, 1]
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+
+training:
+  epochs: 2
+  epochs_per_phase: 1
+  batch_size: 32

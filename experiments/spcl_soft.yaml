@@ -1,0 +1,28 @@
+# SPCL soft: curriculum continuo com soft-pacing sobre sinais BIOIS.
+# Uso: python run.py experiments/spcl_soft.yaml
+
+dataset: webkb
+n_splits: 10
+model: lr
+
+modes:
+  - raw
+  - is_cl
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: spcl_soft
+  n_steps: 6
+  alpha_decay: 10.0
+  soft_lambda_init: 0.25
+  soft_lambda_growth: 1.4
+  soft_lambda_max: 1.0
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  lr: 2.0e-5

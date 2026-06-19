@@ -1,0 +1,28 @@
+# SPCL canonico (Jiang et al. AAAI 2015) com regiao BIOIS.
+# Uso: python run.py experiments/spcl_loss.yaml
+
+dataset: webkb
+n_splits: 10
+model: lr
+
+modes:
+  - raw
+  - is_cl
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: spcl_loss
+  n_steps: 6
+  loss_scheme: linear
+  lambda_init: 0.5
+  lambda_step: 0.5
+  loss_prior_reliability: true
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  lr: 2.0e-5

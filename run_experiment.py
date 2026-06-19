@@ -125,26 +125,41 @@ def _run_single(
 # ---------------------------------------------------------------------------
 
 def _aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.DataFrame:
-    """Le as phase_metrics.csv de cada (mode, fold) e calcula IC 95%.
+    """Le phase_metrics.csv e timings.csv de cada (mode, fold) e calcula IC 95%.
 
-    Usa a ultima linha de phase_metrics.csv (performance final do modelo)
-    como metrica representativa do fold.
+    Para metricas de performance (F1, accuracy), usa o MELHOR valor entre
+    todas as fases do curriculum — assim folds com numero de fases diferente
+    (ex.: SPCL com early-stop por saturacao) sao comparaveis pelo pico de
+    performance, nao pelo estado final arbitrario.
+
+    Para metricas cumulativas (avg_seq_len, compute_proxy), usa a ultima
+    linha (acumulado de todo o treino).
+
+    Adicionalmente, calcula efficiency_score = macro_f1 / (train_time_minutos)
+    e data_efficiency = macro_f1 * frac_dados_mantidos como metricas
+    compostas paper-ready.
 
     Retorna DataFrame com colunas:
         mode, metric, mean, std, ci_95_low, ci_95_high, n_folds
     """
-    metrics_of_interest = [
-        "micro_f1",
-        "macro_f1",
-        "f1_weighted",
-        "accuracy",
-        "hard_slice_macro_f1",
-        "avg_seq_len",
-        "compute_proxy",
-        "best_val_macro_f1",
-        "steps_to_best_val",
-    ]
-    records: dict[str, dict[str, list[float]]] = {m: {k: [] for k in metrics_of_interest} for m in modes}
+    # Metricas onde usamos o MELHOR valor entre fases (max).
+    _MAX_METRICS = {
+        "micro_f1", "macro_f1", "f1_weighted", "accuracy",
+        "hard_slice_macro_f1", "best_val_macro_f1",
+    }
+    # Metricas onde usamos a ULTIMA linha (acumuladas).
+    _LAST_METRICS = {
+        "avg_seq_len", "compute_proxy", "steps_to_best_val",
+    }
+    # Tempo de treino: soma entre fases.
+    _SUM_METRICS = {"train_time_s", "pred_time_s"}
+
+    metrics_of_interest = list(_MAX_METRICS | _LAST_METRICS | _SUM_METRICS)
+    records: dict[str, dict[str, list[float]]] = {
+        m: {k: [] for k in metrics_of_interest} for m in modes
+    }
+    # Guarda n_fases por fold para diagnostico.
+    phase_counts: dict[str, list[int]] = {m: [] for m in modes}
 
     missing: list[str] = []
     for mode in modes:
@@ -157,16 +172,50 @@ def _aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.Da
             if df.empty:
                 missing.append(path)
                 continue
-            last = df.iloc[-1]
-            for k in metrics_of_interest:
-                val = float(last.get(k, float("nan")))
-                if not np.isnan(val):
-                    records[mode][k].append(val)
+            phase_counts[mode].append(len(df))
+
+            for k in _MAX_METRICS:
+                col = df[k] if k in df.columns else None
+                if col is not None and len(col) > 0:
+                    val = float(col.max())
+                    if not np.isnan(val):
+                        records[mode][k].append(val)
+
+            for k in _LAST_METRICS:
+                col = df[k] if k in df.columns else None
+                if col is not None and len(col) > 0:
+                    val = float(col.iloc[-1])
+                    if not np.isnan(val):
+                        records[mode][k].append(val)
+
+            for k in _SUM_METRICS:
+                col = df[k] if k in df.columns else None
+                if col is not None and len(col) > 0:
+                    val = float(col.sum())
+                    if not np.isnan(val):
+                        records[mode][k].append(val)
 
     if missing:
         print(f"\nAVISO: {len(missing)} arquivo(s) nao encontrado(s) / vazios:")
         for p in missing:
             print(f"  {p}")
+
+    # Carrega reducao de dados (BIOIS) para data_efficiency.
+    reduction_by_mode: dict[str, float] = {}
+    for mode in modes:
+        for fold in folds:
+            is_path = os.path.join(
+                experiment_dir, f"{mode}_fold{fold}", "instance_selection.json"
+            )
+            if os.path.exists(is_path):
+                try:
+                    import json
+                    with open(is_path, "r") as f:
+                        is_data = json.load(f)
+                    reduction_by_mode[mode] = float(is_data.get("reduction", 0.0))
+                except Exception:
+                    pass
+                break  # mesmo reduction em todos os folds
 
     rows = []
     for mode in modes:
@@ -197,7 +246,79 @@ def _aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.Da
                 "n_folds": n,
             })
 
+    # ------------------------------------------------------------------
+    # Metricas compostas paper-ready (calculadas a partir das medias).
+    # ------------------------------------------------------------------
+    _add_efficiency_rows(rows, records, reduction_by_mode, modes)
+    _add_phase_count_rows(rows, phase_counts, modes)
+
     return pd.DataFrame(rows)
+
+
+def _add_efficiency_rows(
+    rows: list[dict],
+    records: dict,
+    reduction_by_mode: dict[str, float],
+    modes: list[str],
+) -> None:
+    """Adiciona efficiency_score e data_efficiency ao summary."""
+    for mode in modes:
+        # efficiency_score = macro_f1 medio / (tempo medio de treino em minutos)
+        f1_vals = records[mode].get("macro_f1", [])
+        time_vals = records[mode].get("train_time_s", [])
+        if len(f1_vals) > 0 and len(time_vals) > 0:
+            mean_f1 = float(np.mean(f1_vals))
+            mean_time_min = float(np.mean(time_vals)) / 60.0
+            if mean_time_min > 0:
+                eff = mean_f1 / mean_time_min
+            else:
+                eff = float("nan")
+        else:
+            eff = float("nan")
+        rows.append({
+            "mode": mode, "metric": "efficiency_score",
+            "mean": eff, "std": float("nan"),
+            "ci_95_low": float("nan"), "ci_95_high": float("nan"),
+            "n_folds": len(f1_vals) if f1_vals else 0,
+        })
+
+        # data_efficiency = macro_f1 * (1 - reduction_rate)
+        # Premia metodos que mantem performance usando menos dados.
+        reduction = reduction_by_mode.get(mode, 0.0)
+        data_eff = mean_f1 * (1.0 - reduction) if len(f1_vals) > 0 else float("nan")
+        rows.append({
+            "mode": mode, "metric": "data_efficiency",
+            "mean": data_eff, "std": float("nan"),
+            "ci_95_low": float("nan"), "ci_95_high": float("nan"),
+            "n_folds": len(f1_vals) if f1_vals else 0,
+        })
+
+
+def _add_phase_count_rows(
+    rows: list[dict],
+    phase_counts: dict[str, list[int]],
+    modes: list[str],
+) -> None:
+    """Registra n_fases medio por fold para diagnosticar variabilidade."""
+    for mode in modes:
+        counts = phase_counts.get(mode, [])
+        if not counts:
+            rows.append({
+                "mode": mode, "metric": "n_phases",
+                "mean": float("nan"), "std": float("nan"),
+                "ci_95_low": float("nan"), "ci_95_high": float("nan"),
+                "n_folds": 0,
+            })
+            continue
+        arr = np.array(counts, dtype=float)
+        mean = float(np.mean(arr))
+        std = float(np.std(arr, ddof=1)) if len(arr) > 1 else 0.0
+        rows.append({
+            "mode": mode, "metric": "n_phases",
+            "mean": mean, "std": std,
+            "ci_95_low": float("nan"), "ci_95_high": float("nan"),
+            "n_folds": len(arr),
+        })
 
 
 def _save_summary(summary_df: pd.DataFrame, experiment_dir: str) -> str:
@@ -210,17 +331,32 @@ def _print_summary(summary_df: pd.DataFrame) -> None:
     print("\n" + "=" * 70)
     print("RESUMO DO EXPERIMENTO  (IC 95% via t-Student)")
     print("=" * 70)
-    pivot = summary_df[summary_df["metric"] == "macro_f1"].set_index("mode")[
-        ["mean", "ci_95_low", "ci_95_high", "n_folds"]
-    ]
-    print("Macro-F1:")
-    print(pivot.to_string())
+
+    def _pivot(metric: str, cols=None):
+        if cols is None:
+            cols = ["mean", "ci_95_low", "ci_95_high"]
+        sub = summary_df[summary_df["metric"] == metric]
+        if sub.empty:
+            print(f"{metric}: (sem dados)")
+            return
+        available = [c for c in cols if c in sub.columns]
+        print(sub.set_index("mode")[available].to_string())
+
+    print("Macro-F1 (melhor fase):")
+    _pivot("macro_f1", ["mean", "ci_95_low", "ci_95_high", "n_folds"])
     print()
-    pivot2 = summary_df[summary_df["metric"] == "micro_f1"].set_index("mode")[
-        ["mean", "ci_95_low", "ci_95_high"]
-    ]
-    print("Micro-F1:")
-    print(pivot2.to_string())
+    print("Micro-F1 (melhor fase):")
+    _pivot("micro_f1")
+    print()
+    print("--- Metricas de Eficiencia (paper-ready) ---")
+    print("Efficiency Score (macro-F1 / train-min):")
+    _pivot("efficiency_score", ["mean"])
+    print()
+    print("Data Efficiency (macro-F1 * frac. dados mantidos):")
+    _pivot("data_efficiency", ["mean"])
+    print()
+    print("Fases por fold (mean ± std):")
+    _pivot("n_phases", ["mean", "std"])
     print("=" * 70)
 
 

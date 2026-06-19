@@ -160,27 +160,42 @@ class BIOIS(InstanceSelectionMixin):
         return correctPredictedProba
     
     def identifyNoiseByLowerNNEntropy(self, X, y):
-        wrongpredictedIdx = y != self._pred
-       
+        # Filtra instancias ja removidas na etapa de redundancia (select_end)
+        # para que o orcamento de ruido seja computado sobre o conjunto
+        # efetivamente remanescente — evitando que theta efetivo seja menor
+        # que o declarado.
+        still_present = self.mask  # False = ja removido como redundante
+        wrongpredictedIdx = (y != self._pred) & still_present
+        nwrong_effective = int(np.sum(wrongpredictedIdx))
+
+        # Se nao ha mais wrong-predicted disponiveis, nao remove nada.
+        if nwrong_effective == 0:
+            return np.array([], dtype=np.int64)
+
         nnentropy = [stats.entropy(_) for _ in self._probaEveryone[wrongpredictedIdx]]
         nnentropy = np.array(nnentropy)
 
-        nnentropy = (nnentropy-nnentropy.min())/(nnentropy.max()-nnentropy.min())
+        nnentropy_range = nnentropy.max() - nnentropy.min()
+        if nnentropy_range > 0:
+            nnentropy = (nnentropy - nnentropy.min()) / nnentropy_range
         nnentropy = 1. - nnentropy
 
         nnentropy /= nnentropy.sum()
 
-        proba_toremove = np.zeros(X.shape[0])
+        proba_toremove = np.zeros(X.shape[0], dtype=np.float64)
         proba_toremove[wrongpredictedIdx] = nnentropy
 
-        nwrong = sum(wrongpredictedIdx)
-        ntoremove = int(self.theta * nwrong)
+        ntoremove = int(self.theta * nwrong_effective)
+        if ntoremove == 0:
+            return np.array([], dtype=np.int64)
 
+        # Escolhe apenas entre instancias ainda presentes.
+        eligible = np.flatnonzero(wrongpredictedIdx)
         rng = self._get_rng()
-        idx_choice_to_remove = rng.choice(a=np.arange(X.shape[0]),
-                                          size=ntoremove,
+        idx_choice_to_remove = rng.choice(a=eligible,
+                                          size=min(ntoremove, len(eligible)),
                                           replace=False,
-                                          p=proba_toremove)
+                                          p=proba_toremove[eligible])
 
         return idx_choice_to_remove
 

@@ -1,0 +1,38 @@
+# Tier 3 — Scaling com RoBERTa-large (355M params, ~45min/fold).
+#
+# Objetivo: "Does it scale?" — o ganho de eficiencia e maior ou menor
+# com modelo maior? Isso e ouro para ACL.
+#
+# Gate: positivo = bonus. Negativo = "efficiency gains are model-size-dependent, future work."
+#
+# Uso: uv run python run.py experiments/tier3_large.yaml --folds 0 1 2
+
+dataset: webkb
+n_splits: 10
+model: roberta
+hf_model: roberta-large
+
+modes:
+  - raw
+  - is
+  - is_cl
+
+# APENAS 3 folds. 45min x 3 modos x 3 folds = ~7h GPU.
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 8       # roberta-large com batch=16 estoura 16GB VRAM
+  eval_batch_size: 16
+  lr: 1.0e-5          # LR menor para modelo maior (mais sensivel)
+  weight_decay: 1.0e-3

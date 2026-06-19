@@ -1,0 +1,44 @@
+# Tier 2 — Produção com RoBERTa-base (125M params, ~15min/fold).
+#
+# Gate de passagem para Tier 3:
+#   - Significancia estatistica em >= 1 comparacao (Wilcoxon p < 0.05)
+#   - Correlacao BIOIS-RoBERTa documentada por dataset
+#   - Direcao do efeito consistente entre datasets
+#   - efficiency_score e data_efficiency populados
+#
+# Uso: uv run python run.py experiments/tier2_base.yaml
+#      uv run python run.py experiments/tier2_base.yaml --folds 0 1 2  # smoke
+#
+# Para adicionar baselines da literatura:
+#      uv run python run.py experiments/tier2_base_baselines.yaml
+
+dataset: webkb
+n_splits: 10
+model: roberta
+hf_model: roberta-base
+
+modes:
+  - raw
+  - is
+  - cl
+  - is_cl
+
+# folds omitido -> todos os 10 folds do split file
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 16      # roberta-base com batch=32 pode dar OOM em GPUs <16GB
+  eval_batch_size: 32
+  lr: 2.0e-5
+  weight_decay: 1.0e-3

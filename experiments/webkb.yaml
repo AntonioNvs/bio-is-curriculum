@@ -1,0 +1,38 @@
+# Exemplo: webkb 10-fold CV, todos os modos, curriculum discreto.
+# Uso: python run.py experiments/webkb.yaml
+#
+# Campos omitidos usam defaults definidos em run.py (mesmos defaults do CLI).
+
+dataset: webkb
+n_splits: 10
+model: lr  # 'lr' para rapido (testes), 'roberta' para producao
+hf_model: roberta-base
+
+modes:
+  - raw
+  - is
+  - cl
+  - is_cl
+
+# folds omitido -> usa todos os folds do split file
+# folds: [0, 1, 2]
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete  # biois_discrete | spcl_soft | spcl_loss
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  lr: 2.0e-5
+  weight_decay: 1.0e-3
+
+# results_dir: results
+# random_state: 42

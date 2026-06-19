@@ -1,0 +1,34 @@
+# Tier 2 com baselines da literatura.
+# Mesmo que tier2_base.yaml, mas inclui Baseline1 (Bengio 2009) e futuros.
+#
+# Uso: uv run python run.py experiments/tier2_base_baselines.yaml
+
+dataset: webkb
+n_splits: 10
+model: roberta
+hf_model: roberta-base
+
+modes:
+  - raw
+  - is
+  - cl
+  - is_cl
+  - b1    # Baseline 1: Confidence-paced CL (Bengio 2009)
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 16
+  eval_batch_size: 32
+  lr: 2.0e-5
+  weight_decay: 1.0e-3

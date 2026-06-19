@@ -13,4 +13,5 @@ dependencies = [
     "transformers>=4.41",
     "tqdm>=4.66",
     "openpyxl>=3.1.5",
+    "pyyaml>=6.0.3",
 ]
