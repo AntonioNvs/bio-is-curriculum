@@ -65,6 +65,11 @@ DATASETS: list[dict] = [
         "name": "ohsumed",
         "zenodo_id": "7555276",
         "zip_file": "ohsumed.zip",
+    },
+    {
+        "name": "20ng",
+        "zenodo_id": "7555237",
+        "zip_file": "20ng.zip",
     }
 ]
 

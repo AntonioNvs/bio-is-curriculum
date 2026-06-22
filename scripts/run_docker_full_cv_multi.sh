@@ -29,7 +29,7 @@
 #
 # Variaveis de ambiente opcionais:
 #   DATASETS             lista de datasets separados por espaco
-#                        (default: "webkb reuters90 mpqa ohsumed yelp_reviews twitter sst1")
+#                        (default: "webkb reuters90 mpqa 20ng yelp_reviews twitter sst1")
 #   N_SPLITS             n-splits padrao para datasets sem override (default: 10)
 #   DATASET_SPLITS       overrides no formato "dataset:n" (default: "reuters90:5")
 #   MODEL                modelo: lr | roberta                  (default: roberta)
@@ -55,7 +55,7 @@ shift || true
 if [ "$#" -gt 0 ]; then
   DATASETS="$*"
 else
-  DATASETS="${DATASETS:-webkb reuters90 mpqa ohsumed yelp_reviews twitter sst1}"
+  DATASETS="${DATASETS:-webkb reuters90 mpqa 20ng yelp_reviews twitter sst1}"
 fi
 
 N_SPLITS="${N_SPLITS:-10}"

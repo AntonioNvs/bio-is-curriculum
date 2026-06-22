@@ -41,7 +41,7 @@ shift || true
 if [ "$#" -gt 0 ]; then
   DATASETS="$*"
 else
-  DATASETS="${DATASETS:-webkb reuters90 mpqa ohsumed yelp_reviews twitter sst1}"
+  DATASETS="${DATASETS:-webkb reuters90 mpqa 20ng yelp_reviews twitter sst1}"
 fi
 
 CURRICULUM_METHODS="${CURRICULUM_METHODS:-biois_discrete spcl_soft spcl_loss}"
