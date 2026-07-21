@@ -45,7 +45,15 @@ class CurriculumModel(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def fit_stage(self, X, y, sample_weight=None, X_val=None, y_val=None):
+    def fit_stage(
+        self,
+        X,
+        y,
+        sample_weight=None,
+        X_val=None,
+        y_val=None,
+        balanced_sampling: bool = False,
+    ):
         """Continua o treinamento por mais uma fase do curriculum."""
         ...
 
@@ -95,7 +103,7 @@ class LogisticRegressionModel(CurriculumModel):
             **kwargs,
         )
 
-    def fit_stage(self, X, y, sample_weight=None, X_val=None, y_val=None):
+    def fit_stage(self, X, y, sample_weight=None, X_val=None, y_val=None, balanced_sampling=False):
         self._clf.fit(X, y, sample_weight=sample_weight)
         return self
 

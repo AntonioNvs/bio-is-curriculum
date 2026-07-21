@@ -8,6 +8,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import LabelEncoder
 
 
+def normalize_splits_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure fold_id exists — some Zenodo datasets only ship train_idxs/test_idxs."""
+    if "fold_id" not in df.columns:
+        df = df.copy()
+        df["fold_id"] = list(range(len(df)))
+    return df
+
+
 class DatasetLoader:
     """
     Loads text data, labels, and pre-defined splits for text classification datasets.
@@ -55,7 +63,7 @@ class DatasetLoader:
             raise FileNotFoundError(f"Split file not found: {pkl_path}")
             
         df_splits = pd.read_pickle(pkl_path)
-        return df_splits
+        return normalize_splits_df(df_splits)
 
     def load_texts_fold(self, fold: int, n_splits: int = 10):
         """Load raw texts and labels for a given fold, aligned with load_tfidf_fold.

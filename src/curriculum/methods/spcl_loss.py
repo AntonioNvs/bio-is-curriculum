@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
+from curriculum.class_balance import balance_phase_indices
 from curriculum.core import BIOISCurriculumBase
 
 if TYPE_CHECKING:
@@ -258,27 +259,6 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
                 break
         return v
 
-    @staticmethod
-    def _ensure_class_coverage(
-        selected: np.ndarray,
-        full_weights: np.ndarray,
-        y: np.ndarray,
-    ) -> np.ndarray:
-        """Garante que todas as classes presentes em y tenham >=1 amostra."""
-        classes_needed = np.unique(y)
-        present = set(np.unique(y[selected]).tolist())
-        for cls in classes_needed:
-            cls_int = int(cls)
-            if cls_int in present:
-                continue
-            cls_idx = np.flatnonzero(y == cls)
-            if cls_idx.size == 0:
-                continue
-            best = cls_idx[np.argmax(full_weights[cls_idx])]
-            selected = np.sort(np.append(selected, int(best)))
-            present.add(cls_int)
-        return selected
-
     def _next_lambda(self, lam: float) -> float:
         if self.lambda_mult > 1.0:
             new_lam = lam * self.lambda_mult
@@ -369,7 +349,9 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
             v = self._project_onto_psi(v, a, c)
             mask = v > self.min_weight
             selected = idx_all[mask]
-            selected = self._ensure_class_coverage(selected, v, y)
+            selected, weights, balance_stats = balance_phase_indices(
+                selected, y, v[selected], score=v,
+            )
             phases_time += time.perf_counter() - t0_build
 
             if selected.size == 0 or np.unique(y[selected]).size < 2:
@@ -377,8 +359,6 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
                 lam = self._next_lambda(lam)
                 continue
 
-            weights = v[selected]
-            # Evita w=0 nos indices forcados por class-coverage.
             weights = np.where(weights > 0.0, weights, self.min_weight)
 
             phase = {
@@ -453,6 +433,7 @@ class SPCLLossCurriculum(BIOISCurriculumBase):
                     pred_time_s=pred_time,
                     hard_slice_quantile=self.hard_slice_quantile,
                     training_stats=training_stats,
+                    balance_stats=balance_stats,
                 )
 
             self.history_.append(row)

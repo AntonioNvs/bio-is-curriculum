@@ -18,7 +18,7 @@ from typing import Callable
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score
 from transformers import (
@@ -28,6 +28,7 @@ from transformers import (
 )
 
 from curriculum.models import CurriculumModel
+from curriculum.class_balance import balanced_epoch_weights
 
 
 def _seed_all(seed: int) -> None:
@@ -200,6 +201,7 @@ class RobertaModel(CurriculumModel):
         sample_weight: np.ndarray | None = None,
         X_val: list[str] | None = None,
         y_val: np.ndarray | None = None,
+        balanced_sampling: bool = False,
     ):
         """Continua (ou inicia) o fine-tuning por `epochs_per_stage` epocas."""
         stage_seed = self.random_state + self.global_step_
@@ -224,13 +226,29 @@ class RobertaModel(CurriculumModel):
         collator = _DynamicPadCollator(self._tokenizer, self.max_length)
         shuffle_gen = torch.Generator()
         shuffle_gen.manual_seed(stage_seed)
-        loader = DataLoader(
-            dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            collate_fn=collator,
-            generator=shuffle_gen,
-        )
+
+        if balanced_sampling:
+            sampler_weights, num_samples = balanced_epoch_weights(y)
+            sampler = WeightedRandomSampler(
+                weights=torch.tensor(sampler_weights, dtype=torch.double),
+                num_samples=num_samples,
+                replacement=True,
+                generator=shuffle_gen,
+            )
+            loader = DataLoader(
+                dataset,
+                batch_size=self.batch_size,
+                sampler=sampler,
+                collate_fn=collator,
+            )
+        else:
+            loader = DataLoader(
+                dataset,
+                batch_size=self.batch_size,
+                shuffle=True,
+                collate_fn=collator,
+                generator=shuffle_gen,
+            )
 
         total_steps = len(loader) * self.epochs_per_stage
         warmup_steps = max(1, int(total_steps * self.warmup_ratio))

@@ -242,14 +242,15 @@ def _build_cli_args(cfg: dict, mode: str, fold: int, experiment_id: str, results
 # ---------------------------------------------------------------------------
 
 def _discover_folds(dataset: str, data_dir: str, n_splits: int) -> list[int]:
-    import pandas as pd
-    pkl_path = os.path.join(data_dir, dataset, "splits", f"split_{n_splits}.pkl")
-    if not os.path.exists(pkl_path):
+    from src.data.loader import DatasetLoader
+
+    try:
+        df = DatasetLoader(data_dir, dataset).load_splits(n_splits=n_splits)
+    except FileNotFoundError as exc:
         raise FileNotFoundError(
-            f"Split file nao encontrado: {pkl_path}\n"
-            f"Certifique-se de que o dataset '{dataset}' foi baixado."
-        )
-    df = pd.read_pickle(pkl_path)
+            f"Split file nao encontrado para '{dataset}' (n_splits={n_splits}).\n"
+            f"Certifique-se de que o dataset foi baixado."
+        ) from exc
     return sorted(df["fold_id"].tolist())
 
 
@@ -279,11 +280,17 @@ def main():
         "--fail-fast", action="store_true",
         help="Aborta ao primeiro erro.",
     )
+    parser.add_argument(
+        "--dataset", type=str, default=None,
+        help="Override do dataset definido no YAML (util para o mesmo config em varios datasets).",
+    )
     args = parser.parse_args()
 
     # ------------------------------------------------------------------ carrega config
     config = _load_yaml(args.config)
     config.setdefault("modes", ["raw", "is", "cl", "is_cl"])
+    if args.dataset is not None:
+        config["dataset"] = args.dataset
     cfg = _merge_defaults(config)
 
     dataset = cfg["dataset"]
@@ -293,6 +300,8 @@ def main():
     # ------------------------------------------------------------------ folds
     if args.folds is not None:
         folds = sorted(args.folds)
+    elif "folds" in config:
+        folds = sorted(config["folds"])
     else:
         folds = _discover_folds(dataset, cfg["data_dir"], n_splits)
 

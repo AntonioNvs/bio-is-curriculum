@@ -22,6 +22,7 @@ from __future__ import annotations
 import numpy as np
 
 from baselines.base import BaselineBase
+from curriculum.class_balance import per_class_high_quantile_mask
 
 
 class Baseline1(BaselineBase):
@@ -34,6 +35,10 @@ class Baseline1(BaselineBase):
     )
 
     PHASE_NAMES = ("easy", "easy_medium", "all")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._y_build: np.ndarray | None = None
 
     def _extract_signals(self, selector, y):
         """Sinal único: confiança do LR fraco no rótulo verdadeiro de cada exemplo.
@@ -51,23 +56,29 @@ class Baseline1(BaselineBase):
         conf = probas[np.arange(len(y_arr)), y_arr]
         return conf, conf
 
+    def _coverage_score_from_signals(self, r: np.ndarray, e: np.ndarray) -> np.ndarray:
+        return np.asarray(e, dtype=np.float64)
+
     def _build_phases(self, conf, _unused=None):
-        """Pacing cumulativo por quantis de confianca (decrescente).
+        """Pacing cumulativo por quantis de confianca estratificados por classe."""
+        y = self._y_build
+        if y is None:
+            raise RuntimeError("_y_build nao definido; chame fit() via BIOISCurriculumBase.")
 
-        Fase 1: top `q_low` mais faceis.
-        Fase 2: top `q_mid` (inclui a fase 1).
-        Fase 3: 100% das instancias.
-        Todos os pesos sao 1.0 (Bengio CL nao pondera).
-        """
-        n = len(conf)
-        n_easy = max(1, int(np.floor(n * self.q_low)))
-        n_med = max(n_easy, int(np.floor(n * self.q_mid)))
-
-        order = np.argsort(-conf, kind="stable")  # desc por confianca
+        idx_all = np.arange(len(conf))
+        masks = (
+            per_class_high_quantile_mask(conf, y, self.q_low),
+            per_class_high_quantile_mask(conf, y, self.q_mid),
+            np.ones(len(conf), dtype=bool),
+        )
 
         phases = []
-        for name, k in zip(self.PHASE_NAMES, (n_easy, n_med, n)):
-            indices = np.sort(order[:k])  # mantem ordem natural dos dados no batch
+        for name, mask in zip(self.PHASE_NAMES, masks):
+            indices = idx_all[mask]
             weights = np.ones(len(indices), dtype=np.float64)
             phases.append({"name": name, "indices": indices, "weights": weights})
         return phases
+
+    def fit(self, selector, X, y, **kwargs):
+        self._y_build = np.asarray(y)
+        return super().fit(selector, X, y, **kwargs)

@@ -69,14 +69,16 @@ def _parse_mode_token(tok: str) -> str:
 
 def _discover_folds(dataset: str, data_dir: str, n_splits: int) -> list[int]:
     """Retorna a lista de fold_ids disponiveis no split pickle."""
-    pkl_path = os.path.join(data_dir, dataset, "splits", f"split_{n_splits}.pkl")
-    if not os.path.exists(pkl_path):
+    from src.data.loader import DatasetLoader
+
+    try:
+        df = DatasetLoader(data_dir, dataset).load_splits(n_splits=n_splits)
+    except FileNotFoundError as exc:
         raise FileNotFoundError(
-            f"Split file nao encontrado: {pkl_path}\n"
-            f"Certifique-se de que o dataset '{dataset}' foi baixado e "
+            f"Split file nao encontrado para '{dataset}' (n_splits={n_splits}).\n"
+            f"Certifique-se de que o dataset foi baixado e "
             f"que --n-splits={n_splits} esta correto."
-        )
-    df = pd.read_pickle(pkl_path)
+        ) from exc
     return sorted(df["fold_id"].tolist())
 
 

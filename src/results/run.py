@@ -38,7 +38,10 @@ class RunRecorder:
     """
 
     PHASE_METRICS_COLS = [
-        "phase", "n_samples", "n_iter",
+        "phase", "n_samples",
+        "n_train_samples", "n_classes_present", "n_classes_total",
+        "n_classes_missing", "n_rare_classes_pinned",
+        "n_iter",
         "train_time_s", "pred_time_s",
         "micro_f1", "macro_f1", "f1_weighted", "accuracy",
         "hard_slice_quantile", "hard_slice_macro_f1",

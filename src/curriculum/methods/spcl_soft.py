@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
+from curriculum.class_balance import balance_phase_indices
 from curriculum.core import BIOISCurriculumBase
 from results.metrics import build_phase_metrics_row
 
@@ -191,23 +192,14 @@ class SPCLSoftCurriculum(BIOISCurriculumBase):
                 top_local = np.argpartition(full_weights[candidate], -k)[-k:]
                 candidate = candidate[top_local]
             selected = np.sort(candidate)
-            # Mantem cobertura de classes para evitar quebra de warm start em LR.
-            classes_needed = np.unique(y)
-            present_classes = set(np.unique(y[selected]).tolist())
-            for cls in classes_needed:
-                if cls in present_classes:
-                    continue
-                cls_idx = np.flatnonzero(y == cls)
-                if cls_idx.size == 0:
-                    continue
-                best = cls_idx[np.argmax(full_weights[cls_idx])]
-                selected = np.sort(np.append(selected, int(best)))
-                present_classes.add(int(cls))
+            selected, weights, balance_stats = balance_phase_indices(
+                selected, y, full_weights[selected], score=full_weights,
+            )
 
             if np.unique(y[selected]).size < 2:
                 lambda_t = min(self.lambda_max, lambda_t * self.lambda_growth)
                 continue
-            weights = full_weights[selected]
+            weights = np.where(weights > 0.0, weights, self.min_weight)
             phases_time += time.perf_counter() - t0_build
 
             if prev_indices is not None and np.array_equal(selected, prev_indices):
@@ -286,6 +278,7 @@ class SPCLSoftCurriculum(BIOISCurriculumBase):
                     pred_time_s=pred_time,
                     hard_slice_quantile=self.hard_slice_quantile,
                     training_stats=training_stats,
+                    balance_stats=balance_stats,
                 )
 
             self.history_.append(row)

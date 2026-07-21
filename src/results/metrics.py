@@ -9,6 +9,13 @@ from scipy import stats
 from sklearn.metrics import accuracy_score, f1_score
 
 
+def _opt_balance_int(balance_row: dict[str, Any], key: str) -> float:
+    val = balance_row.get(key)
+    if val is None:
+        return float("nan")
+    return float(int(val))
+
+
 def hard_slice_macro_f1(
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -38,12 +45,19 @@ def build_phase_metrics_row(
     pred_time_s: float,
     hard_slice_quantile: float,
     training_stats: dict[str, Any] | None = None,
+    balance_stats: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Monta uma linha padrao de phase_metrics.csv."""
     stats_row = training_stats or {}
+    balance_row = balance_stats or {}
     return {
         "phase": phase,
         "n_samples": int(len(y_true)),
+        "n_train_samples": _opt_balance_int(balance_row, "n_train_samples"),
+        "n_classes_present": _opt_balance_int(balance_row, "n_classes_present"),
+        "n_classes_total": _opt_balance_int(balance_row, "n_classes_total"),
+        "n_classes_missing": _opt_balance_int(balance_row, "n_classes_missing"),
+        "n_rare_classes_pinned": _opt_balance_int(balance_row, "n_rare_classes_pinned"),
         "n_iter": int(n_iter),
         "train_time_s": float(train_time_s),
         "pred_time_s": float(pred_time_s),

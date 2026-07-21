@@ -70,7 +70,22 @@ DATASETS: list[dict] = [
         "name": "20ng",
         "zenodo_id": "7555237",
         "zip_file": "20ng.zip",
-    }
+    },
+    {
+        "name": "yelp_2013",
+        "zenodo_id": "7555898",
+        "zip_file": "yelp_2013.zip",
+    },
+    {
+        "name": "agnews",
+        "zenodo_id": "7555424",
+        "zip_file": "agnews.zip",
+    },
+    {
+        "name": "medline",
+        "zenodo_id": "7555820",
+        "zip_file": "medline.zip",
+    },
 ]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -85,10 +100,31 @@ def _progress(block_count: int, block_size: int, total: int) -> None:
         print(f"\r  [{bar}] {pct:3d}%  ({downloaded // 1024 // 1024} MB)", end="", flush=True)
 
 
+def _is_valid_zip(path: Path) -> bool:
+    if not path.is_file() or path.stat().st_size == 0:
+        return False
+    if not zipfile.is_zipfile(path):
+        return False
+    try:
+        with zipfile.ZipFile(path, "r") as zf:
+            if zf.testzip() is not None:
+                return False
+    except zipfile.BadZipFile:
+        return False
+    return True
+
+
 def download_file(url: str, dest: Path) -> None:
+    tmp = dest.with_suffix(dest.suffix + ".part")
     print(f"  Downloading {dest.name} ...")
-    urllib.request.urlretrieve(url, dest, reporthook=_progress)
-    print()  # newline after progress bar
+    try:
+        urllib.request.urlretrieve(url, tmp, reporthook=_progress)
+        print()  # newline after progress bar
+        tmp.replace(dest)
+    except Exception:
+        if tmp.exists():
+            tmp.unlink()
+        raise
 
 
 def reorganize(dataset_dir: Path) -> None:
@@ -130,10 +166,16 @@ def download_dataset(entry: dict, base_dir: Path) -> None:
     print(f"{'='*60}")
 
     # Download
-    if zip_path.exists():
+    if zip_path.exists() and _is_valid_zip(zip_path):
         print(f"  Zip already exists, skipping download: {zip_path}")
     else:
+        if zip_path.exists():
+            print(f"  Invalid or incomplete zip, re-downloading: {zip_path}")
+            zip_path.unlink()
         download_file(url, zip_path)
+        if not _is_valid_zip(zip_path):
+            zip_path.unlink(missing_ok=True)
+            raise RuntimeError(f"Downloaded file is not a valid zip: {zip_path}")
 
     # Extract
     print(f"  Extracting {zip_name} ...")

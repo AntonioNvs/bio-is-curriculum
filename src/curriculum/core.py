@@ -14,6 +14,7 @@ import numpy as np
 from scipy import stats
 
 from curriculum.base import CurriculumBase
+from curriculum.class_balance import balance_phase_indices
 from curriculum.models import CurriculumModel, LogisticRegressionModel
 from results.metrics import build_phase_metrics_row
 
@@ -35,6 +36,11 @@ class BIOISCurriculumBase(CurriculumBase):
         self.beta = beta
         self.hard_slice_quantile = hard_slice_quantile
         self.random_state = random_state
+        self._coverage_score: np.ndarray | None = None
+
+    def _coverage_score_from_signals(self, r: np.ndarray, e: np.ndarray) -> np.ndarray:
+        """Maior score = amostra preferida ao injetar cobertura de classe."""
+        return -np.asarray(e, dtype=np.float64)
 
     def _extract_signals(self, selector, y):
         """Deriva (r_i, e_i) normalizados a partir de um BIOIS ja ajustado."""
@@ -105,6 +111,13 @@ class BIOISCurriculumBase(CurriculumBase):
             indices = phase["indices"]
             weights = phase["weights"]
 
+            indices, weights, balance_stats = balance_phase_indices(
+                indices,
+                y,
+                weights,
+                score=self._coverage_score,
+            )
+
             if has_set_phase:
                 self.model_.set_phase(phase["name"])
 
@@ -128,6 +141,11 @@ class BIOISCurriculumBase(CurriculumBase):
             row = {
                 "phase": phase["name"],
                 "n_samples": int(len(indices)),
+                "n_train_samples": balance_stats["n_train_samples"],
+                "n_classes_present": balance_stats["n_classes_present"],
+                "n_classes_total": balance_stats["n_classes_total"],
+                "n_classes_missing": balance_stats["n_classes_missing"],
+                "n_rare_classes_pinned": balance_stats["n_rare_classes_pinned"],
                 "n_iter": self.model_.n_iter,
                 "train_time_s": float(train_time),
                 "pred_time_s": float("nan"),
@@ -166,6 +184,7 @@ class BIOISCurriculumBase(CurriculumBase):
                     pred_time_s=pred_time,
                     hard_slice_quantile=self.hard_slice_quantile,
                     training_stats=training_stats,
+                    balance_stats=balance_stats,
                 )
 
             history.append(row)
@@ -196,6 +215,7 @@ class BIOISCurriculumBase(CurriculumBase):
         """Executa o curriculum: sinais -> schedule -> treino faseado."""
         t0_signals = time.perf_counter()
         r, e = self._extract_signals(selector, y)
+        self._coverage_score = self._coverage_score_from_signals(r, e)
         signal_time = time.perf_counter() - t0_signals
 
         t0_phases = time.perf_counter()
