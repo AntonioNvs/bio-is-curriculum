@@ -29,7 +29,8 @@ from pathlib import Path
 # Each entry:
 #   name       : directory name under datasets/
 #   zenodo_id  : Zenodo record ID (integer)
-#   zip_file   : name of the zip file in the Zenodo record
+#   zip_file   : name of the zip file in the Zenodo record (optional)
+#   files      : loose files to download when no zip is available (optional)
 DATASETS: list[dict] = [
     {
         "name": "webkb",
@@ -86,6 +87,16 @@ DATASETS: list[dict] = [
         "zenodo_id": "7555820",
         "zip_file": "medline.zip",
     },
+    {
+        "name": "imdb_reviews",
+        "zenodo_id": "7555547",
+        "zip_file": "imdb_reviews.zip",
+    },
+    {
+        "name": "sogou",
+        "zenodo_id": "5259056",
+        "files": ["texts.txt", "score.txt", "split_5_with_val.pkl"],
+    },
 ]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -137,6 +148,13 @@ def reorganize(dataset_dir: Path) -> None:
         print(f"  Moving {pkl.name} → splits/")
         shutil.move(str(pkl), target)
 
+    # Some records (e.g. sogou) ship only split_N_with_val.pkl
+    for with_val in splits_dir.glob("split_*_with_val.pkl"):
+        plain = splits_dir / with_val.name.replace("_with_val", "")
+        if not plain.exists():
+            print(f"  Copying {with_val.name} → {plain.name}")
+            shutil.copy2(with_val, plain)
+
     tfidf_dir = dataset_dir / "tfidf"
     if not tfidf_dir.exists():
         # Check if tfidf files are at root level
@@ -148,24 +166,22 @@ def reorganize(dataset_dir: Path) -> None:
                 shutil.move(str(gz), tfidf_dir / gz.name)
 
 
-def download_dataset(entry: dict, base_dir: Path) -> None:
-    name = entry["name"]
-    record_id = entry["zenodo_id"]
-    zip_name = entry["zip_file"]
+def _download_loose_files(entry: dict, dataset_dir: Path, record_id: str) -> None:
+    for filename in entry["files"]:
+        dest = dataset_dir / filename
+        if dest.exists() and dest.stat().st_size > 0:
+            print(f"  Already exists, skipping download: {dest.name}")
+            continue
+        url = ZENODO_FILE_URL.format(record_id=record_id, filename=filename)
+        download_file(url, dest)
 
-    dataset_dir = base_dir / name
-    dataset_dir.mkdir(parents=True, exist_ok=True)
 
+def _download_and_extract_zip(
+    dataset_dir: Path, record_id: str, zip_name: str
+) -> None:
     zip_path = dataset_dir / zip_name
     url = ZENODO_FILE_URL.format(record_id=record_id, filename=zip_name)
 
-    print(f"\n{'='*60}")
-    print(f"  Dataset : {name}")
-    print(f"  Record  : https://zenodo.org/records/{record_id}")
-    print(f"  Target  : {dataset_dir}")
-    print(f"{'='*60}")
-
-    # Download
     if zip_path.exists() and _is_valid_zip(zip_path):
         print(f"  Zip already exists, skipping download: {zip_path}")
     else:
@@ -177,7 +193,6 @@ def download_dataset(entry: dict, base_dir: Path) -> None:
             zip_path.unlink(missing_ok=True)
             raise RuntimeError(f"Downloaded file is not a valid zip: {zip_path}")
 
-    # Extract
     print(f"  Extracting {zip_name} ...")
     with zipfile.ZipFile(zip_path, "r") as zf:
         # If zip has a single top-level directory, flatten it
@@ -201,9 +216,32 @@ def download_dataset(entry: dict, base_dir: Path) -> None:
         else:
             zf.extractall(dataset_dir)
 
-    # Remove zip to save space
     zip_path.unlink()
     print(f"  Removed {zip_name}")
+
+
+def download_dataset(entry: dict, base_dir: Path) -> None:
+    name = entry["name"]
+    record_id = entry["zenodo_id"]
+    zip_name = entry.get("zip_file")
+    loose_files = entry.get("files")
+
+    if not zip_name and not loose_files:
+        raise ValueError(f"Dataset '{name}' must define zip_file and/or files")
+
+    dataset_dir = base_dir / name
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n{'='*60}")
+    print(f"  Dataset : {name}")
+    print(f"  Record  : https://zenodo.org/records/{record_id}")
+    print(f"  Target  : {dataset_dir}")
+    print(f"{'='*60}")
+
+    if zip_name:
+        _download_and_extract_zip(dataset_dir, record_id, zip_name)
+    if loose_files:
+        _download_loose_files(entry, dataset_dir, record_id)
 
     # Reorganize to match loader expectations
     reorganize(dataset_dir)
