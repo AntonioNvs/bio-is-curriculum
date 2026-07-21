@@ -1,0 +1,44 @@
+# Large datasets — RoBERTa-base, 5-fold CV, fatorial 2² (raw, is, cl, is_cl).
+# Curriculum: biois_discrete (Clean → Diverse → Hard).
+#
+# Datasets: yelp_2013, agnews, medline
+#   4 modos × 5 folds = 20 runs por dataset (60 runs no total)
+#
+# Uso local (GPU 7):
+#   CUDA_VISIBLE_DEVICES=7 uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset yelp_2013
+#   CUDA_VISIBLE_DEVICES=7 uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset agnews
+#   CUDA_VISIBLE_DEVICES=7 uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset medline
+#
+# Docker (todos os datasets):
+#   IMAGE=bio-is-curriculum:latest ./scripts/run_docker_large_datasets_5cv.sh 7
+
+dataset: yelp_2013
+n_splits: 5
+model: roberta
+hf_model: roberta-base
+
+modes:
+  - raw
+  - is
+  - cl
+  - is_cl
+
+folds: [0, 1, 2, 3, 4]
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 16
+  eval_batch_size: 32
+  lr: 2.0e-5
+  weight_decay: 1.0e-3

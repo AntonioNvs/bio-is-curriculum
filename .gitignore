@@ -13,3 +13,4 @@ datasets/**
 
 analysis/training_metrics_export_*.xlsx
 .claude
+results/
