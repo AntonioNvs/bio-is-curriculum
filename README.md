@@ -10,14 +10,37 @@ uv sync
 
 ### Datasets
 
-Os datasets são baixados do Zenodo e organizados em `datasets/<nome>/`:
+Os datasets vêm do [Zenodo](https://zenodo.org/) (mesma suíte do [bio-is](https://github.com/waashk/bio-is) / [atcBench](https://github.com/waashk/atcBench)) e são organizados em `datasets/<nome>/` com o layout:
+
+```
+datasets/<nome>/
+    texts.txt          # documentos (um por linha)
+    score.txt          # rótulos de classe
+    splits/            # split_5.pkl, split_10.pkl (partições CV)
+    tfidf/             # matrizes TF-IDF em CSR (.gz) por fold
+```
+
+A representação TF-IDF usada pelo BIOIS segue o pré-processamento do bio-is: remoção de stopwords (scikit-learn) e retenção apenas de termos que aparecem em pelo menos dois documentos (`min_df=2`).
 
 ```sh
 uv run python download_datasets.py              # todos
-uv run python download_datasets.py webkb reuters90  # subset
+uv run python download_datasets.py webkb reuters90 agnews yelp_2013 medline  # subset
 ```
 
-Datasets suportados: `webkb`, `reuters90`, `mpqa`, `twitter`, `sst1`, `yelp_reviews`, `ohsumed`, `20ng`, `yelp_2013`, `agnews`, `medline`.
+| Dataset | Tamanho | Dim. | # Classes | Densidade | Desbalanceamento | CV | Link |
+|---------|---------|------|-----------|-----------|------------------|----|------|
+| `webkb` | 8,199 | 23,047 | 7 | 209 | Desbalanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555368) |
+| `reuters90` | 13,327 | 27,302 | 90 | 171 | Extremamente desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555298) |
+| `mpqa` | 10,606 | 2,643 | 2 | 3 | Desbalanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555268) |
+| `twitter` | 6,997 | 8,135 | 6 | 28 | Desbalanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7554707) |
+| `sst1` | 11,855 | 9,015 | 5 | 19 | Balanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555319) |
+| `yelp_reviews` | 5,000 | 23,631 | 2 | 132 | Balanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555396) |
+| `20ng` | 18,846 | 97,401 | 20 | 96 | Balanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555237) |
+| `agnews` | 127,600 | 39,837 | 4 | 37 | Balanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555424) |
+| `yelp_2013` | 335,018 | 62,964 | 6 | 152 | Desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555898) |
+| `medline` | 860,424 | 125,981 | 7 | 77 | Desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555820) |
+
+**Uso experimental:** `webkb` e `reuters90` servem para diagnóstico e ablação (iteração rápida; `reuters90` com muitas classes raras). Os sete datasets pequenos/médios da primeira metade da tabela compõem o batch multi-dataset (`scripts/run_docker_full_cv_multi.sh`). `agnews`, `yelp_2013` e `medline` são o núcleo para o claim de eficiência em escala — a redução BIOIS (~30–40%) materializa centenas de milhares de exemplos removidos (`experiments/large_datasets_roberta_base_5cv.yaml`).
 
 ## Execução rápida (recomendado)
 
