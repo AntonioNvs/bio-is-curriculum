@@ -40,40 +40,28 @@ uv run python download_datasets.py webkb reuters90 agnews yelp_2013 medline  # s
 | `yelp_2013` | 335,018 | 62,964 | 6 | 152 | Desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555898) |
 | `medline` | 860,424 | 125,981 | 7 | 77 | Desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555820) |
 
-**Uso experimental:** `webkb` e `reuters90` servem para diagnóstico e ablação (iteração rápida; `reuters90` com muitas classes raras). Os sete datasets pequenos/médios da primeira metade da tabela compõem o batch multi-dataset (`scripts/run_docker_full_cv_multi.sh`). `agnews`, `yelp_2013` e `medline` são o núcleo para o claim de eficiência em escala — a redução BIOIS (~30–40%) materializa centenas de milhares de exemplos removidos (`experiments/large_datasets_roberta_base_5cv.yaml`).
+**Experimental use:** `webkb` and `reuters90` are for fast ablations. Multi-dataset batches use [`experiments/campaigns/full_cv_multi.yaml`](experiments/campaigns/full_cv_multi.yaml). Large-scale efficiency claims use `agnews`, `yelp_2013`, and `medline` via [`experiments/campaigns/large_datasets_5cv.yaml`](experiments/campaigns/large_datasets_5cv.yaml).
 
-## Execução rápida (recomendado)
+## Quick start (recommended)
 
-A interface principal é `run.py`: um comando, um YAML, sumário automático com IC 95%.
+YAML-first experiments via `bio-experiment` (Docker + GPU 7 configured in campaign YAML):
 
 ```sh
-# Smoke test (2 folds, LR rápido)
-uv run python run.py experiments/smoke.yaml
+# Smoke test (single fold)
+uv run bio-experiment experiments/campaigns/smoke_docker.yaml --folds 0
 
-# Experimento completo (webkb 10-fold, todos os modos)
-uv run python run.py experiments/webkb.yaml
+# Curriculum signal ablations (4 datasets × 4 methods)
+uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
 
-# Override de folds
-uv run python run.py experiments/tier2_base.yaml --folds 0 1 2
-
-# Mesmo config, outro dataset
-uv run python run.py experiments/tier2_base.yaml --dataset reuters90
+# Full multi-dataset CV matrix
+uv run bio-experiment experiments/campaigns/full_cv_multi.yaml
 ```
 
-Configs prontas em `experiments/`:
+Legacy shims still work: `uv run python run.py experiments/smoke.yaml` → same as `bio-experiment`.
 
-| Arquivo | Descrição |
-|---|---|
-| `smoke.yaml` | Validação rápida do pipeline (LR, 2 folds) |
-| `webkb.yaml` | Exemplo mínimo com todos os modos |
-| `tier2_base.yaml` | Produção RoBERTa-base, fatorial 2² |
-| `tier2_base_baselines.yaml` | Tier 2 + baseline `b1` (Bengio 2009) |
-| `tier1_distil.yaml` | RoBERTa com batch menor (GPUs <16 GB) |
-| `tier3_large.yaml` | Datasets grandes |
-| `spcl_soft.yaml` / `spcl_loss.yaml` | Variantes SPCL |
-| `large_datasets_roberta_base_5cv.yaml` | Reuters90 e similares (5-fold) |
+Campaign configs live in [`experiments/campaigns/`](experiments/campaigns/). Single-dataset YAMLs remain in [`experiments/`](experiments/).
 
-O design experimental completo está em [`EXPERIMENTS.md`](EXPERIMENTS.md).
+The experiment design doc is [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md).
 
 ## Modos de execução (matriz IS × CL)
 
@@ -166,73 +154,65 @@ uv run python run_experiment.py webkb --modes raw is cl is_cl b1 --n-splits 10
 
 O baseline `b1` reutiliza `_probaEveryone` do BIOIS (classificador fraco em TF-IDF), com fases cumulativas por confiança no rótulo — sem máscara de ruído nem peso de redundância.
 
-## Experimentos multi-fold
+## Multi-fold experiments
 
-### `run.py` (YAML)
-
-Preferido para experimentos reproduzíveis. Ao final, gera `summary.csv` com média ± IC 95% por modo (macro-F1, efficiency_score, data_efficiency, etc.).
-
-### `run_experiment.py` (CLI)
-
-Alternativa sem YAML; repassa flags extras ao `main.py`:
+`bio-experiment` runs all modes × folds, aggregates per experiment folder, and writes a manifest JSON.
 
 ```sh
-uv run python run_experiment.py webkb --n-splits 10 --model roberta \
-    --modes raw is cl is_cl b1 \
-    --folds 0 1 2 \
-    --beta 0.3 --theta 0.2 --epochs-per-phase 2
+uv run bio-experiment experiments/webkb.yaml --folds 0 1 2
 ```
 
-### Docker (batch multi-dataset)
+Each job produces `results/<experiment_id>/summary.csv` (mean ± 95% CI per mode).
 
-Scripts em `scripts/` para rodar CV completo em container:
+### Manifest and Excel export
+
+After a campaign completes:
 
 ```sh
-IMAGE=bio-is-curriculum:latest ./scripts/run_docker_full_cv_multi.sh 0 webkb reuters90
+uv run python summary.py results/experiments/curriculum_ablations_multi_<timestamp>.json
 ```
 
-Variáveis úteis: `MODES`, `CURRICULUM_METHODS`, `SPCL_LOSS_SCHEMES`, `DATASET_SPLITS` (ex.: `reuters90:5`).
+This writes `.xlsx` and `.csv` summaries next to the manifest. Configure sheet layout in the YAML:
 
-## Agregação e comparação de resultados
+```yaml
+campaign:
+  name: my_experiment
+  summary:
+    layout: compare_by_dataset
+    metrics: [macro_f1, hard_slice_macro_f1, train_time_s, total_time]
+```
 
-`summary.py` consolida `summary.csv` de vários experimentos em Excel:
+See [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) for details.
+
+## Result aggregation (legacy)
+
+For runs without a manifest, deprecated folder discovery still works:
 
 ```sh
-# Uma métrica, vários experimentos
-uv run python summary.py --metric macro_f1 \
-    webkb-10cv-20260605-011430-0815f0 \
-    webkb-10cv-20260607-191540-731d44
-
-# Comparação multi-dataset a partir de um batch Docker
-uv run python summary.py --compare --run-prefix 20260711-022935 \
-    --datasets webkb reuters90 \
-    --output summary-compare-20260711-022935.xlsx
+uv run python summary.py --compare --run-prefix 20260711-022935 --datasets webkb reuters90
 ```
 
 Notebook de análise exploratória: `analysis/analysis.ipynb`.
 
-## Organização do código
+## Code layout
 
 ```
-├── main.py                  # entry point CLI (delega para src/cli.py)
-├── run.py                   # entry point YAML (recomendado)
-├── run_experiment.py        # runner multi-fold via CLI
-├── summary.py               # agregação cross-experimento → Excel
-├── download_datasets.py     # download Zenodo
-├── experiments/             # configs YAML prontas
-├── scripts/                 # runners Docker
-├── analysis/                # notebooks de análise
-└── src/
-    ├── cli.py               # argumentos e orquestração
-    ├── curriculum/
-    │   ├── core.py          # orquestrador compartilhado
-    │   ├── class_balance.py
-    │   ├── methods/         # biois_discrete, spcl_soft, spcl_loss
-    │   └── models.py
-    ├── baselines/           # baselines da literatura (--baseline N / bN)
-    ├── iSel/                # instance selection (BIOIS)
-    ├── data/                # loader, upsampling de classes raras
-    └── results/             # gravação de métricas e timings
+├── main.py                  # shim → bio-run
+├── run.py                   # shim → bio-experiment
+├── run_experiment.py        # shim → bio-experiment
+├── summary.py               # manifest → Excel/CSV export
+├── download_datasets.py     # Zenodo download
+├── experiments/             # YAML configs
+│   └── campaigns/           # multi-dataset campaign YAMLs
+├── scripts/                 # utility scripts (e.g. export_imbalance_comparison.py)
+├── analysis/                # analysis notebooks
+└── src/bio_is_curriculum/
+    ├── cli/                 # bio-run, bio-experiment, bio-summary
+    ├── config/              # schema, campaign expansion, defaults
+    ├── curriculum/          # curriculum methods and orchestrator
+    ├── selection/           # BIOIS instance selection
+    ├── data/                # dataset loader
+    └── results/             # metrics, aggregator, manifest, summary export
 ```
 
 ## Resultados
@@ -241,19 +221,21 @@ Notebook de análise exploratória: `analysis/analysis.ipynb`.
 
 Cada run gera `results/<mode>-<timestamp>-<hex6>/` com os artefatos abaixo.
 
-### Estrutura agrupada (multi-fold)
+### Grouped structure (multi-fold)
 
-Com `--experiment-id` (usado por `run.py` e `run_experiment.py`):
+With `--experiment-id` (used by `bio-experiment`):
 
 ```
 results/<experiment_id>/
     raw_fold0/
     is_fold0/
-    cl_fold0/
-    is_cl_fold0/
-    b1_fold0/
     ...
-    summary.csv          # agregado com IC 95%
+    summary.csv
+
+results/experiments/
+    <event>_<timestamp>.json    # manifest linking all folders from one run
+    <event>_<timestamp>.xlsx     # exported via summary.py
+    <event>_<timestamp>.csv
 ```
 
 | Arquivo | Conteúdo |
@@ -266,7 +248,7 @@ results/<experiment_id>/
 | `instance_selection.json` | Métricas de IS: redução, n_before/after, remoção por classe |
 | `summary.csv` | (nível experimento) média ± IC 95% por modo, incluindo `efficiency_score` e `data_efficiency` |
 
-Para comparar modos dentro de um experimento, use `summary.csv`. Para comparar entre experimentos, use `summary.py`.
+Compare modes within one experiment via `summary.csv`. Compare across experiments via the manifest + `summary.py`.
 
 ## Opções principais
 

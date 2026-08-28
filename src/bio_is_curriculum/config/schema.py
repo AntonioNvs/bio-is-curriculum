@@ -145,6 +145,49 @@ class DockerConfig:
         )
 
 
+DEFAULT_SUMMARY_METRICS = [
+    "macro_f1",
+    "micro_f1",
+    "f1_weighted",
+    "accuracy",
+    "hard_slice_macro_f1",
+    "train_time_s",
+    "total_time",
+]
+
+
+@dataclass
+class SummaryConfig:
+    """Excel/CSV export settings copied into experiment manifests."""
+
+    layout: str = "auto"
+    metrics: list[str] = field(default_factory=lambda: list(DEFAULT_SUMMARY_METRICS))
+    datasets: list[str] | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> SummaryConfig | None:
+        if not data:
+            return None
+        metrics = data.get("metrics")
+        return cls(
+            layout=str(data.get("layout", "auto")),
+            metrics=list(metrics) if metrics else list(DEFAULT_SUMMARY_METRICS),
+            datasets=list(data["datasets"]) if data.get("datasets") else None,
+        )
+
+    def resolve_layout(self, num_runs: int) -> str:
+        if self.layout == "auto":
+            return "compare_by_dataset" if num_runs > 1 else "long_table"
+        return self.layout
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "layout": self.layout,
+            "metrics": list(self.metrics),
+            "datasets": self.datasets,
+        }
+
+
 @dataclass
 class CampaignJobSpec:
     """One job entry in a campaign matrix."""
@@ -159,10 +202,12 @@ class CampaignJobSpec:
 class CampaignSpec:
     """Multi-dataset campaign with matrix job expansion."""
 
+    name: str | None = None
     datasets: dict[str, dict[str, Any]] = field(default_factory=dict)
     defaults: dict[str, Any] = field(default_factory=dict)
     jobs: list[CampaignJobSpec] = field(default_factory=list)
     timestamp: str = "auto"
+    summary: SummaryConfig | None = None
 
 
 @dataclass
@@ -173,3 +218,4 @@ class ExperimentSpec:
     docker: DockerConfig | None = None
     campaign: CampaignSpec | None = None
     batch: BatchExperimentConfig | None = None
+    summary: SummaryConfig | None = None

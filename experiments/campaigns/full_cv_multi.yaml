@@ -6,7 +6,18 @@ docker:
   memory: 32g
 
 campaign:
+  name: full_cv_multi
   timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - f1_weighted
+      - accuracy
+      - hard_slice_macro_f1
+      - train_time_s
+      - total_time
   datasets:
     webkb: { n_splits: 10 }
     reuters90: { n_splits: 5 }

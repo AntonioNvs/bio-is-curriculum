@@ -108,6 +108,19 @@ def _job_yaml_for_combo(
     return yaml_cfg
 
 
+def resolve_campaign_timestamp(
+    campaign: CampaignSpec,
+    *,
+    timestamp: str | None = None,
+) -> str:
+    """Return the shared timestamp string for a campaign invocation."""
+    if timestamp is not None:
+        return timestamp
+    if campaign.timestamp == "auto":
+        return datetime.now().strftime("%Y%m%d-%H%M%S")
+    return campaign.timestamp
+
+
 def expand_campaign(
     campaign: CampaignSpec,
     *,
@@ -117,12 +130,7 @@ def expand_campaign(
     if not campaign.datasets:
         raise ValueError("Campaign must define at least one dataset under campaign.datasets")
 
-    run_timestamp = timestamp
-    if run_timestamp is None:
-        if campaign.timestamp == "auto":
-            run_timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        else:
-            run_timestamp = campaign.timestamp
+    run_timestamp = resolve_campaign_timestamp(campaign, timestamp=timestamp)
 
     default_n_splits = int(campaign.defaults.get("n_splits", 10))
     batches: list[BatchExperimentConfig] = []

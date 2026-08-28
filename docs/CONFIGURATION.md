@@ -102,6 +102,53 @@ campaign:
 
 **Template variables:** `{dataset}`, `{n_splits}`, `{timestamp}`, `{method}`, `{loss_scheme}`, and short names from matrix keys.
 
+Optional campaign metadata:
+
+```yaml
+campaign:
+  name: curriculum_ablations_multi   # used in manifest filename
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset       # or long_table, or auto
+    metrics: [macro_f1, micro_f1, hard_slice_macro_f1, train_time_s, total_time]
+    datasets: null                   # null = all datasets in the run
+  datasets:
+    webkb: { n_splits: 10 }
+  jobs: [...]
+```
+
+Simple batch YAMLs can define a top-level `summary:` block with the same fields.
+
+## Experiment manifest and summary export
+
+Every `bio-experiment` invocation writes a manifest JSON listing all result folders:
+
+```
+results/experiments/<event_description>_<timestamp>.json
+```
+
+Example after a campaign:
+
+```sh
+uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
+# → results/experiments/curriculum_ablations_multi_20260828-014706.json
+
+uv run python summary.py results/experiments/curriculum_ablations_multi_20260828-014706.json
+# → results/experiments/curriculum_ablations_multi_20260828-014706.xlsx
+# → results/experiments/curriculum_ablations_multi_20260828-014706.csv
+```
+
+Or use the console entry point: `uv run bio-summary results/experiments/<event>_<timestamp>.json`
+
+Manifest `summary.layout`:
+
+| Layout | Excel sheets |
+|--------|----------------|
+| `compare_by_dataset` | one worksheet per dataset, wide metric columns |
+| `long_table` | single worksheet, all runs in long format |
+
+Legacy folder discovery (`--run-prefix`, explicit folder args) still works but is deprecated.
+
 ## SPDCL epoch budget
 
 Total training epochs for `b2`:

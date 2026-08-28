@@ -7,17 +7,28 @@ import os
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from uuid import uuid4
 
 from bio_is_curriculum.cli.docker_launcher import docker_run
-from bio_is_curriculum.config.campaign import expand_campaign
+from bio_is_curriculum.config.campaign import expand_campaign, resolve_campaign_timestamp
 from bio_is_curriculum.config.cuda import running_in_docker
 from bio_is_curriculum.config.defaults import DEFAULTS
 from bio_is_curriculum.config.loader import load_experiment_spec
 from bio_is_curriculum.config.schema import BatchExperimentConfig, DockerConfig
 from bio_is_curriculum.data.loader import DatasetLoader
 from bio_is_curriculum.results.aggregator import aggregate, print_summary
+from bio_is_curriculum.results.manifest import (
+    ExperimentManifest,
+    build_run_entry,
+    docker_to_dict,
+    resolve_event_description,
+    resolve_summary_config,
+    utc_now_iso,
+    write_manifest,
+)
 
 _DISCRETE_METHODS = frozenset({
     "biois_discrete",
@@ -25,6 +36,17 @@ _DISCRETE_METHODS = frozenset({
     "loss_discrete",
     "tfidf_discrete",
 })
+
+
+@dataclass
+class BatchRunResult:
+    experiment_id: str
+    batch: BatchExperimentConfig
+    failed: list[tuple[str, int, int]]
+
+    @property
+    def status(self) -> str:
+        return "failed" if self.failed else "ok"
 
 
 def _discover_folds(dataset: str, data_dir: str, n_splits: int) -> list[int]:
@@ -118,11 +140,16 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
     return args
 
 
-def _resolve_batches(spec, *, dataset_override: str | None) -> list[BatchExperimentConfig]:
+def _resolve_batches(
+    spec,
+    *,
+    dataset_override: str | None,
+) -> tuple[list[BatchExperimentConfig], str]:
     if spec.campaign is not None:
-        return expand_campaign(spec.campaign)
+        timestamp = resolve_campaign_timestamp(spec.campaign)
+        return expand_campaign(spec.campaign, timestamp=timestamp), timestamp
     assert spec.batch is not None
-    return [spec.batch]
+    return [spec.batch], datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
 def _apply_cli_overrides(
@@ -147,7 +174,7 @@ def _run_batch(
     verbose: bool,
     fail_fast: bool,
     dry_run: bool,
-) -> list[tuple[str, int, int]]:
+) -> BatchRunResult:
     cfg = batch.run
     cfg.dataset = batch.dataset or cfg.dataset
     cfg.n_splits = batch.n_splits
@@ -190,7 +217,7 @@ def _run_batch(
                 print("FAIL")
                 failed.append((mode, fold, result.returncode))
                 if fail_fast:
-                    return failed
+                    return BatchRunResult(experiment_id, batch, failed)
             else:
                 print("OK")
 
@@ -201,7 +228,7 @@ def _run_batch(
         print_summary(summary_df)
         print(f"\nSummary: {summary_path}")
 
-    return failed
+    return BatchRunResult(experiment_id, batch, failed)
 
 
 def main():
@@ -263,7 +290,7 @@ def main():
         )
         sys.exit(code)
 
-    batches = _resolve_batches(spec, dataset_override=args.dataset)
+    batches, run_timestamp = _resolve_batches(spec, dataset_override=args.dataset)
     if spec.campaign is None and args.dataset and batches:
         batches[0].dataset = args.dataset
     batches = _apply_cli_overrides(
@@ -275,19 +302,49 @@ def main():
         print("No jobs matched the requested filters.")
         sys.exit(1)
 
+    started_at = utc_now_iso()
+    results_dir = batches[0].run.results_dir if batches else DEFAULTS["results_dir"]
+    batch_results: list[BatchRunResult] = []
     all_failed: list[tuple[str, int, int, str]] = []
     for batch in batches:
-        failed = _run_batch(
+        result = _run_batch(
             batch,
             verbose=args.verbose,
             fail_fast=args.fail_fast,
             dry_run=args.dry_run,
         )
-        exp_id = batch.experiment_id or batch.dataset
-        for mode, fold, code in failed:
-            all_failed.append((exp_id, mode, fold, code))
-        if failed and args.fail_fast:
-            sys.exit(failed[0][2])
+        batch_results.append(result)
+        for mode, fold, code in result.failed:
+            all_failed.append((result.experiment_id, mode, fold, code))
+        if result.failed and args.fail_fast:
+            sys.exit(result.failed[0][2])
+
+    if not args.dry_run and batch_results:
+        summary_cfg = resolve_summary_config(spec, len(batch_results))
+        manifest = ExperimentManifest(
+            event_description=resolve_event_description(spec),
+            timestamp=run_timestamp,
+            config_path=str(Path(args.config).as_posix()),
+            started_at=started_at,
+            finished_at=utc_now_iso(),
+            docker=docker_to_dict(spec.docker),
+            summary={
+                "layout": summary_cfg.resolve_layout(len(batch_results)),
+                "metrics": list(summary_cfg.metrics),
+                "datasets": summary_cfg.datasets,
+            },
+            runs=[
+                build_run_entry(
+                    result.batch,
+                    result.experiment_id,
+                    status=result.status,
+                    results_dir=results_dir,
+                )
+                for result in batch_results
+            ],
+        )
+        manifest_path = write_manifest(manifest, results_dir)
+        print(f"\nManifest: {manifest_path.resolve()}")
 
     if all_failed:
         print(f"\n{len(all_failed)} run(s) failed.")

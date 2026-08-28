@@ -12,7 +12,12 @@ wheels/
 datasets/**
 
 analysis/training_metrics_export_*.xlsx
+*.xlsx
 .claude
-results/
+results/*
+!results/.gitkeep
+!results/experiments/
+results/experiments/*
+!results/experiments/.gitkeep
 
 *.out

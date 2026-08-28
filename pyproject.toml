@@ -22,6 +22,7 @@ dev = ["pytest>=8.0"]
 [project.scripts]
 bio-run = "bio_is_curriculum.cli.main:main"
 bio-experiment = "bio_is_curriculum.cli.experiment:main"
+bio-summary = "bio_is_curriculum.results.summary_export:main"
 
 [build-system]
 requires = ["setuptools>=68"]

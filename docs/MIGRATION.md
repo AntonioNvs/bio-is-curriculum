@@ -43,6 +43,23 @@ Legacy shims `main.py` and `run.py` still work.
 
 - `is_continuos_cl` → `is_continuous_cl` (old spelling still accepted as alias).
 
+## Experiment manifest and summary
+
+Each `bio-experiment` run writes a manifest under `results/experiments/`:
+
+```sh
+uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
+uv run python summary.py results/experiments/curriculum_ablations_multi_<timestamp>.json
+```
+
+See [CONFIGURATION.md](docs/CONFIGURATION.md) for `campaign.name`, `campaign.summary`, and export layouts.
+
+## Repo cleanup (2026-08)
+
+- `results/` and `*.xlsx` artifacts removed from git tracking (still on disk locally).
+- Removed obsolete `scripts/run_docker_*.sh`, root `EXPERIMENTS.md`, and duplicate `analysis.ipynb`.
+- Use `docs/EXPERIMENTS.md` for the experiment design doc.
+
 ## Install
 
 ```sh

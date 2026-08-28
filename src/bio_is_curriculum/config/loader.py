@@ -12,6 +12,7 @@ from bio_is_curriculum.config.schema import (
     DockerConfig,
     ExperimentConfig,
     ExperimentSpec,
+    SummaryConfig,
 )
 
 
@@ -146,10 +147,12 @@ def load_experiment_spec(path: str) -> ExperimentSpec:
     if "campaign" in raw:
         camp_raw = raw["campaign"] or {}
         campaign = CampaignSpec(
+            name=camp_raw.get("name"),
             datasets=_parse_campaign_datasets(camp_raw),
             defaults=dict(camp_raw.get("defaults", {})),
             jobs=_parse_campaign_jobs(camp_raw.get("jobs", [])),
             timestamp=str(camp_raw.get("timestamp", "auto")),
+            summary=SummaryConfig.from_dict(camp_raw.get("summary")),
         )
         return ExperimentSpec(config_path=path, docker=docker, campaign=campaign)
 
@@ -157,6 +160,7 @@ def load_experiment_spec(path: str) -> ExperimentSpec:
         config_path=path,
         docker=docker,
         batch=batch_from_yaml_dict(raw),
+        summary=SummaryConfig.from_dict(raw.get("summary")),
     )
 
 

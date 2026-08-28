@@ -5,11 +5,11 @@ Objetivo do mês: ter um **pacote demonstrável para supervisores** — não sub
 **Tese central (proposta):** curriculum learning para fine-tuning de PLMs guiado pelos sinais bi-objetivos do BIOIS (redundância + ruído/entropia) melhora a **fronteira eficiência–qualidade** em classificação de texto, indo além de CL baseado em confiança univariada ou heurísticas fracas.
 
 **Estado atual do repo (baseline honesta):**
-- Pipeline `run.py` + matriz IS×CL implementada (`raw`, `is`, `cl`, `is_cl`, `b1`).
+- Pipeline `bio-experiment` + matriz IS×CL implementada (`raw`, `is`, `cl`, `is_cl`, `b1`).
 - Variantes de CL: `biois_discrete`, `spcl_soft`, `spcl_loss`.
 - Resultados parciais em WebKB e Reuters90 (`results/*20260711-022935*`) — **úteis para diagnóstico**, mas datasets pequenos (~5K–13K docs) limitam o ganho visível de IS (redução de ~30% ≈ poucos mil exemplos).
 - **Hipótese central para datasets grandes:** em `yelp_2013` (335K), `agnews` (128K) e `medline` (860K), a redução BIOIS (~30–40% no TOIS/SIGIR) deve aparecer em `data_efficiency`, `train_time_s` e `compute_proxy` — é daí que vem o argumento de eficiência para supervisores.
-- Config pronta: `experiments/large_datasets_roberta_base_5cv.yaml` + `scripts/run_docker_large_datasets_5cv.sh`.
+- Config pronta: `experiments/campaigns/large_datasets_5cv.yaml`.
 - **Alerta:** em WebKB, `raw` (macro-F1 ≈ 0.83) > `is` ≈ 0.82 > `cl` ≈ 0.79 > `is_cl` ≈ 0.75 — ganho de eficiência existe, mas **perda de F1 precisa ser explicada ou corrigida**; em datasets grandes o trade-off pode inverter (menos overfitting em ruído/redundância).
 - Baselines NLP (AnnealCR, AnnealTD, etc.) ainda **não implementados** (`EXPERIMENTS.md`).
 
@@ -81,7 +81,7 @@ Use estas queries (Google Scholar, ACL Anthology, Semantic Scholar). Para cada l
 - [ ] Documentar conclusão: "com config X, trade-off aceitável" ou "método só vence em cenário Y (dataset grande / muitas classes)".
 - [ ] **Smoke em 1 dataset grande** antes do batch (1 fold, LR ou RoBERTa com `--folds 0`):
   ```sh
-  uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset agnews --folds 0
+  uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml --dataset agnews --folds 0
   ```
 
 **Validação acadêmica:** um resultado onde o método proposto perde em todas as métricas em todos os datasets é fatal. É aceitável **perder F1 absoluto em datasets pequenos** se ganhar em **Pareto eficiência em datasets grandes** — onde a redução é material (centenas de milhares de exemplos removidos).
@@ -147,12 +147,12 @@ Registrar em `experiments/paper_core.yaml` (criar) com: tiers, seeds, folds (5 p
 - [ ] Executar `raw`, `is`, `cl`, `is_cl` com **mesmo** `roberta-base`, mesmos folds, mesmas épocas totais:
   ```sh
   # Núcleo — datasets grandes (5-fold)
-  uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset agnews
-  uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset yelp_2013
-  uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset medline
+  uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml --dataset agnews
+  uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml --dataset yelp_2013
+  uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml --dataset medline
 
   # Diagnóstico / ablação — dataset pequeno (10-fold, se faltar)
-  uv run python run.py experiments/tier2_base.yaml --dataset webkb
+  uv run bio-experiment experiments/tier2_base.yaml --dataset webkb
   ```
 - [ ] **Métricas obrigatórias em datasets grandes:** além de `macro_f1`, registrar e comparar:
   - `data_efficiency` (fração de dados usada após IS)
@@ -182,7 +182,7 @@ Objetivo: mostrar que ganho vem da **combinação** e que cada sinal contribui �
 ### 2.4 Baseline mínimo da literatura
 - [ ] Rodar `b1` (Bengio) nos mesmos datasets:
   ```sh
-  uv run python run.py experiments/tier2_base_baselines.yaml
+  uv run bio-experiment experiments/tier2_base_baselines.yaml
   ```
 
 ### 2.5 Agregação e testes estatísticos
@@ -270,21 +270,21 @@ Comparar com `cl` (BIOIS). Se BIOIS não bater length-based, o claim precisa ser
 
 ```sh
 # Smoke antes de batch grande
-uv run python run.py experiments/smoke.yaml
+uv run bio-experiment experiments/smoke.yaml
 
 # Download datasets grandes
 uv run python download_datasets.py agnews yelp_2013 medline
 
 # Núcleo fatorial — Tier L (5-fold)
-uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset agnews
-uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset yelp_2013
-uv run python run.py experiments/large_datasets_roberta_base_5cv.yaml --dataset medline
+uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml --dataset agnews
+uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml --dataset yelp_2013
+uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml --dataset medline
 
 # Diagnóstico — Tier S (10-fold)
-uv run python run.py experiments/tier2_base.yaml --dataset webkb
+uv run bio-experiment experiments/tier2_base.yaml --dataset webkb
 
 # Docker batch datasets grandes
-IMAGE=bio-is-curriculum:latest ./scripts/run_docker_large_datasets_5cv.sh 7
+uv run bio-experiment experiments/campaigns/large_datasets_5cv.yaml
 
 # Comparar batch Docker
 uv run python summary.py --compare --run-prefix <PREFIX> \
