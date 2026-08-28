@@ -1,0 +1,61 @@
+# SPDCL (b2) with and without BIOIS instance selection as data prep.
+#
+# Modes:
+#   b2     — SPDCL on full training data (no IS)
+#   is_b2  — BIOIS selects instances first; selected set is treated as raw data for SPDCL
+#            (BIOIS metrics are NOT part of the SPDCL baseline strategy)
+#
+# Datasets: webkb, reuters90, agnews — all folds per dataset.
+#
+# Run on host GPU 5:
+#   uv run bio-experiment experiments/campaigns/spdcl_is_ablation.yaml
+#
+# Smoke (fold 0, webkb only):
+#   uv run bio-experiment experiments/campaigns/spdcl_is_ablation.yaml --dataset webkb --folds 0
+#
+# agnews is large (~128K train/fold); expect long nuclear-norm passes per epoch.
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 5
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: spdcl_is_ablation
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - nuclear_norm_time_s
+      - total_time
+  datasets:
+    webkb: { n_splits: 10 }
+    reuters90: { n_splits: 5 }
+    agnews: { n_splits: 5 }
+
+  defaults:
+    model: roberta
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    baseline:
+      spdcl_n_bins: 5
+      spdcl_curriculum_epochs: 5
+      spdcl_anneal_epochs: 1
+    training:
+      hf_model: roberta-base
+      epochs: 6
+      batch_size: 25
+      max_length: 250
+      lr: 5.0e-5
+      weight_decay: 0.01
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [b2, is_b2]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_spdcl"

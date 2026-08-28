@@ -121,24 +121,26 @@ Simple batch YAMLs can define a top-level `summary:` block with the same fields.
 
 ## Experiment manifest and summary export
 
-Every `bio-experiment` invocation writes a manifest JSON listing all result folders:
+Every `bio-experiment` invocation writes a manifest folder:
 
 ```
-results/experiments/<event_description>_<timestamp>.json
+results/experiments/<event_description>_<timestamp>/
+    manifest.json
+    summary.xlsx    # after running summary.py
+    summary.csv
 ```
 
 Example after a campaign:
 
 ```sh
 uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
-# → results/experiments/curriculum_ablations_multi_20260828-014706.json
+# → results/experiments/curriculum_ablations_multi_20260828-014706/manifest.json
 
-uv run python summary.py results/experiments/curriculum_ablations_multi_20260828-014706.json
-# → results/experiments/curriculum_ablations_multi_20260828-014706.xlsx
-# → results/experiments/curriculum_ablations_multi_20260828-014706.csv
+uv run python summary.py results/experiments/curriculum_ablations_multi_20260828-014706/
+# → .../summary.xlsx and .../summary.csv
 ```
 
-Or use the console entry point: `uv run bio-summary results/experiments/<event>_<timestamp>.json`
+Or use the console entry point: `uv run bio-summary results/experiments/<event>_<timestamp>/`
 
 Manifest `summary.layout`:
 

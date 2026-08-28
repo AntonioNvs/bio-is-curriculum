@@ -45,11 +45,11 @@ Legacy shims `main.py` and `run.py` still work.
 
 ## Experiment manifest and summary
 
-Each `bio-experiment` run writes a manifest under `results/experiments/`:
+Each `bio-experiment` run writes a folder under `results/experiments/`:
 
 ```sh
 uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
-uv run python summary.py results/experiments/curriculum_ablations_multi_<timestamp>.json
+uv run python summary.py results/experiments/curriculum_ablations_multi_<timestamp>/
 ```
 
 See [CONFIGURATION.md](docs/CONFIGURATION.md) for `campaign.name`, `campaign.summary`, and export layouts.

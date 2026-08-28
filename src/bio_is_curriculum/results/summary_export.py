@@ -14,7 +14,12 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from bio_is_curriculum.results.manifest import load_manifest
+from bio_is_curriculum.results.manifest import (
+    SUMMARY_CSV_NAME,
+    SUMMARY_XLSX_NAME,
+    load_manifest,
+    resolve_manifest_path,
+)
 
 DEFAULT_CURRICULUM_METHOD = "biois_discrete"
 
@@ -32,7 +37,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "manifest",
         nargs="?",
         default=None,
-        help="Path to results/experiments/<event>_<timestamp>.json",
+        help=(
+            "Path to results/experiments/<event>_<timestamp>/ "
+            "(folder) or .../manifest.json"
+        ),
     )
     parser.add_argument(
         "folders",
@@ -351,26 +359,18 @@ def _manifest_experiment_dirs(manifest: dict[str, object]) -> list[Path]:
     return dirs
 
 
-def _output_stem_from_manifest(manifest_path: Path, manifest: dict[str, object]) -> str:
-    event = str(manifest.get("event_description", manifest_path.stem))
-    timestamp = str(manifest.get("timestamp", ""))
-    if timestamp:
-        return f"{event}_{timestamp}"
-    return manifest_path.stem
-
-
 def export_from_manifest(
-    manifest_path: str | Path,
+    manifest_input: str | Path,
     *,
     metrics: list[str] | None = None,
     datasets: list[str] | None = None,
     output_xlsx: Path | None = None,
 ) -> tuple[Path, Path]:
-    manifest_path = Path(manifest_path)
-    manifest = load_manifest(manifest_path)
+    manifest_json = resolve_manifest_path(manifest_input)
+    manifest = load_manifest(manifest_json)
     summary_cfg = manifest.get("summary") or {}
     if not isinstance(summary_cfg, dict):
-        raise ValueError(f"Invalid summary section in manifest: {manifest_path}")
+        raise ValueError(f"Invalid summary section in manifest: {manifest_json}")
 
     layout = str(summary_cfg.get("layout", "long_table"))
     if metrics is None:
@@ -388,10 +388,9 @@ def export_from_manifest(
         if long_df.empty:
             raise ValueError(f"No rows for datasets: {datasets}")
 
-    stem = _output_stem_from_manifest(manifest_path, manifest)
-    out_dir = manifest_path.parent
-    csv_path = out_dir / f"{stem}.csv"
-    xlsx_path = output_xlsx or (out_dir / f"{stem}.xlsx")
+    out_dir = manifest_json.parent
+    csv_path = out_dir / SUMMARY_CSV_NAME
+    xlsx_path = output_xlsx or (out_dir / SUMMARY_XLSX_NAME)
 
     long_df.sort_values(by=["dataset", "method", "metric"]).to_csv(
         csv_path, index=False, float_format="%.6f"
@@ -488,20 +487,19 @@ def main(argv: list[str] | None = None) -> None:
     args = _parse_args(argv)
 
     manifest_arg = args.manifest
-    if manifest_arg and not str(manifest_arg).endswith(".json"):
+    if manifest_arg:
+        path = Path(manifest_arg)
+        if path.is_dir() or path.suffix == ".json":
+            xlsx_path, csv_path = export_from_manifest(
+                manifest_arg,
+                metrics=args.metrics,
+                datasets=args.datasets,
+                output_xlsx=Path(args.output) if args.output else None,
+            )
+            print(f"Saved summary workbook to: {xlsx_path.resolve()}")
+            print(f"Saved long-format CSV to: {csv_path.resolve()}")
+            return
         args.folders = [manifest_arg, *list(args.folders)]
-        manifest_arg = None
-
-    if manifest_arg and Path(manifest_arg).suffix == ".json":
-        xlsx_path, csv_path = export_from_manifest(
-            manifest_arg,
-            metrics=args.metrics,
-            datasets=args.datasets,
-            output_xlsx=Path(args.output) if args.output else None,
-        )
-        print(f"Saved summary workbook to: {xlsx_path.resolve()}")
-        print(f"Saved long-format CSV to: {csv_path.resolve()}")
-        return
 
     if args.compare or args.run_prefix or args.folders or args.metric:
         if args.compare or args.run_prefix:
@@ -511,7 +509,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     raise SystemExit(
-        "Usage: summary.py results/experiments/<event>_<timestamp>.json "
+        "Usage: summary.py results/experiments/<event>_<timestamp>/ "
         "[--metrics ...] [--datasets ...]"
     )
 

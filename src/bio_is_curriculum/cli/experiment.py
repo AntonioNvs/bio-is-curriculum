@@ -24,6 +24,7 @@ from bio_is_curriculum.results.manifest import (
     ExperimentManifest,
     build_run_entry,
     docker_to_dict,
+    experiment_dir,
     resolve_event_description,
     resolve_summary_config,
     utc_now_iso,
@@ -68,6 +69,7 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
         "--hard-slice-quantile", str(cfg.hard_slice_quantile),
     ]
     baseline_match = re.match(r"^b([0-9]+)$", mode)
+    is_baseline_match = re.match(r"^is_b([0-9]+)$", mode)
     if baseline_match:
         args += ["--baseline", baseline_match.group(1)]
     else:
@@ -97,7 +99,8 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
     if cfg.model == "roberta":
         args += ["--hf-model", cfg.hf_model]
 
-    if mode not in ("raw", "is"):
+    baseline_only = baseline_match is not None or is_baseline_match is not None
+    if mode not in ("raw", "is") and not baseline_only:
         args += ["--curriculum-method", cfg.curriculum_method]
         args += ["--curriculum-beta", str(cfg.curriculum_beta)]
         q_low, q_mid, q_high = cfg.curriculum_q
@@ -344,7 +347,13 @@ def main():
             ],
         )
         manifest_path = write_manifest(manifest, results_dir)
-        print(f"\nManifest: {manifest_path.resolve()}")
+        exp_dir = experiment_dir(
+            results_dir,
+            manifest.event_description,
+            manifest.timestamp,
+        )
+        print(f"\nExperiment folder: {exp_dir.resolve()}")
+        print(f"Manifest: {manifest_path.resolve()}")
 
     if all_failed:
         print(f"\n{len(all_failed)} run(s) failed.")

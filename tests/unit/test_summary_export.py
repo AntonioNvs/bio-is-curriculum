@@ -54,11 +54,14 @@ def test_export_from_manifest_long_table(tmp_path):
             {"path": str(exp_b)},
         ],
     }
-    manifest_path = tmp_path / "results" / "experiments" / "ablations_20260101-120000.json"
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    exp_dir = tmp_path / "results" / "experiments" / "ablations_20260101-120000"
+    exp_dir.mkdir(parents=True)
+    manifest_path = exp_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    xlsx_path, csv_path = export_from_manifest(manifest_path)
+    xlsx_path, csv_path = export_from_manifest(exp_dir)
+    assert xlsx_path == exp_dir / "summary.xlsx"
+    assert csv_path == exp_dir / "summary.csv"
     assert xlsx_path.exists()
     assert csv_path.exists()
     csv_df = pd.read_csv(csv_path)
@@ -76,11 +79,11 @@ def test_export_from_manifest_compare_by_dataset(tmp_path):
         "summary": {"layout": "compare_by_dataset", "metrics": ["macro_f1"], "datasets": ["webkb"]},
         "runs": [{"path": str(exp_a)}],
     }
-    manifest_path = tmp_path / "results" / "experiments" / "compare_20260101-120000.json"
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    exp_dir = tmp_path / "results" / "experiments" / "compare_20260101-120000"
+    exp_dir.mkdir(parents=True)
+    (exp_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
-    xlsx_path, csv_path = export_from_manifest(manifest_path)
+    xlsx_path, csv_path = export_from_manifest(exp_dir)
     assert xlsx_path.exists()
     assert csv_path.exists()
     sheets = pd.ExcelFile(xlsx_path).sheet_names

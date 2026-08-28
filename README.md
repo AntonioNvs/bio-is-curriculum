@@ -169,7 +169,7 @@ Each job produces `results/<experiment_id>/summary.csv` (mean ± 95% CI per mode
 After a campaign completes:
 
 ```sh
-uv run python summary.py results/experiments/curriculum_ablations_multi_<timestamp>.json
+uv run python summary.py results/experiments/curriculum_ablations_multi_<timestamp>/
 ```
 
 This writes `.xlsx` and `.csv` summaries next to the manifest. Configure sheet layout in the YAML:
@@ -233,9 +233,10 @@ results/<experiment_id>/
     summary.csv
 
 results/experiments/
-    <event>_<timestamp>.json    # manifest linking all folders from one run
-    <event>_<timestamp>.xlsx     # exported via summary.py
-    <event>_<timestamp>.csv
+    <event>_<timestamp>/
+        manifest.json
+        summary.xlsx
+        summary.csv
 ```
 
 | Arquivo | Conteúdo |

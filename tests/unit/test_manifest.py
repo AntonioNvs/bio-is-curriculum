@@ -7,12 +7,15 @@ import json
 from bio_is_curriculum.config.loader import load_experiment_spec
 from bio_is_curriculum.config.schema import BatchExperimentConfig, ExperimentConfig, SummaryConfig
 from bio_is_curriculum.results.manifest import (
+    MANIFEST_JSON_NAME,
     ExperimentManifest,
     build_run_entry,
+    experiment_dir,
+    experiment_dir_name,
     load_manifest,
-    manifest_filename,
     manifest_path,
     resolve_event_description,
+    resolve_manifest_path,
     resolve_summary_config,
     sanitize_event_name,
     write_manifest,
@@ -24,9 +27,9 @@ def test_sanitize_event_name():
     assert sanitize_event_name("  ") == "experiment"
 
 
-def test_manifest_filename():
-    assert manifest_filename("curriculum_ablations_multi", "20260828-014706") == (
-        "curriculum_ablations_multi_20260828-014706.json"
+def test_experiment_dir_name():
+    assert experiment_dir_name("curriculum_ablations_multi", "20260828-014706") == (
+        "curriculum_ablations_multi_20260828-014706"
     )
 
 
@@ -41,10 +44,13 @@ def test_write_and_load_manifest(tmp_path):
         runs=[],
     )
     path = write_manifest(manifest, tmp_path)
-    assert path == tmp_path / "experiments" / "smoke_test_20260101-120000.json"
-    loaded = load_manifest(path)
+    assert path == (
+        tmp_path / "experiments" / "smoke_test_20260101-120000" / MANIFEST_JSON_NAME
+    )
+    loaded = load_manifest(path.parent)
     assert loaded["event_description"] == "smoke_test"
     assert loaded["summary"]["layout"] == "long_table"
+    assert resolve_manifest_path(path.parent) == path
 
 
 def test_build_run_entry():
@@ -119,7 +125,8 @@ campaign:
     assert resolved.metrics == ["macro_f1"]
 
     out = manifest_path(tmp_path, "ablations", "20260101-120000")
-    assert out.name == "ablations_20260101-120000.json"
+    assert out.parent.name == "ablations_20260101-120000"
+    assert out.name == MANIFEST_JSON_NAME
 
     manifest = ExperimentManifest(
         event_description="ablations",
@@ -130,3 +137,6 @@ campaign:
     written = write_manifest(manifest, tmp_path)
     data = json.loads(written.read_text(encoding="utf-8"))
     assert data["summary"]["metrics"] == ["macro_f1"]
+
+    exp_root = experiment_dir(tmp_path, "ablations", "20260101-120000")
+    assert exp_root.is_dir()

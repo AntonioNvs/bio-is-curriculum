@@ -19,7 +19,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--n-splits", dest="n_splits", type=int, default=10)
     p.add_argument(
         "--mode",
-        choices=["raw", "is", "cl", "is_cl", "is_continuous_cl", "is_continuos_cl"],
+        choices=[
+            "raw", "is", "cl", "is_cl", "is_continuous_cl", "is_continuos_cl", "is_b2",
+        ],
         default="is_cl",
     )
     p.add_argument("--baseline", type=int, default=None)

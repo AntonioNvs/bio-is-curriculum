@@ -1,4 +1,4 @@
-"""Experiment run manifests under results/experiments/."""
+"""Experiment run manifests under results/experiments/<event>_<timestamp>/."""
 
 from __future__ import annotations
 
@@ -18,6 +18,9 @@ from bio_is_curriculum.config.schema import (
 
 MANIFEST_SCHEMA_VERSION = "1"
 _EXPERIMENTS_SUBDIR = "experiments"
+MANIFEST_JSON_NAME = "manifest.json"
+SUMMARY_CSV_NAME = "summary.csv"
+SUMMARY_XLSX_NAME = "summary.xlsx"
 
 
 @dataclass
@@ -66,6 +69,10 @@ def sanitize_event_name(name: str) -> str:
     return cleaned or "experiment"
 
 
+def experiment_dir_name(event_description: str, timestamp: str) -> str:
+    return f"{sanitize_event_name(event_description)}_{timestamp}"
+
+
 def resolve_event_description(spec: ExperimentSpec) -> str:
     if spec.campaign is not None and spec.campaign.name:
         return sanitize_event_name(spec.campaign.name)
@@ -88,8 +95,16 @@ def resolve_summary_config(spec: ExperimentSpec, num_runs: int) -> SummaryConfig
     return resolved
 
 
-def manifest_filename(event_description: str, timestamp: str) -> str:
-    return f"{sanitize_event_name(event_description)}_{timestamp}.json"
+def experiment_dir(
+    results_dir: str | Path,
+    event_description: str,
+    timestamp: str,
+) -> Path:
+    return (
+        Path(results_dir)
+        / _EXPERIMENTS_SUBDIR
+        / experiment_dir_name(event_description, timestamp)
+    )
 
 
 def manifest_path(
@@ -97,7 +112,27 @@ def manifest_path(
     event_description: str,
     timestamp: str,
 ) -> Path:
-    return Path(results_dir) / _EXPERIMENTS_SUBDIR / manifest_filename(event_description, timestamp)
+    return experiment_dir(results_dir, event_description, timestamp) / MANIFEST_JSON_NAME
+
+
+def resolve_manifest_path(path: str | Path) -> Path:
+    """Resolve a manifest JSON path from a file or experiment folder."""
+    candidate = Path(path)
+    if candidate.is_dir():
+        manifest = candidate / MANIFEST_JSON_NAME
+        if manifest.is_file():
+            return manifest
+        json_files = sorted(candidate.glob("*.json"))
+        if len(json_files) == 1:
+            return json_files[0]
+        if json_files:
+            raise ValueError(
+                f"Ambiguous experiment folder (multiple JSON files): {candidate}"
+            )
+        raise FileNotFoundError(f"No manifest JSON found in: {candidate}")
+    if candidate.is_file():
+        return candidate
+    raise FileNotFoundError(f"Manifest path not found: {candidate}")
 
 
 def build_run_entry(
@@ -130,7 +165,7 @@ def write_manifest(manifest: ExperimentManifest, results_dir: str | Path) -> Pat
 
 
 def load_manifest(path: str | Path) -> dict[str, Any]:
-    manifest_path_obj = Path(path)
+    manifest_path_obj = resolve_manifest_path(path)
     with manifest_path_obj.open("r", encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, dict):

@@ -31,7 +31,13 @@ from bio_is_curriculum.data.preprocessing import (
 )
 from bio_is_curriculum.data.rare_class_upsampling import upsample_min_per_class
 from bio_is_curriculum.models.logistic_regression import LogisticRegressionModel
-from bio_is_curriculum.pipeline.modes import CL_MODES, IS_CL_MODES, IS_MODES, normalize_mode
+from bio_is_curriculum.pipeline.modes import (
+    CL_MODES,
+    IS_MODES,
+    normalize_mode,
+    parse_is_baseline_index,
+    uses_is_subset,
+)
 from bio_is_curriculum.results.recorder import RunRecorder
 from bio_is_curriculum.selection.biois import BIOIS
 from bio_is_curriculum.training.phased import eval_single_stage
@@ -135,10 +141,13 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
     method = cfg.resolve_curriculum_method()
     cfg.curriculum_method = resolve_method_id(method)
 
+    is_baseline_idx = parse_is_baseline_index(cfg.mode)
     baseline_cls = None
     if cfg.baseline is not None:
         baseline_cls = get_baseline(cfg.baseline)
         cfg.mode = baseline_run_id(cfg.baseline)
+    elif is_baseline_idx is not None:
+        baseline_cls = get_baseline(is_baseline_idx)
 
     curriculum_cls = (
         baseline_cls
@@ -181,7 +190,7 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
     texts_train, texts_val = split["texts_train"], split["texts_val"]
     y_texts_train, y_texts_val = split["y_texts_train"], split["y_texts_val"]
 
-    needs_is = cfg.mode in IS_MODES
+    needs_is = cfg.mode in IS_MODES or is_baseline_idx is not None
     needs_biois_for_cl = (
         cfg.mode in CL_MODES
         and getattr(curriculum_cls, "REQUIRES_BIOIS", True)
@@ -292,7 +301,7 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
         y_src = y_texts_train if y_texts_train is not None else y_train
         y_te = y_test_texts if y_test_texts is not None else y_test
 
-        if cfg.mode in IS_CL_MODES:
+        if uses_is_subset(cfg.mode):
             idx = selector.sample_indices_
             cl_selector = _slice_selector_signals(selector, idx)
             X_cl = X_train[idx]
@@ -304,7 +313,7 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
             y_cl = y_src
             texts_cl = texts_train
 
-        if cfg.mode in IS_CL_MODES:
+        if uses_is_subset(cfg.mode):
             y_ic = np.asarray(y_cl)
             if texts_cl is not None:
                 X_cl, y_ic, st_post, texts_cl = upsample_min_per_class(
