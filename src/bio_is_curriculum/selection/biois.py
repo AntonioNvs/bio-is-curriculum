@@ -4,9 +4,7 @@ from scipy import stats
 
 from sklearn.utils.validation import check_X_y
 from sklearn.metrics import f1_score
-from sklearn.linear_model import LogisticRegression
 from sklearn.utils.multiclass import unique_labels
-from sklearn.model_selection import StratifiedKFold
 
 from bio_is_curriculum.selection.base import InstanceSelectionMixin
 
@@ -99,46 +97,15 @@ class BIOIS(InstanceSelectionMixin):
         
     def fitting_alpha(self, X, y):
         print('fitting_alpha_by_lr_default')
-        # Setting the approximated KNN solution
-        #classifier = NMSlibKNNClassifier(n_neighbors=10, n_jobs=10)
-        #classifier.fit(X, y)
+        from bio_is_curriculum.signals.oracle_margin import oof_lr_probas
 
-        nrows = X.shape[0]
+        probaEveryone = oof_lr_probas(X, y, random_state=0)
         self.classes_ = unique_labels(y)
-        ncolumns = len(self.classes_)
-        probaEveryone = np.zeros((nrows,ncolumns))
-
-        #sss = StratifiedShuffleSplit(n_splits=5, train_size=.8, random_state=0)
-        sss = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-
-        splits = []
-        for train_index, val_index in sss.split(X, y):
-            splits.append((train_index, val_index))
-        
-        for (train_index, val_index) in splits:
-            X_train, y_train = X[train_index], y[train_index]
-            X_val, y_val = X[val_index], y[val_index]
-
-            classifier = LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000)
-            print(classifier)
-            classifier.fit(X_train, y_train)
-
-            probas = classifier.predict_proba(X_val)
-            columns_diff = list(sorted(list(set(y)-set(y_train))))
-            if columns_diff:
-                probas = self.fix_proba_columns_if_necessary(probas, columns_diff, max(y_train))
-
-            #probaEveryone[val_index] = classifier.predict_proba(X_val)
-            probaEveryone[val_index] = copy.copy(probas)
-
         pred = np.argmax(probaEveryone, axis=1)
         print(f"Micro: {f1_score(y, pred,average='micro')}")
         print(f"Macro: {f1_score(y, pred,average='macro')}")
 
-        # Predicting the probabilities using the approximated KNN solution
-        #pred, probaEveryone = classifier.predict_y_and_maxproba_for_X_train(X)
         y_proba_of_pred = np.array([probaEveryone[l][pred[l]] for l in range(X.shape[0])])
-        #print(pred)
         self._probaEveryone = copy.copy(probaEveryone)
         self._pred = copy.copy(pred)
         self._y_proba_of_pred = copy.copy(y_proba_of_pred)
@@ -153,10 +120,6 @@ class BIOIS(InstanceSelectionMixin):
         # Normalazing the results to reach the the alpha distribution
         correctPredictedProba = correctPredictedProba / np.sum(correctPredictedProba)
 
-        #alpha = correctPredictedProba
-        #print(len(y),sum((pred != y) == (correctPredictedProba == .0)))
-        #print(sum(pred != y))
-        #print(sum(correctPredictedProba == .0))
         return correctPredictedProba
     
     def identifyNoiseByLowerNNEntropy(self, X, y):

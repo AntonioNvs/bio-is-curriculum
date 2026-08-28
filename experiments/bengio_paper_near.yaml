@@ -1,0 +1,24 @@
+# Bengio ICML 2009 paper-near profile (margin-paced, 2-stage, 50/50 epochs)
+#
+# Uso: uv run bio-experiment experiments/bengio_paper_near.yaml
+
+dataset: webkb
+n_splits: 10
+model: roberta
+hf_model: roberta-base
+
+modes:
+  - b1
+
+training:
+  epochs: 6
+  epochs_per_phase: 3   # 2 phases × 3 = 6 (50/50 split)
+  batch_size: 16
+  eval_batch_size: 32
+  max_length: 256
+  lr: 2.0e-5
+  weight_decay: 1.0e-3
+
+baseline:
+  b1_easy_fraction: 0.5
+  b1_use_global_quantile: true

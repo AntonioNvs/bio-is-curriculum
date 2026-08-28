@@ -55,6 +55,8 @@ DEFAULTS: dict = {
     "spdcl_curriculum_epochs": None,
     "spdcl_anneal_epochs": 1,
     "spdcl_norm_subsample": None,
+    "b1_easy_fraction": 0.5,
+    "b1_use_global_quantile": True,
     "class_balanced_loss": None,
     "cuda_device_id": 7,
     "docker_image": "bio-is-curriculum:latest",

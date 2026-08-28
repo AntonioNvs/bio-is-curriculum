@@ -55,6 +55,8 @@ class ExperimentConfig:
     spdcl_curriculum_epochs: int | None = DEFAULTS["spdcl_curriculum_epochs"]
     spdcl_anneal_epochs: int = DEFAULTS["spdcl_anneal_epochs"]
     spdcl_norm_subsample: int | None = DEFAULTS["spdcl_norm_subsample"]
+    b1_easy_fraction: float = DEFAULTS["b1_easy_fraction"]
+    b1_use_global_quantile: bool = DEFAULTS["b1_use_global_quantile"]
     model: str = DEFAULTS["model"]
     hf_model: str = DEFAULTS["hf_model"]
     epochs: int = DEFAULTS["epochs"]

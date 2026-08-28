@@ -79,7 +79,7 @@ Comparison with CL methods that **pace or weight instances** using alternative d
 
 | Baseline | Difficulty signal | Status in repo |
 |----------|-------------------|----------------|
-| Confidence-paced CL (Bengio et al., 2009) | label confidence (weak classifier) | `b1` |
+| Margin-paced CL (Bengio et al., 2009) | OOF LR multiclass margin (§4.2 proxy) | `b1` |
 | Canonical SPCL (Jiang et al., 2015) | region Ψ + reliability prior | `spcl_loss` |
 
 ### NLP / fine-tuning — paper priority
@@ -107,7 +107,7 @@ Methods designed for PLMs on NLU tasks (classification, NLI, etc.):
 - `is_cl` vs. **AnnealCR** and **AnnealTD** — BIOIS vs. most cited NLU fine-tuning CL methods
 - `is_cl` vs. **self-adaptive PLM** — external bi-objective signal vs. Transformer self-reported difficulty
 - `cl` + `biois_discrete` vs. `cl` + heuristic ablations — BIOIS beats signals literature considers weak (§3)
-- `is_cl` vs. `b1` — gain beyond classic confidence-paced CL
+- `is_cl` vs. `b1` — gain beyond Bengio-style margin-paced CL (2-phase; differs from `is_cl` 3-phase BIOIS schedule)
 - `is_cl` vs. `b2` (SPDCL) — BIOIS vs. dynamic nuclear norm (same epoch budget; see `experiments/spdcl_paper_near.yaml`)
 - `raw` vs. `b2` — SPDCL gain over full-data training without IS
 

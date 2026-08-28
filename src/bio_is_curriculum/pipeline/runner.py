@@ -15,6 +15,7 @@ configure_cuda_device()
 import numpy as np
 
 from bio_is_curriculum.baselines import baseline_run_id, get_baseline
+from bio_is_curriculum.baselines.b1_bengio2009 import Baseline1
 from bio_is_curriculum.baselines.base import DynamicBaselineBase
 from bio_is_curriculum.config.schema import ExperimentConfig
 from bio_is_curriculum.curriculum.imbalance_losses import validate_imbalance_method
@@ -353,14 +354,23 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
                     random_state=cfg.random_state,
                 )
             else:
-                q_low, q_mid, q_high = cfg.curriculum_q
-                curriculum = baseline_cls(
-                    model=model,
-                    beta=cfg.curriculum_beta,
-                    q_low=q_low, q_mid=q_mid, q_high=q_high,
-                    hard_slice_quantile=cfg.hard_slice_quantile,
-                    random_state=cfg.random_state,
-                )
+                if baseline_cls is Baseline1:
+                    curriculum = baseline_cls(
+                        model=model,
+                        easy_fraction=cfg.b1_easy_fraction,
+                        use_global_quantile=cfg.b1_use_global_quantile,
+                        hard_slice_quantile=cfg.hard_slice_quantile,
+                        random_state=cfg.random_state,
+                    )
+                else:
+                    q_low, q_mid, q_high = cfg.curriculum_q
+                    curriculum = baseline_cls(
+                        model=model,
+                        beta=cfg.curriculum_beta,
+                        q_low=q_low, q_mid=q_mid, q_high=q_high,
+                        hard_slice_quantile=cfg.hard_slice_quantile,
+                        random_state=cfg.random_state,
+                    )
         else:
             CurriculumCls = get_curriculum_method(cfg.curriculum_method)
             curriculum_kwargs = _build_curriculum_kwargs(cfg)

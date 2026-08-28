@@ -90,6 +90,8 @@ def merge_yaml_to_experiment_config(yaml_cfg: dict) -> ExperimentConfig:
         "spdcl_curriculum_epochs",
         "spdcl_anneal_epochs",
         "spdcl_norm_subsample",
+        "b1_easy_fraction",
+        "b1_use_global_quantile",
     ):
         if key in b_cfg:
             data[key] = b_cfg[key]

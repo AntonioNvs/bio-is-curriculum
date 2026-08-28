@@ -4,14 +4,61 @@ Stable indices for `--baseline N` and YAML modes `bN`.
 
 | Index | Slug | Name | Signal | Trainer | Paper | Status |
 |-------|------|------|--------|---------|-------|--------|
-| 1 | `b1` | Confidence-paced CL | Weak-LR label confidence | phased | Bengio et al., ICML 2009 | Implemented |
+| 1 | `b1` | Margin-paced CL | OOF LR multiclass margin | phased | Bengio et al., ICML 2009 | Implemented |
 | 2 | `b2` | SPDCL | Nuclear norm (linguistic + delta) | dynamic | Zhang et al., [arXiv:2210.14724](https://arxiv.org/abs/2210.14724) | Implemented |
 
 ## b1 — Bengio 2009
 
-- **Signal**: confidence of weak LR on true label (`BIOIS._probaEveryone`).
-- **Schedule**: cumulative quantile phases (easy → medium → all).
-- **Fair comparison**: same `curriculum_q` quantiles as `is_cl`.
+Paper: [Curriculum Learning](https://doi.org/10.1145/1553374.1553380) (ICML 2009)
+
+### Paper mapping
+
+| Paper element | Implementation |
+|---------------|----------------|
+| §3 embedded sets `Q_λ` | Cumulative easy → full (2 phases) |
+| §4.2 margin easiness | `P(y) - max P(c≠y)` from OOF TF-IDF LR |
+| §5 switch epoch (~50% budget on easy) | 2 phases × equal `epochs_per_phase` |
+| §4.2 oracle `w*` | `signals/oracle_margin.py` (standalone; **no BIOIS**) |
+| PLM fine-tuning | RoBERTa/LR (adaptation; paper uses shallow nets/SGD) |
+| Rare-class pinning | `balance_phase_indices` safeguard for imbalanced text |
+
+### Algorithm
+
+1. Score each example with OOF 5-fold LR on TF-IDF: `margin = P(y) - max_{c≠y} P(c)`.
+2. **Phase `easy`**: top `b1_easy_fraction` by global margin (default 0.5).
+3. **Phase `target`**: all training examples (warm-start from phase 1).
+
+Uniform sample weights; no instance selection, redundancy, or entropy weighting.
+
+### Hyperparameter mapping (paper-near profile)
+
+| Paper (§5 shape experiment) | Our config (`experiments/bengio_paper_near.yaml`) |
+|-----------------------------|-----------------------------------------------------|
+| ~50% epochs on easy domain | `epochs_per_phase: 3` × 2 phases = 6 total |
+| easy subset then target | `baseline.b1_easy_fraction: 0.5` |
+| fixed pacing | 2 discrete phases |
+
+### Adaptations (intentional)
+
+- **Multiclass margin proxy** for §4.2 oracle margin on text (paper uses known `w*` or separate datasets).
+- **Global easy fraction** instead of per-class quantiles (BIOIS/`is_cl` use per-class stratification).
+- **2 phases** (not 3 like `is_cl`) — closer to §5 two-stage schedule.
+- **BIOIS not run** for pure `b1` (timing: `b1_margin_score_time_s`).
+
+### Config
+
+```yaml
+baseline:
+  b1_easy_fraction: 0.5
+  b1_use_global_quantile: true   # false → per-class legacy stratification
+```
+
+### Run
+
+```sh
+uv run bio-experiment experiments/bengio_paper_near.yaml
+uv run bio-run webkb --baseline 1 --fold 0 --experiment-id my-b1
+```
 
 ## b2 — SPDCL (Zhang et al. 2022)
 

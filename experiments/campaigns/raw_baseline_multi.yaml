@@ -1,0 +1,50 @@
+# RAW baseline — full-data RoBERTa fine-tuning, class-balanced CE only (no IS, no CL).
+# Datasets: webkb, reuters90, ohsumed, yelp_2013, medline
+#
+# Smoke:  uv run bio-experiment experiments/campaigns/raw_baseline_multi.yaml --dataset webkb --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/raw_baseline_multi.yaml --dry-run
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: raw_baseline_multi
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - f1_weighted
+      - accuracy
+      - hard_slice_macro_f1
+      - train_time_s
+      - total_time
+
+  datasets:
+    webkb: { n_splits: 10 }
+    reuters90: { n_splits: 5 }
+    ohsumed: { n_splits: 10 }
+    yelp_2013: { n_splits: 5 }
+    medline: { n_splits: 5 }
+
+  defaults:
+    model: roberta
+    hf_model: roberta-base
+    training:
+      epochs: 6
+      epochs_per_phase: 2
+      batch_size: 16
+      eval_batch_size: 32
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 1.0e-3
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [raw]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}"

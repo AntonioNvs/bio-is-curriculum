@@ -139,7 +139,7 @@ Baselines são indexados por `--baseline N` (ou token `bN` em runners multi-fold
 
 | Índice | Token | Método | Referência |
 |---|---|---|---|
-| 1 | `b1` | Confidence-paced CL | Bengio et al., ICML 2009 |
+| 1 | `b1` | Margin-paced CL | Bengio et al., ICML 2009 |
 
 ```sh
 # Execução individual
@@ -152,7 +152,7 @@ uv run python run.py experiments/tier2_base_baselines.yaml
 uv run python run_experiment.py webkb --modes raw is cl is_cl b1 --n-splits 10
 ```
 
-O baseline `b1` reutiliza `_probaEveryone` do BIOIS (classificador fraco em TF-IDF), com fases cumulativas por confiança no rótulo — sem máscara de ruído nem peso de redundância.
+O baseline `b1` usa margem multiclasse OOF de LR em TF-IDF (`signals/oracle_margin.py`) — currículo em 2 fases (easy → target), sem BIOIS, máscara de ruído ou peso de redundância.
 
 ## Multi-fold experiments
 
