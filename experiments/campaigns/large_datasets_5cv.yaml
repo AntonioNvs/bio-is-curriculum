@@ -1,0 +1,38 @@
+# Large datasets 5-fold CV (replaces run_docker_large_datasets_5cv.sh)
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+campaign:
+  timestamp: auto
+  datasets:
+    yelp_2013: { n_splits: 5 }
+    agnews: { n_splits: 5 }
+    medline: { n_splits: 5 }
+
+  defaults:
+    model: roberta
+    hf_model: roberta-base
+    folds: [0, 1, 2, 3, 4]
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      method: biois_discrete
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+    training:
+      epochs: 6
+      epochs_per_phase: 2
+      batch_size: 16
+      eval_batch_size: 32
+      lr: 2.0e-5
+      weight_decay: 1.0e-3
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [raw, is, cl, is_cl]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}"

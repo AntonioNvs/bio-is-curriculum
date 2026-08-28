@@ -1,0 +1,40 @@
+# Curriculum methods × {cl, is_cl} across NLU datasets (replaces run_docker_curriculum_cv.sh)
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+campaign:
+  timestamp: auto
+  datasets:
+    webkb: { n_splits: 10 }
+    reuters90: { n_splits: 5 }
+    mpqa: {}
+    20ng: {}
+    yelp_reviews: {}
+    twitter: {}
+    sst1: {}
+
+  defaults:
+    n_splits: 10
+    model: roberta
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+    training:
+      epochs: 6
+      epochs_per_phase: 2
+      batch_size: 32
+      lr: 2.0e-5
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [cl, is_cl]
+      matrix:
+        curriculum.method: [biois_discrete, spcl_soft, spcl_loss]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"

@@ -1,0 +1,24 @@
+# Curriculum signal ablations — compare biois_discrete vs heuristic difficulty signals
+# Run once per method: biois_discrete, length_discrete, loss_discrete, tfidf_discrete
+dataset: webkb
+n_splits: 10
+model: roberta
+
+modes: [cl]
+
+folds: [0]
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+  beta: 0.5
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  max_length: 256
+  lr: 2.0e-5
+  imbalance_method: inverse_freq_ce

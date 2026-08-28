@@ -1,0 +1,35 @@
+# Docker smoke test — one fold, multiple modes (replaces run_docker_smoke_test.sh)
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+dataset: webkb
+n_splits: 10
+model: roberta
+
+modes:
+  - raw
+  - is
+  - cl
+  - is_cl
+  - b1
+
+folds: [0]
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  lr: 2.0e-5
+  weight_decay: 1.0e-3
+  warmup_ratio: 0.06
+  imbalance_method: inverse_freq_ce

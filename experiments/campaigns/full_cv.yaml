@@ -1,0 +1,33 @@
+# Full CV — single dataset, factorial modes (replaces run_docker_full_cv.sh)
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+dataset: webkb
+n_splits: 10
+model: roberta
+
+modes:
+  - raw
+  - is
+  - cl
+  - is_cl
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  lr: 2.0e-5
+  imbalance_method: inverse_freq_ce

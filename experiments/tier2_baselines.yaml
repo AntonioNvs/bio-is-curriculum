@@ -1,0 +1,37 @@
+# Tier-2 factorial + literature baselines (Bengio b1, SPDCL b2)
+dataset: webkb
+n_splits: 10
+model: roberta
+
+modes:
+  - raw
+  - is_cl
+  - b1
+  - b2
+
+folds: [0, 1]
+
+instance_selection:
+  beta: 0.3
+  theta: 0.2
+
+curriculum:
+  method: biois_discrete
+  q_low: 0.3
+  q_mid: 0.6
+  q_high: 0.95
+
+baseline:
+  spdcl_n_bins: 5
+  spdcl_curriculum_epochs: 5
+  spdcl_anneal_epochs: 1
+
+training:
+  epochs: 6
+  epochs_per_phase: 2
+  batch_size: 32
+  max_length: 256
+  lr: 2.0e-5
+  imbalance_method: inverse_freq_ce
+
+# b2 uses paper-near settings when run standalone via spdcl_smoke.yaml / spdcl_paper_near.yaml
