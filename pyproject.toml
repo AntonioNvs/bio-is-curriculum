@@ -1,7 +1,7 @@
 [project]
 name = "bio-is-curriculum"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Data-efficient RoBERTa fine-tuning via bi-objective instance selection and curriculum learning"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -15,3 +15,21 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pyyaml>=6.0.3",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+bio-run = "bio_is_curriculum.cli.main:main"
+bio-experiment = "bio_is_curriculum.cli.experiment:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

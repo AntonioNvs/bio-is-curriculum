@@ -1,9 +1,6 @@
-import os
-import sys
+"""Backward-compatible entry point. Prefer: uv run bio-run ..."""
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
-
-from cli import main
+from bio_is_curriculum.cli.main import main
 
 if __name__ == "__main__":
     main()
