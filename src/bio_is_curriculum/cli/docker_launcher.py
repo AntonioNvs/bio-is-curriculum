@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 from bio_is_curriculum.config.schema import DockerConfig
+
+# Container Python (Dockerfile: PATH includes /app/.venv/bin). Do not use the
+# host venv path from sys.executable — it does not exist inside the container.
+_CONTAINER_PYTHON = "python"
 
 
 def _project_root() -> Path:
@@ -42,6 +45,8 @@ def build_docker_command(
 
     datasets_mount = f"{project_root}/datasets:{workdir}/datasets"
     results_mount = f"{project_root}/results:{workdir}/results"
+    src_mount = f"{project_root}/src:{workdir}/src"
+    experiments_mount = f"{project_root}/experiments:{workdir}/experiments"
 
     cmd = [
         "docker",
@@ -64,10 +69,14 @@ def build_docker_command(
         datasets_mount,
         "-v",
         results_mount,
+        "-v",
+        src_mount,
+        "-v",
+        experiments_mount,
         "-w",
         workdir,
         docker.image,
-        sys.executable,
+        _CONTAINER_PYTHON,
         "-m",
         "bio_is_curriculum.cli.experiment",
         container_cfg,

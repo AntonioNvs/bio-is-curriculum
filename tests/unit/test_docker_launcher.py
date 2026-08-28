@@ -23,5 +23,10 @@ def test_build_docker_command(tmp_path, monkeypatch):
     assert "--memory=16g" in cmd
     assert "BIO_IS_IN_DOCKER=1" in cmd
     assert f"{project}/datasets:/app/datasets" in cmd
+    assert f"{project}/src:/app/src" in cmd
+    assert f"{project}/experiments:/app/experiments" in cmd
+    assert "python" in cmd
+    assert "-m" in cmd
+    assert "bio_is_curriculum.cli.experiment" in cmd
     assert "experiments/test.yaml" in cmd
     assert "--no-docker" in cmd
