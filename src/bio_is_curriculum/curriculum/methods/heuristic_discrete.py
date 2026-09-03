@@ -47,7 +47,7 @@ class LengthDiscreteCurriculum(HeuristicDiscreteCurriculum):
     def _compute_difficulty(self) -> np.ndarray:
         if self._texts is None:
             raise ValueError(
-                "length_discrete requires raw texts (use model: roberta)."
+                "length_discrete requires raw texts (use model: modernbert)."
             )
         return length_difficulty(self._texts)
 

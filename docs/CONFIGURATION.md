@@ -43,7 +43,8 @@ docker:
 
 dataset: webkb
 n_splits: 10
-model: roberta
+model: modernbert
+hf_model: answerdotai/ModernBERT-base
 
 modes: [raw, is, cl, is_cl, b1, b2]
 
@@ -60,6 +61,7 @@ curriculum:
 training:
   epochs: 6
   epochs_per_phase: 2
+  train_fraction: 1.0   # fraction of train split (val/test unchanged); e.g. 0.1 for smoke
   batch_size: 32
   max_length: 256
   lr: 2.0e-5
@@ -81,7 +83,8 @@ campaign:
     reuters90: { n_splits: 5 }
 
   defaults:
-    model: roberta
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
     training: { epochs: 6, epochs_per_phase: 2 }
 
   jobs:

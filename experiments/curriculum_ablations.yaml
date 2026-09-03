@@ -2,7 +2,7 @@
 # Run once per method: biois_discrete, length_discrete, loss_discrete, tfidf_discrete
 dataset: webkb
 n_splits: 10
-model: roberta
+model: modernbert
 
 modes: [cl]
 

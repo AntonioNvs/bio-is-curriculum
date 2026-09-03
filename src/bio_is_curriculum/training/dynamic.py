@@ -124,8 +124,8 @@ def run_dynamic_curriculum(
             phase=phase_name,
             train_time=train_time,
             hard_slice_quantile=hard_slice_quantile,
+            n_train_instances=len(active_idx),
         )
-        row["n_samples"] = int(len(active_idx))
         history.append(row)
 
     if recorder is not None:

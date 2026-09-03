@@ -68,7 +68,7 @@ Paper: [Improving Imbalanced Text Classification with Dynamic Curriculum Learnin
 
 | Paper step | Implementation |
 |------------|----------------|
-| Nuclear norm on all token hidden states | `RobertaModel.extract_hidden_states()` + `NuclearNormScorer` |
+| Nuclear norm on all token hidden states | `ModernBertModel.extract_hidden_states()` + `NuclearNormScorer` |
 | Epoch 1: sort ascending (easy → hard) | `curriculum_epoch == 0`, cached `initial_norms` |
 | Epoch t>1: sort by descending delta | `score_delta()`, `argsort(-difficulty)` |
 | Interleaved scatter into k bins | `scatter_into_bins()` |
@@ -106,7 +106,7 @@ baseline:
 
 ### Requirements
 
-- RoBERTa backend (`--model roberta`).
+- ModernBERT backend (`--model modernbert`).
 - Logs `nuclear_norm_time_s` (accumulated) in `timings.csv`.
 
 ### Run

@@ -45,7 +45,7 @@ class CurriculumModel(metaclass=ABCMeta):
         pass
 
     def extract_hidden_states(self, texts: list[str]) -> list:
-        """Return last-layer token hidden states per sample (RoBERTa only)."""
+        """Return last-layer token hidden states per sample (transformer PLM only)."""
         raise NotImplementedError(
             f"{type(self).__name__} does not support hidden-state extraction."
         )

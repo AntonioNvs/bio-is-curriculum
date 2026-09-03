@@ -14,8 +14,8 @@
 
 dataset: yelp_2013
 n_splits: 5
-model: roberta
-hf_model: roberta-base
+model: modernbert
+hf_model: answerdotai/ModernBERT-base
 
 modes:
   - raw

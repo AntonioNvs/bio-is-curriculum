@@ -1,7 +1,7 @@
 # Tier-2 factorial + literature baselines (Bengio b1, SPDCL b2)
 dataset: webkb
 n_splits: 10
-model: roberta
+model: modernbert
 
 modes:
   - raw

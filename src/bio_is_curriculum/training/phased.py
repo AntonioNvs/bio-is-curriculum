@@ -21,6 +21,7 @@ def eval_single_stage(
     phase: str = "full",
     train_time: float = float("nan"),
     hard_slice_quantile: float = 0.8,
+    n_train_instances: int | None = None,
 ):
     t0 = time.perf_counter()
     proba = model.predict_proba(X_eval)
@@ -37,6 +38,7 @@ def eval_single_stage(
         pred_time_s=pred_time,
         hard_slice_quantile=hard_slice_quantile,
         training_stats=training_stats,
+        n_train_instances=n_train_instances,
     )
     if recorder is not None:
         recorder.log_phase(row)

@@ -186,6 +186,7 @@ class BIOISCurriculumBase(CurriculumBase):
                     hard_slice_quantile=self.hard_slice_quantile,
                     training_stats=training_stats,
                     balance_stats=balance_stats,
+                    n_train_instances=len(indices),
                 )
 
             history.append(row)

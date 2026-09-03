@@ -2,7 +2,7 @@
 
 ## Goal
 
-Fine-tune **roberta-base** on text classification benchmarks using **Bi-Objective Instance Selection (BIOIS)** and **Curriculum Learning (CL)** to improve the **efficiency–quality Pareto frontier**.
+Fine-tune **ModernBERT-base** on text classification benchmarks using **Bi-Objective Instance Selection (BIOIS)** and **Curriculum Learning (CL)** to improve the **efficiency–quality Pareto frontier**.
 
 ## Core hypothesis
 

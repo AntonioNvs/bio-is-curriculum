@@ -4,8 +4,9 @@ SCHEMA_VERSION = "1.0.0"
 
 DEFAULTS: dict = {
     "schema_version": SCHEMA_VERSION,
-    "model": "roberta",
-    "hf_model": "roberta-base",
+    "model": "modernbert",
+    "hf_model": "answerdotai/ModernBERT-base",
+    "train_fraction": 1.0,
     "results_dir": "results",
     "data_dir": "datasets",
     "random_state": 42,

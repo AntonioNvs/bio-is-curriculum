@@ -1,4 +1,4 @@
-"""Integration smoke test for Bengio b1 with RoBERTa."""
+"""Integration smoke test for SPDCL (b2) with ModernBERT."""
 
 import pytest
 
@@ -8,21 +8,24 @@ from bio_is_curriculum.pipeline.runner import run_experiment
 
 @pytest.mark.integration
 @pytest.mark.slow
-def test_b1_roberta_webkb_smoke(tmp_path):
+def test_b2_modernbert_webkb_smoke(tmp_path):
     cfg = ExperimentConfig(
         dataset="webkb",
         fold=0,
         n_splits=10,
-        baseline=1,
-        model="roberta",
-        b1_easy_fraction=0.5,
-        epochs_per_phase=1,
+        baseline=2,
+        model="modernbert",
+        spdcl_n_bins=2,
+        spdcl_curriculum_epochs=2,
+        spdcl_anneal_epochs=1,
+        epochs=3,
         batch_size=8,
         eval_batch_size=16,
         max_length=128,
-        lr=2e-5,
+        lr=5e-5,
+        train_fraction=0.1,
         results_dir=str(tmp_path),
-        experiment_id="test-b1-smoke",
+        experiment_id="test-b2-smoke",
     )
     metrics = run_experiment(cfg)
-    assert metrics  # completes without error
+    assert "macro_f1" in metrics or metrics  # completes without error

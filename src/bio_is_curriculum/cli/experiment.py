@@ -96,8 +96,10 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
         args += ["--spdcl-curriculum-epochs", str(cfg.spdcl_curriculum_epochs)]
     if cfg.spdcl_norm_subsample is not None:
         args += ["--spdcl-norm-subsample", str(cfg.spdcl_norm_subsample)]
-    if cfg.model == "roberta":
+    if cfg.model in ("modernbert", "roberta"):
         args += ["--hf-model", cfg.hf_model]
+    if cfg.train_fraction < 1.0:
+        args += ["--train-fraction", str(cfg.train_fraction)]
 
     baseline_only = baseline_match is not None or is_baseline_match is not None
     if mode not in ("raw", "is") and not baseline_only:

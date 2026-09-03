@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import random
 import time
+import warnings
 from collections import Counter
 from types import SimpleNamespace
 
@@ -29,6 +30,7 @@ from bio_is_curriculum.data.preprocessing import (
     maybe_upsample_for_biois,
     print_class_distribution,
     split_train_val,
+    subsample_train_fraction,
 )
 from bio_is_curriculum.data.rare_class_upsampling import upsample_min_per_class
 from bio_is_curriculum.models.logistic_regression import LogisticRegressionModel
@@ -46,11 +48,26 @@ from bio_is_curriculum.training.phased import eval_single_stage
 BIOIS_STRATKFOLD_SPLITS = 5
 
 
-def _build_model(cfg: ExperimentConfig, recorder: RunRecorder):
-    if cfg.model == "roberta":
-        from bio_is_curriculum.models.roberta import RobertaModel
+def _is_transformer_backend(model: str) -> bool:
+    return model in ("modernbert", "roberta")
 
-        return RobertaModel(
+
+def _normalize_model_backend(model: str) -> str:
+    if model == "roberta":
+        warnings.warn(
+            "model='roberta' is deprecated; use model='modernbert'.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return "modernbert"
+    return model
+
+
+def _build_model(cfg: ExperimentConfig, recorder: RunRecorder):
+    if _is_transformer_backend(cfg.model):
+        from bio_is_curriculum.models.modernbert import ModernBertModel
+
+        return ModernBertModel(
             model_name=cfg.hf_model,
             epochs_per_stage=cfg.epochs_per_phase,
             batch_size=cfg.batch_size,
@@ -72,7 +89,7 @@ def _build_model(cfg: ExperimentConfig, recorder: RunRecorder):
             history_callback=recorder.log_train_step,
         )
     if cfg.imbalance_method != "none":
-        print("Warning: imbalance_method applies only to RoBERTa; ignored for LR.")
+        print("Warning: imbalance_method applies only to ModernBERT; ignored for LR.")
     return LogisticRegressionModel(random_state=cfg.random_state)
 
 
@@ -133,6 +150,7 @@ def _build_curriculum_kwargs(cfg: ExperimentConfig) -> dict:
 def run_experiment(cfg: ExperimentConfig) -> dict:
     """Execute one fold and return final metrics."""
     cfg.mode = normalize_mode(cfg.mode)
+    cfg.model = _normalize_model_backend(cfg.model)
     random.seed(cfg.random_state)
     np.random.seed(cfg.random_state)
     cfg.imbalance_method = validate_imbalance_method(cfg.imbalance_method)
@@ -172,7 +190,7 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
     texts_train_raw = texts_test = None
     y_texts_raw = y_test_texts = None
 
-    if cfg.model == "roberta":
+    if _is_transformer_backend(cfg.model):
         (
             X_train_raw, y_train_raw, X_test, y_test,
             texts_train_raw, texts_test,
@@ -190,6 +208,26 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
     X_val, y_val = split["X_val"], split["y_val"]
     texts_train, texts_val = split["texts_train"], split["texts_val"]
     y_texts_train, y_texts_val = split["y_texts_train"], split["y_texts_val"]
+
+    if cfg.train_fraction < 1.0:
+        t0_sub = time.perf_counter()
+        sub = subsample_train_fraction(
+            X_train, y_train, texts_train, y_texts_train,
+            fraction=cfg.train_fraction,
+            random_state=cfg.random_state,
+        )
+        X_train, y_train = sub["X_train"], sub["y_train"]
+        texts_train, y_texts_train = sub["texts_train"], sub["y_texts_train"]
+        recorder.save_train_subsample(
+            train_fraction=cfg.train_fraction,
+            n_train_before=sub["n_before"],
+            n_train_after=sub["n_after"],
+        )
+        print(
+            f"  Train subsample ({cfg.train_fraction:.0%}): "
+            f"{sub['n_before']} -> {sub['n_after']}"
+        )
+        recorder.log_timing("train_subsample_time_s", time.perf_counter() - t0_sub)
 
     needs_is = cfg.mode in IS_MODES or is_baseline_idx is not None
     needs_biois_for_cl = (
@@ -237,6 +275,15 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
             removed_by_class=dict(removed_by_class),
             total_by_class=dict(total_by_class),
         )
+        n_after_is = len(selector.sample_indices_) if needs_is else len(y_train_arr)
+        recorder.update_config({
+            "is_stats": {
+                "n_train_before": len(y_train_arr),
+                "n_train_after": n_after_is,
+                "n_removed": len(y_train_arr) - n_after_is,
+                "reduction": selector.reduction_ if needs_is else 0.0,
+            },
+        })
 
     recorder.log_timing("preprocess_time_s", preprocess_time)
     model = _build_model(cfg, recorder)
@@ -269,6 +316,7 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
             model, X_test_input, y_te, recorder,
             train_time=train_time,
             hard_slice_quantile=cfg.hard_slice_quantile,
+            n_train_instances=len(y_tr),
         )
 
     elif cfg.mode == "is":
@@ -296,6 +344,7 @@ def run_experiment(cfg: ExperimentConfig) -> dict:
             model, texts_test if texts_test else X_test, y_te, recorder,
             train_time=train_time,
             hard_slice_quantile=cfg.hard_slice_quantile,
+            n_train_instances=len(y_sub),
         )
 
     else:

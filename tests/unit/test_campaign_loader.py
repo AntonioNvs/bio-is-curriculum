@@ -14,7 +14,7 @@ campaign:
     reuters90: { n_splits: 5 }
   defaults:
     n_splits: 10
-    model: roberta
+    model: modernbert
     training:
       epochs: 6
   jobs:

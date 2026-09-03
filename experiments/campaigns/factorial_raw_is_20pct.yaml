@@ -1,8 +1,8 @@
-# RAW baseline — full-data ModernBERT fine-tuning, class-balanced CE only (no IS, no CL).
-# Datasets: webkb, reuters90, ohsumed, yelp_2013, medline
+# 2² factorial — IS arm only (raw vs is) on 4 datasets, 20% train subsample.
+# Datasets: reuters90, webkb, agnews, yelp_2013
 #
-# Smoke:  uv run bio-experiment experiments/campaigns/raw_baseline_multi.yaml --dataset webkb --folds 0
-# Dry-run: uv run bio-experiment experiments/campaigns/raw_baseline_multi.yaml --dry-run
+# Smoke:  uv run bio-experiment experiments/campaigns/factorial_raw_is_20pct.yaml --dataset webkb --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/factorial_raw_is_20pct.yaml --dry-run
 
 docker:
   image: bio-is-curriculum:latest
@@ -11,7 +11,7 @@ docker:
   memory: 32g
 
 campaign:
-  name: raw_baseline_multi
+  name: factorial_raw_is_20pct
   timestamp: auto
   summary:
     layout: compare_by_dataset
@@ -21,21 +21,25 @@ campaign:
       - f1_weighted
       - accuracy
       - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
       - train_time_s
       - total_time
 
   datasets:
-    webkb: { n_splits: 10 }
     reuters90: { n_splits: 5 }
-    ohsumed: { n_splits: 10 }
+    webkb: { n_splits: 10 }
+    agnews: { n_splits: 5 }
     yelp_2013: { n_splits: 5 }
-    medline: { n_splits: 5 }
 
   defaults:
     model: modernbert
     hf_model: answerdotai/ModernBERT-base
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
     training:
-      train_fraction: 1.0   # e.g. 0.1 for quick smoke tests
+      train_fraction: 0.2
       epochs: 6
       epochs_per_phase: 2
       batch_size: 16
@@ -47,5 +51,5 @@ campaign:
       imbalance_method: inverse_freq_ce
 
   jobs:
-    - modes: [raw]
+    - modes: [raw, is]
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}"

@@ -7,7 +7,7 @@ YAML / CLI  →  ExperimentConfig  →  pipeline/runner.py
                                         │
           ┌─────────────────────────────┼─────────────────────────────┐
           ▼                             ▼                             ▼
-     data/loader                  selection/BIOIS              models/roberta
+     data/loader                  selection/BIOIS              models/modernbert
      preprocessing                (TF-IDF weak clf)            models/logistic_regression
           │                             │                             │
           └─────────────────────────────┴─────────────────────────────┘

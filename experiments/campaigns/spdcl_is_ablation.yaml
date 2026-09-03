@@ -39,7 +39,7 @@ campaign:
     agnews: { n_splits: 5 }
 
   defaults:
-    model: roberta
+    model: modernbert
     instance_selection:
       beta: 0.3
       theta: 0.2
@@ -48,7 +48,7 @@ campaign:
       spdcl_curriculum_epochs: 5
       spdcl_anneal_epochs: 1
     training:
-      hf_model: roberta-base
+      hf_model: answerdotai/ModernBERT-base
       epochs: 6
       batch_size: 25
       max_length: 250

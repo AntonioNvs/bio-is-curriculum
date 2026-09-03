@@ -71,7 +71,7 @@ class Baseline2SPDCL(DynamicBaselineBase):
     ):
         del selector, X  # SPDCL does not use BIOIS signals or TF-IDF features.
         if X_text is None:
-            raise ValueError("SPDCL requires raw texts (RoBERTa backend).")
+            raise ValueError("SPDCL requires raw texts (ModernBERT backend).")
         if self.model is None:
             raise ValueError("SPDCL requires a CurriculumModel instance.")
 

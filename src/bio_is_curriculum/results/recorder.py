@@ -38,7 +38,7 @@ class RunRecorder:
     """
 
     PHASE_METRICS_COLS = [
-        "phase", "n_samples",
+        "phase", "n_samples", "n_test_samples", "n_train_instances",
         "n_train_samples", "n_classes_present", "n_classes_total",
         "n_classes_missing", "n_rare_classes_pinned",
         "n_iter",
@@ -86,6 +86,31 @@ class RunRecorder:
 
         with open(self.path("config.json"), "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, default=str)
+
+    def update_config(self, extra: dict[str, Any]) -> None:
+        """Merge keys into config.json (e.g. is_stats after BIOIS)."""
+        path = self.path("config.json")
+        with open(path, encoding="utf-8") as f:
+            config = json.load(f)
+        config.update(extra)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, default=str)
+
+    def save_train_subsample(
+        self,
+        *,
+        train_fraction: float,
+        n_train_before: int,
+        n_train_after: int,
+    ) -> None:
+        """Save train-fraction subsampling stats."""
+        payload = {
+            "train_fraction": float(train_fraction),
+            "n_train_before": int(n_train_before),
+            "n_train_after": int(n_train_after),
+        }
+        with open(self.path("train_subsample.json"), "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
 
     def log_timing(self, name: str, seconds: float) -> None:
         """Appenda uma linha a timings.csv."""

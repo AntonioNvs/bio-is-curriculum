@@ -1,7 +1,7 @@
 # SPDCL paper-near profile (Zhang et al. 2022) on imbalanced large dataset
 dataset: yelp_2013
 n_splits: 5
-model: roberta
+model: modernbert
 
 modes:
   - raw
@@ -15,7 +15,7 @@ baseline:
   spdcl_anneal_epochs: 1
 
 training:
-  hf_model: roberta-base
+  hf_model: answerdotai/ModernBERT-base
   batch_size: 25
   max_length: 250
   lr: 5.0e-5

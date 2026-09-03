@@ -59,6 +59,7 @@ class ExperimentConfig:
     b1_use_global_quantile: bool = DEFAULTS["b1_use_global_quantile"]
     model: str = DEFAULTS["model"]
     hf_model: str = DEFAULTS["hf_model"]
+    train_fraction: float = DEFAULTS["train_fraction"]
     epochs: int = DEFAULTS["epochs"]
     epochs_per_phase: int = DEFAULTS["epochs_per_phase"]
     batch_size: int = DEFAULTS["batch_size"]

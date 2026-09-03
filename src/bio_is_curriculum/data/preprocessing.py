@@ -95,3 +95,54 @@ def maybe_upsample_for_biois(X_train, y_train, texts_train, random_state: int):
 
 def print_class_distribution(y_train) -> None:
     print(f"  Train classes (TF-IDF): {Counter(np.asarray(y_train).tolist())}")
+
+
+def subsample_train_fraction(
+    X_train,
+    y_train,
+    texts_train: list[str] | None,
+    y_texts_train,
+    *,
+    fraction: float,
+    random_state: int,
+):
+    """Stratified subsample of the training split (val/test unchanged)."""
+    if fraction >= 1.0:
+        return {
+            "X_train": X_train,
+            "y_train": y_train,
+            "texts_train": texts_train,
+            "y_texts_train": y_texts_train,
+            "n_before": len(y_train),
+            "n_after": len(y_train),
+            "fraction": fraction,
+        }
+
+    if not (0.0 < fraction < 1.0):
+        raise ValueError(f"train_fraction must be in (0, 1], got {fraction}")
+
+    y_arr = np.asarray(y_train)
+    n_before = len(y_arr)
+    n_after = max(1, int(round(n_before * fraction)))
+    n_after = min(n_after, n_before)
+
+    sss = StratifiedShuffleSplit(
+        n_splits=1,
+        train_size=n_after,
+        random_state=random_state,
+    )
+    idx, _ = next(sss.split(X_train, y_arr))
+    idx = np.sort(idx)
+
+    texts_out = [texts_train[i] for i in idx] if texts_train is not None else None
+    y_texts_out = y_texts_train[idx] if y_texts_train is not None else None
+
+    return {
+        "X_train": X_train[idx],
+        "y_train": y_arr[idx],
+        "texts_train": texts_out,
+        "y_texts_train": y_texts_out,
+        "n_before": n_before,
+        "n_after": len(idx),
+        "fraction": fraction,
+    }

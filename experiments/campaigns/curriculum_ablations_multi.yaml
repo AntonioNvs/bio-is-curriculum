@@ -22,7 +22,7 @@ campaign:
     medline: { n_splits: 5 }
 
   defaults:
-    model: roberta
+    model: modernbert
     instance_selection:
       beta: 0.3
       theta: 0.2

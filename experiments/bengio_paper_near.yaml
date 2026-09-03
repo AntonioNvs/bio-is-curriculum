@@ -4,8 +4,8 @@
 
 dataset: webkb
 n_splits: 10
-model: roberta
-hf_model: roberta-base
+model: modernbert
+hf_model: answerdotai/ModernBERT-base
 
 modes:
   - b1

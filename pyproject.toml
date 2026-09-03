@@ -1,7 +1,7 @@
 [project]
 name = "bio-is-curriculum"
 version = "0.2.0"
-description = "Data-efficient RoBERTa fine-tuning via bi-objective instance selection and curriculum learning"
+description = "Data-efficient ModernBERT fine-tuning via bi-objective instance selection and curriculum learning"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -10,7 +10,7 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "scipy>=1.17.1",
     "torch>=2.2",
-    "transformers>=4.41",
+    "transformers>=4.48",
     "tqdm>=4.66",
     "openpyxl>=3.1.5",
     "pyyaml>=6.0.3",

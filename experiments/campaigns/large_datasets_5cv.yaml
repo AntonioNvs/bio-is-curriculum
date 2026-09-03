@@ -13,8 +13,8 @@ campaign:
     medline: { n_splits: 5 }
 
   defaults:
-    model: roberta
-    hf_model: roberta-base
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
     folds: [0, 1, 2, 3, 4]
     instance_selection:
       beta: 0.3

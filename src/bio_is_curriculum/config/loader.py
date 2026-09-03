@@ -45,7 +45,7 @@ def merge_yaml_to_experiment_config(yaml_cfg: dict) -> ExperimentConfig:
         "max_length", "lr", "weight_decay", "warmup_ratio", "imbalance_method",
         "effective_num_beta", "dist_bal_tau", "dist_bal_logit_bias",
         "aug_target_min_count", "aug_ratio", "aug_random_swap", "aug_random_delete",
-        "cuda_device_id",
+        "cuda_device_id", "train_fraction",
     )
     for key in training_keys:
         if key in t_cfg:

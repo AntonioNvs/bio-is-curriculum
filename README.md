@@ -257,15 +257,16 @@ Compare modes within one experiment via `summary.csv`. Compare across experiment
 --mode {raw,is,cl,is_cl,is_continuos_cl}  Modo de execução (default: is_cl)
 --baseline N                              Baseline da literatura (sobrescreve --mode)
 --curriculum-method {biois_discrete,spcl_soft,spcl_loss}
---model {lr,roberta}                      Modelo (default: roberta)
---hf-model                                Checkpoint HuggingFace (default: roberta-base)
+--model {lr,modernbert}                   Modelo (default: modernbert)
+--hf-model                                Checkpoint HuggingFace (default: answerdotai/ModernBERT-base)
+--train-fraction                          Fração do train split (default: 1.0)
 --n-splits                                Folds no split file (default: 10)
 --epochs                                  Épocas para treino único / raw / is (default: 6)
 --epochs-per-phase                        Épocas por fase do curriculum (default: 1)
 --batch-size                              Batch de treino (default: 32)
 --eval-batch-size                         Batch de avaliação (default: 64)
 --max-length                              Comprimento máximo de tokenização (default: 256)
---lr / --weight-decay / --warmup-ratio    Hiperparâmetros de fine-tune RoBERTa
+--lr / --weight-decay / --warmup-ratio    Hiperparâmetros de fine-tune ModernBERT
 --class-balanced-loss                     Peso por frequência de classe na CE (default: True)
 --beta / --theta                          Taxas de redução do BIOIS (default: 0.3 / 0.2)
 --hard-slice-quantile                     Quantil para hard-slice macro-F1 (default: 0.8)

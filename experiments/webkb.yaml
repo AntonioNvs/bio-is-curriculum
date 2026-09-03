@@ -5,8 +5,8 @@
 
 dataset: webkb
 n_splits: 10
-model: lr  # 'lr' para rapido (testes), 'roberta' para producao
-hf_model: roberta-base
+model: lr  # 'lr' para rapido (testes), 'modernbert' para producao
+hf_model: answerdotai/ModernBERT-base
 
 modes:
   - raw

@@ -46,13 +46,23 @@ def build_phase_metrics_row(
     hard_slice_quantile: float,
     training_stats: dict[str, Any] | None = None,
     balance_stats: dict[str, Any] | None = None,
+    n_train_instances: int | None = None,
+    n_test_samples: int | None = None,
 ) -> dict[str, Any]:
     """Monta uma linha padrao de phase_metrics.csv."""
     stats_row = training_stats or {}
     balance_row = balance_stats or {}
+    n_test = int(n_test_samples if n_test_samples is not None else len(y_true))
+    n_train = n_train_instances
+    if n_train is None:
+        n_train = _opt_balance_int(balance_row, "n_train_samples")
+        if np.isnan(n_train):
+            n_train = float("nan")
     return {
         "phase": phase,
-        "n_samples": int(len(y_true)),
+        "n_samples": n_test,
+        "n_test_samples": n_test,
+        "n_train_instances": int(n_train) if not np.isnan(n_train) else float("nan"),
         "n_train_samples": _opt_balance_int(balance_row, "n_train_samples"),
         "n_classes_present": _opt_balance_int(balance_row, "n_classes_present"),
         "n_classes_total": _opt_balance_int(balance_row, "n_classes_total"),

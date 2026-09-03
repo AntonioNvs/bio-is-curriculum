@@ -93,5 +93,5 @@ Use when validating a literature baseline against its source paper:
 4. **Signal timing** — e.g. pretrain norms computed before first gradient step (`NuclearNormScorer.score_pretrain`).
 5. **Schedule semantics** — curriculum epochs vs anneal epochs explicitly separated.
 6. **Skip unrelated pipeline stages** — e.g. BIOIS not run for SPDCL.
-7. **Integration test** — RoBERTa smoke on small dataset (`tests/integration/test_b2_roberta_smoke.py`).
+7. **Integration test** — ModernBERT smoke on small dataset (`tests/integration/test_b2_modernbert_smoke.py`).
 8. **Timing artifacts** — log method-specific costs (`nuclear_norm_time_s`).

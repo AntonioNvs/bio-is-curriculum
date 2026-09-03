@@ -7,7 +7,7 @@ docker:
 
 dataset: webkb
 n_splits: 10
-model: roberta
+model: modernbert
 
 modes:
   - raw

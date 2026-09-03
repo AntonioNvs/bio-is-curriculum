@@ -13,7 +13,9 @@ _MAX_METRICS = {
     "micro_f1", "macro_f1", "f1_weighted", "accuracy",
     "hard_slice_macro_f1", "best_val_macro_f1",
 }
-_LAST_METRICS = {"avg_seq_len", "compute_proxy", "steps_to_best_val"}
+_LAST_METRICS = {
+    "avg_seq_len", "compute_proxy", "steps_to_best_val", "n_train_instances",
+}
 _SUM_METRICS = {"train_time_s", "pred_time_s"}
 
 
@@ -57,14 +59,17 @@ def aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.Dat
         print(f"\nWARNING: {len(missing)} missing/empty result file(s).")
 
     reduction_by_mode: dict[str, float] = {}
+    n_removed_by_mode: dict[str, list[float]] = {m: [] for m in modes}
     for mode in modes:
         for fold in folds:
             is_path = os.path.join(experiment_dir, f"{mode}_fold{fold}", "instance_selection.json")
             if os.path.exists(is_path):
                 with open(is_path, encoding="utf-8") as f:
                     is_data = json.load(f)
-                reduction_by_mode[mode] = float(is_data.get("reduction", 0.0))
-                break
+                reduction = float(is_data.get("reduction", 0.0))
+                n_removed = float(is_data.get("n_removed", 0.0))
+                reduction_by_mode.setdefault(mode, reduction)
+                n_removed_by_mode[mode].append(n_removed)
 
     rows = []
     for mode in modes:
@@ -90,6 +95,7 @@ def aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.Dat
 
     _add_efficiency_rows(rows, records, reduction_by_mode, modes)
     _add_phase_count_rows(rows, phase_counts, modes)
+    _add_is_rows(rows, n_removed_by_mode, reduction_by_mode, modes)
     return pd.DataFrame(rows)
 
 
@@ -114,6 +120,34 @@ def _add_efficiency_rows(rows, records, reduction_by_mode, modes):
         reduction = reduction_by_mode.get(mode, 0.0)
         data_eff = mean_f1 * (1.0 - reduction) if f1_vals else float("nan")
         rows.append({**_empty_row(mode, "data_efficiency"), "mean": data_eff, "n_folds": len(f1_vals)})
+
+
+def _add_is_rows(rows, n_removed_by_mode, reduction_by_mode, modes):
+    for mode in modes:
+        removed_vals = n_removed_by_mode.get(mode, [])
+        if removed_vals:
+            arr = np.array(removed_vals, dtype=float)
+            rows.append({
+                "mode": mode, "metric": "n_removed",
+                "mean": float(np.mean(arr)),
+                "std": float(np.std(arr, ddof=1)) if len(arr) > 1 else 0.0,
+                "ci_95_low": float("nan"), "ci_95_high": float("nan"),
+                "n_folds": len(arr),
+            })
+        else:
+            rows.append(_empty_row(mode, "n_removed"))
+
+        reduction = reduction_by_mode.get(mode)
+        if reduction is not None:
+            rows.append({
+                "mode": mode, "metric": "is_reduction",
+                "mean": float(reduction),
+                "std": 0.0,
+                "ci_95_low": float("nan"), "ci_95_high": float("nan"),
+                "n_folds": len(removed_vals) if removed_vals else 0,
+            })
+        else:
+            rows.append(_empty_row(mode, "is_reduction"))
 
 
 def _add_phase_count_rows(rows, phase_counts, modes):
