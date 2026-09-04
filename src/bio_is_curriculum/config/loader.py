@@ -77,6 +77,8 @@ def merge_yaml_to_experiment_config(yaml_cfg: dict) -> ExperimentConfig:
         "loss_prior_reliability": "curriculum_loss_prior_reliability",
         "min_weight": "curriculum_min_weight",
         "loss_recompute_every": "curriculum_loss_recompute_every",
+        "td_probe_epochs": "td_probe_epochs",
+        "td_metric": "td_metric",
     }
     for src, dst in curriculum_map.items():
         if src in c_cfg:

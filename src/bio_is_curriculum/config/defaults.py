@@ -52,6 +52,8 @@ DEFAULTS: dict = {
     "curriculum_loss_prior_reliability": True,
     "curriculum_min_weight": 1e-3,
     "curriculum_loss_recompute_every": 2,
+    "td_probe_epochs": 2,
+    "td_metric": "confidence",
     "spdcl_n_bins": 5,
     "spdcl_curriculum_epochs": None,
     "spdcl_anneal_epochs": 1,

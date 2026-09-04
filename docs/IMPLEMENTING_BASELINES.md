@@ -23,11 +23,13 @@ def score(...)-> np.ndarray:
 Existing signals:
 - `signals/biois.py` — weak-classifier redundancy + entropy
 - `signals/nuclear_norm.py` — SPDCL nuclear norm
-- `signals/heuristics.py` — length (curriculum ablation)
-- `signals/lexical.py` — TF-IDF rank (curriculum ablation)
+- `signals/heuristics.py` — length (deprecated curriculum ablation)
+- `signals/lexical.py` — TF-IDF rank (deprecated curriculum ablation)
 - `signals/loss.py` — per-sample CE loss (curriculum ablation)
+- `signals/lrc.py` — CL-LRC composite difficulty (curriculum ablation)
+- `signals/training_dynamics.py` — probe-epoch confidence/variability (curriculum ablation)
 
-**Note:** length, loss, and TF-IDF controls are **curriculum signal ablations** (`curriculum.method: length_discrete`, etc.), not literature baselines. See [EXPERIMENTS.md](EXPERIMENTS.md) §3.
+**Note:** `loss_discrete`, `lrc_discrete`, and `td_discrete` are **curriculum signal ablations** (`curriculum.method: …`), not literature baselines. See [EXPERIMENTS.md](EXPERIMENTS.md) §3.
 
 ## 3. Implement schedule
 

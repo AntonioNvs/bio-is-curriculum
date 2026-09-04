@@ -1,6 +1,6 @@
 docker:
   image: bio-is-curriculum:latest
-  gpu_id: 7
+  gpu_id: 5
   cpus: 16
   memory: 32g
 
@@ -19,7 +19,7 @@ campaign:
     webkb: { n_splits: 10 }
     reuters90: { n_splits: 5 }
     yelp_2013: { n_splits: 5 }
-    medline: { n_splits: 5 }
+    agnews: { n_splits: 5 }
 
   defaults:
     model: modernbert
@@ -44,7 +44,7 @@ campaign:
       matrix:
         curriculum.method:
           - biois_discrete
-          - length_discrete
           - loss_discrete
-          - tfidf_discrete
+          - lrc_discrete
+          - td_discrete
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"

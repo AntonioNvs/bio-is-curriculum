@@ -8,7 +8,9 @@ from bio_is_curriculum.curriculum.methods.biois_discrete import BIOISDiscreteCur
 from bio_is_curriculum.curriculum.methods.heuristic_discrete import (
     LengthDiscreteCurriculum,
     LossDiscreteCurriculum,
+    LRCDiscreteCurriculum,
     TfidfDiscreteCurriculum,
+    TrainingDynamicsDiscreteCurriculum,
 )
 from bio_is_curriculum.curriculum.methods.registry import REGISTRY, resolve_method_id
 
@@ -19,6 +21,8 @@ from bio_is_curriculum.curriculum.methods.registry import REGISTRY, resolve_meth
         ("length_discrete", LengthDiscreteCurriculum),
         ("loss_discrete", LossDiscreteCurriculum),
         ("tfidf_discrete", TfidfDiscreteCurriculum),
+        ("lrc_discrete", LRCDiscreteCurriculum),
+        ("td_discrete", TrainingDynamicsDiscreteCurriculum),
     ],
 )
 def test_ablation_methods_registered(method_id, cls):
@@ -30,6 +34,8 @@ def test_heuristic_methods_skip_biois():
     assert LengthDiscreteCurriculum.REQUIRES_BIOIS is False
     assert LossDiscreteCurriculum.REQUIRES_BIOIS is False
     assert TfidfDiscreteCurriculum.REQUIRES_BIOIS is False
+    assert LRCDiscreteCurriculum.REQUIRES_BIOIS is False
+    assert TrainingDynamicsDiscreteCurriculum.REQUIRES_BIOIS is False
     assert BIOISDiscreteCurriculum.REQUIRES_BIOIS is True
 
 
@@ -47,6 +53,29 @@ def test_length_discrete_phases_cumulative():
     assert n0 <= n1 <= n2 == len(y)
     hard_weights = phases[2]["weights"]
     assert np.allclose(hard_weights, 1.0)
+
+
+def test_lrc_discrete_phases_cumulative():
+    y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+    texts = [
+        "cat",
+        "the small cat",
+        "the small cat sat",
+        "the small cat sat on mat",
+        "x",
+        "x y z",
+        "x y z w",
+        "x y z w q",
+    ]
+    cur = LRCDiscreteCurriculum(q_low=0.25, q_mid=0.5, q_high=1.0)
+    cur._y_build = y
+    cur._texts = texts
+    r, e = cur._extract_signals(None, y)
+    assert np.allclose(r, 0.0)
+    phases = cur._build_phases(r, e)
+    assert len(phases) == 3
+    sizes = [len(p["indices"]) for p in phases]
+    assert sizes[0] <= sizes[1] <= sizes[2] == len(y)
 
 
 def test_tfidf_discrete_phases_cumulative():
@@ -73,6 +102,35 @@ def test_loss_discrete_fit_runs_phase_loop(monkeypatch):
     texts = ["a", "b", "c", "d"]
     cur = LossDiscreteCurriculum(q_low=0.5, q_mid=0.75, q_high=1.0, random_state=0)
     cur.model = _LossModel()
+
+    history_rows = []
+
+    def fake_run_phase_loop(phases, X, y, **kwargs):
+        history_rows.append({"n_phases": len(phases)})
+        return [{"macro_f1": 0.5}]
+
+    monkeypatch.setattr(cur, "_run_phase_loop", fake_run_phase_loop)
+    cur.fit(None, X=np.arange(4), y=y, X_text=texts)
+    assert len(cur.phases_) == 3
+    assert history_rows[0]["n_phases"] == 3
+
+
+def test_td_discrete_fit_runs_phase_loop(monkeypatch):
+    y = np.array([0, 1, 0, 1])
+    texts = ["a", "b", "c", "d"]
+    cur = TrainingDynamicsDiscreteCurriculum(
+        q_low=0.5,
+        q_mid=0.75,
+        q_high=1.0,
+        random_state=0,
+        td_probe_epochs=2,
+    )
+    cur.model = object()
+
+    monkeypatch.setattr(
+        "bio_is_curriculum.curriculum.methods.heuristic_discrete.training_dynamics_difficulty",
+        lambda *args, **kwargs: np.array([0.1, 0.5, 0.7, 0.9]),
+    )
 
     history_rows = []
 

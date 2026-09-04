@@ -36,6 +36,8 @@ _DISCRETE_METHODS = frozenset({
     "length_discrete",
     "loss_discrete",
     "tfidf_discrete",
+    "lrc_discrete",
+    "td_discrete",
 })
 
 
@@ -108,6 +110,11 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
         q_low, q_mid, q_high = cfg.curriculum_q
         if cfg.curriculum_method in _DISCRETE_METHODS:
             args += ["--curriculum-q", str(q_low), str(q_mid), str(q_high)]
+        if cfg.curriculum_method == "td_discrete":
+            args += [
+                "--td-probe-epochs", str(cfg.td_probe_epochs),
+                "--td-metric", str(cfg.td_metric),
+            ]
         if cfg.curriculum_method == "spcl_soft":
             args += [
                 "--curriculum-n-steps", str(cfg.curriculum_n_steps),

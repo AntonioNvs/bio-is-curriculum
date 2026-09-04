@@ -169,11 +169,20 @@ Paper-near profile: `experiments/spdcl_paper_near.yaml` (5 + 1 = 6 epochs).
 | Method | Difficulty signal | Requires BIOIS |
 |--------|-------------------|----------------|
 | `biois_discrete` | BIOIS entropy (+ redundancy in hard phase) | yes |
-| `length_discrete` | sequence word count | no |
 | `loss_discrete` | per-sample CE (untrained RoBERTa forward pass) | no |
-| `tfidf_discrete` | TF-IDF row L2 norm | no |
+| `lrc_discrete` | LRC composite (length + rarity + readability) | no |
+| `td_discrete` | inverse probe-epoch confidence (`td_probe_epochs`, default 2) | no |
+| `length_discrete` | sequence word count (deprecated) | no |
+| `tfidf_discrete` | TF-IDF row L2 norm (deprecated) | no |
 | `spcl_soft` | BIOIS + soft pacing | yes |
 | `spcl_loss` | BIOIS + SPCL Algorithm 1 | yes |
+
+`td_discrete` config (under `curriculum:`):
+
+```yaml
+td_probe_epochs: 2
+td_metric: confidence   # or variability
+```
 
 ## GPU device
 

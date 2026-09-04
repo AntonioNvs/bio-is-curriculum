@@ -52,6 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--curriculum-loss-prior-reliability", dest="curriculum_loss_prior_reliability", action=argparse.BooleanOptionalAction, default=True)
     p.add_argument("--curriculum-min-weight", dest="curriculum_min_weight", type=float, default=1e-3)
     p.add_argument("--curriculum-loss-recompute-every", dest="curriculum_loss_recompute_every", type=int, default=2)
+    p.add_argument("--td-probe-epochs", dest="td_probe_epochs", type=int, default=2)
+    p.add_argument(
+        "--td-metric",
+        dest="td_metric",
+        choices=("confidence", "variability"),
+        default="confidence",
+    )
     p.add_argument("--spdcl-n-bins", dest="spdcl_n_bins", type=int, default=5)
     p.add_argument("--spdcl-curriculum-epochs", dest="spdcl_curriculum_epochs", type=int, default=None)
     p.add_argument("--spdcl-anneal-epochs", dest="spdcl_anneal_epochs", type=int, default=1)

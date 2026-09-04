@@ -1,5 +1,5 @@
-# Curriculum signal ablations — compare biois_discrete vs heuristic difficulty signals
-# Run once per method: biois_discrete, length_discrete, loss_discrete, tfidf_discrete
+# Curriculum signal ablations — compare biois_discrete vs alternative difficulty signals
+# Run once per method: biois_discrete, loss_discrete, lrc_discrete, td_discrete
 dataset: webkb
 n_splits: 10
 model: modernbert

@@ -50,7 +50,7 @@ campaign:
 
     - modes: [cl, is_cl]
       matrix:
-        curriculum.method: [biois_discrete, spcl_soft, length_discrete, loss_discrete, tfidf_discrete]
+        curriculum.method: [biois_discrete, spcl_soft, loss_discrete, lrc_discrete, td_discrete]
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"
 
     - modes: [cl, is_cl]

@@ -111,14 +111,16 @@ class BIOIS(InstanceSelectionMixin):
         self._y_proba_of_pred = copy.copy(y_proba_of_pred)
 
         if f1_score(y, pred,average='micro') < self.beta:
-            #raise ValueError("ERROR. LR accuracy < beta")
             print("ERROR. LR accuracy < beta")
 
         # Setting the removal probability of wrong predicted instances as zero
         correctPredictedProba = copy.copy(y_proba_of_pred)
         correctPredictedProba[pred != y] = 0.
+        total = float(np.sum(correctPredictedProba))
+        if total <= 0.0:
+            return np.zeros_like(correctPredictedProba, dtype=np.float64)
         # Normalazing the results to reach the the alpha distribution
-        correctPredictedProba = correctPredictedProba / np.sum(correctPredictedProba)
+        correctPredictedProba = correctPredictedProba / total
 
         return correctPredictedProba
     
@@ -169,12 +171,24 @@ class BIOIS(InstanceSelectionMixin):
         # Choosing the instances to be removed based on either alpha distibution and beta rate.
         n_training_samples = len(alpha)
         n_samples_to_remove = int(n_training_samples * beta)
+        if n_samples_to_remove == 0:
+            return np.array([], dtype=np.int64)
+
+        eligible = np.flatnonzero(alpha > 0)
+        if eligible.size == 0:
+            return np.array([], dtype=np.int64)
+
+        n_samples_to_remove = min(n_samples_to_remove, eligible.size)
+        probs = alpha[eligible]
+        probs = probs / probs.sum()
 
         rng = self._get_rng()
-        idx_choice_to_remove = rng.choice(a=np.arange(n_training_samples),
-                                          size=n_samples_to_remove,
-                                          replace=False,
-                                          p=alpha)
+        idx_choice_to_remove = rng.choice(
+            a=eligible,
+            size=n_samples_to_remove,
+            replace=False,
+            p=probs,
+        )
 
         return idx_choice_to_remove
    

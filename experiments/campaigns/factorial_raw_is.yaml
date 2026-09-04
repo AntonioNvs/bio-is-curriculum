@@ -39,7 +39,7 @@ campaign:
       beta: 0.3
       theta: 0.2
     training:
-      train_fraction: 0.2
+      train_fraction: 1
       epochs: 6
       epochs_per_phase: 2
       batch_size: 16

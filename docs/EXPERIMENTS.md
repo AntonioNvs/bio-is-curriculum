@@ -41,16 +41,20 @@ Training organized in phases (easy → hard) using BIOIS metrics as the difficul
 
 Same discrete schedule as `biois_discrete` (same `curriculum_q`, phase names, epoch budget). Only the **difficulty signal** changes. These are ablations of the curriculum component, not literature baselines.
 
-Soviany et al. (ACL Insights 2022) show that many heuristic curricula **do not beat random sampling** on BERT/T5 — they position BIOIS against weak alternatives.
+Soviany et al. (ACL Insights 2022) show that many heuristic curricula **do not beat random sampling** on BERT/T5 — we compare BIOIS against stronger model-based and linguistically composite alternatives.
 
 | `curriculum.method` | Difficulty signal | Reference | Status |
 |---------------------|-------------------|-----------|--------|
 | `biois_discrete` | BIOIS entropy (+ redundancy weighting in hard phase) | proposed | implemented |
-| `length_discrete` | sequence length (complexity proxy) | Platanios et al., 2019 | implemented |
 | `loss_discrete` | per-sample CE from untrained/pretrained RoBERTa | SPL standard | implemented |
-| `tfidf_discrete` | TF-IDF row norm (static lexical complexity) | Soviany et al., 2022 | implemented |
+| `lrc_discrete` | LRC composite (length + rarity + Flesch-Kincaid) | Ranaldi et al., RANLP 2023 | implemented |
+| `td_discrete` | inverse training-dynamics confidence (probe PLM) | Christopoulou et al., EMNLP 2022 | implemented |
+| `length_discrete` | sequence length (complexity proxy) | Platanios et al., 2019 | deprecated |
+| `tfidf_discrete` | TF-IDF row norm (static lexical complexity) | Soviany et al., 2022 | deprecated |
 
-**Key comparison:** `cl` + `biois_discrete` vs. `cl` + `length_discrete` / `loss_discrete` / `tfidf_discrete` — does BIOIS entropy beat common heuristics when the scheduling machinery is held fixed?
+**Adaptation note:** `td_discrete` uses a short probe fine-tuning run only to score difficulty; the student model still follows the same 3-phase discrete schedule as `biois_discrete` (not the transfer-teacher two-stage setup from the TD-CL paper).
+
+**Key comparison:** `cl` + `biois_discrete` vs. `cl` + `loss_discrete` / `lrc_discrete` / `td_discrete` — does BIOIS entropy beat stronger curriculum signals when the scheduling machinery is held fixed?
 
 Run matrix: `experiments/curriculum_ablations.yaml` (swap `curriculum.method` per run).
 
@@ -89,9 +93,9 @@ Methods designed for PLMs on NLU tasks (classification, NLI, etc.):
 | Baseline | Difficulty signal | Reference | Status |
 |----------|-------------------|-----------|--------|
 | Cross-Review + Annealing (AnnealCR) | teacher-model votes on train subsets | Xu et al., ACL 2020 | to implement |
-| Training Dynamics CL (AnnealTD) | uncertainty stats during training (easy / ambiguous / hard) | Christopoulou et al., EMNLP 2022 | to implement |
+| Training Dynamics CL (AnnealTD) | uncertainty stats during training (easy / ambiguous / hard) | Christopoulou et al., EMNLP 2022 | `td_discrete` (signal ablation) |
 | Competence-based CL | growing model competence (epoch function) | Platanios et al., 2019 | to implement |
-| CL-LRC | length + rarity + comprehensibility (LRC) | Ranaldi et al., RANLP 2023 | to implement |
+| CL-LRC | length + rarity + comprehensibility (LRC) | Ranaldi et al., RANLP 2023 | `lrc_discrete` (signal ablation) |
 | Self-adaptive CL | difficulty predicted by the PLM itself | ACL SRW 2025 | to implement |
 | SPDCL | linguistic difficulty + dynamic nuclear norm | arXiv 2210.14724 | `b2` implemented |
 
@@ -143,6 +147,6 @@ Not new training runs; derived from results above.
 
 1. Baseline + Only IS + Only CL + IS+CL (2² factorial)
 2. IS+CL with CL variants (discrete, SPCL soft, SPCL loss)
-3. Curriculum signal ablations: `biois_discrete` vs. `length_discrete` / `loss_discrete` / `tfidf_discrete`
+3. Curriculum signal ablations: `biois_discrete` vs. `loss_discrete` / `lrc_discrete` / `td_discrete`
 4. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM
 5. Analyses

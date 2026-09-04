@@ -7,7 +7,9 @@ from bio_is_curriculum.curriculum.methods.biois_discrete import BIOISDiscreteCur
 from bio_is_curriculum.curriculum.methods.heuristic_discrete import (
     LengthDiscreteCurriculum,
     LossDiscreteCurriculum,
+    LRCDiscreteCurriculum,
     TfidfDiscreteCurriculum,
+    TrainingDynamicsDiscreteCurriculum,
 )
 from bio_is_curriculum.curriculum.methods.spcl_loss import SPCLLossCurriculum
 from bio_is_curriculum.curriculum.methods.spcl_soft import SPCLSoftCurriculum
@@ -17,6 +19,8 @@ REGISTRY: dict[str, type] = {
     LengthDiscreteCurriculum.METHOD_ID: LengthDiscreteCurriculum,
     LossDiscreteCurriculum.METHOD_ID: LossDiscreteCurriculum,
     TfidfDiscreteCurriculum.METHOD_ID: TfidfDiscreteCurriculum,
+    LRCDiscreteCurriculum.METHOD_ID: LRCDiscreteCurriculum,
+    TrainingDynamicsDiscreteCurriculum.METHOD_ID: TrainingDynamicsDiscreteCurriculum,
     SPCLSoftCurriculum.METHOD_ID: SPCLSoftCurriculum,
     SPCLLossCurriculum.METHOD_ID: SPCLLossCurriculum,
 }
@@ -27,6 +31,8 @@ ALIASES: dict[str, str] = {
     "biois": "biois_discrete",
     "length": "length_discrete",
     "tfidf": "tfidf_discrete",
+    "lrc": "lrc_discrete",
+    "td": "td_discrete",
     "continuous": "spcl_soft",
     "spcl": "spcl_soft",
     "loss": "spcl_loss",
@@ -65,14 +71,20 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
         "length_discrete",
         "loss_discrete",
         "tfidf_discrete",
+        "lrc_discrete",
+        "td_discrete",
     }:
         q_low, q_mid, q_high = args.curriculum_q
-        return {
+        kwargs = {
             **common,
             "q_low": q_low,
             "q_mid": q_mid,
             "q_high": q_high,
         }
+        if method_id == "td_discrete":
+            kwargs["td_probe_epochs"] = getattr(args, "td_probe_epochs", 2)
+            kwargs["td_metric"] = getattr(args, "td_metric", "confidence")
+        return kwargs
     if method_id == "spcl_soft":
         return {
             **common,

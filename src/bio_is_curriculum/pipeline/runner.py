@@ -143,6 +143,8 @@ def _build_curriculum_kwargs(cfg: ExperimentConfig) -> dict:
         curriculum_loss_prior_reliability=cfg.curriculum_loss_prior_reliability,
         curriculum_min_weight=cfg.curriculum_min_weight,
         curriculum_loss_recompute_every=cfg.curriculum_loss_recompute_every,
+        td_probe_epochs=cfg.td_probe_epochs,
+        td_metric=cfg.td_metric,
     )
     return build_curriculum_kwargs(cfg.resolve_curriculum_method(), ns)
 

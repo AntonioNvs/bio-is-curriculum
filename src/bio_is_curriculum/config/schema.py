@@ -51,6 +51,8 @@ class ExperimentConfig:
     curriculum_loss_prior_reliability: bool = DEFAULTS["curriculum_loss_prior_reliability"]
     curriculum_min_weight: float = DEFAULTS["curriculum_min_weight"]
     curriculum_loss_recompute_every: int = DEFAULTS["curriculum_loss_recompute_every"]
+    td_probe_epochs: int = DEFAULTS["td_probe_epochs"]
+    td_metric: str = DEFAULTS["td_metric"]
     spdcl_n_bins: int = DEFAULTS["spdcl_n_bins"]
     spdcl_curriculum_epochs: int | None = DEFAULTS["spdcl_curriculum_epochs"]
     spdcl_anneal_epochs: int = DEFAULTS["spdcl_anneal_epochs"]
