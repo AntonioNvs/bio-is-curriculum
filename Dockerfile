@@ -3,8 +3,8 @@ FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala o uv
-RUN apt-get update && apt-get install -y --no-install-recommends curl git \
+# Instala o uv e compilador C (Triton/ModernBERT JIT no primeiro forward pass)
+RUN apt-get update && apt-get install -y --no-install-recommends curl git build-essential \
     && curl -Ls https://astral.sh/uv/install.sh | sh \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 

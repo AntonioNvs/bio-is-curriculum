@@ -220,6 +220,13 @@ def _run_batch(
             )
             if result.returncode != 0:
                 print("FAIL")
+                if not verbose and result.stderr:
+                    print(result.stderr.rstrip())
+                if not verbose and result.stdout:
+                    tail = result.stdout.strip().splitlines()[-8:]
+                    if tail:
+                        print("--- last stdout lines ---")
+                        print("\n".join(tail))
                 failed.append((mode, fold, result.returncode))
                 if fail_fast:
                     return BatchRunResult(experiment_id, batch, failed)
