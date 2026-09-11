@@ -11,13 +11,13 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
-from scipy import stats
 
 from bio_is_curriculum.curriculum.base import CurriculumBase
 from bio_is_curriculum.curriculum.class_balance import balance_phase_indices
 from bio_is_curriculum.models.base import CurriculumModel
 from bio_is_curriculum.models.logistic_regression import LogisticRegressionModel
 from bio_is_curriculum.results.metrics import build_phase_metrics_row
+from bio_is_curriculum.signals.biois import extract_biois_signals
 
 if TYPE_CHECKING:
     from bio_is_curriculum.results.recorder import RunRecorder
@@ -45,31 +45,7 @@ class BIOISCurriculumBase(CurriculumBase):
 
     def _extract_signals(self, selector, y):
         """Deriva (r_i, e_i) normalizados a partir de um BIOIS ja ajustado."""
-        if not hasattr(selector, "_probaEveryone"):
-            raise ValueError(
-                "selector nao possui _probaEveryone. Garanta que BIOIS.fit "
-                "foi chamado antes de instanciar o curriculum."
-            )
-
-        probas = selector._probaEveryone
-        y_proba_pred = selector._y_proba_of_pred
-        pred = selector._pred
-
-        e = np.array([stats.entropy(p) for p in probas], dtype=np.float64)
-        e_range = e.max() - e.min()
-        if e_range > 0:
-            e = (e - e.min()) / e_range
-        else:
-            e = np.zeros_like(e)
-
-        r = np.array(y_proba_pred, dtype=np.float64, copy=True)
-        r[pred != y] = 0.0
-        r_range = r.max() - r.min()
-        if r_range > 0:
-            r = (r - r.min()) / r_range
-        else:
-            r = np.zeros_like(r)
-
+        r, e, _noise = extract_biois_signals(selector, y)
         return r, e
 
     @abstractmethod

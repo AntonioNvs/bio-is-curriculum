@@ -44,7 +44,7 @@ campaign:
       matrix:
         curriculum.method:
           - biois_discrete
-          - loss_discrete
+          # - loss_discrete
           - lrc_discrete
-          - td_discrete
+          # - td_discrete
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"

@@ -13,6 +13,7 @@ import numpy as np
 from bio_is_curriculum.signals.heuristics import length_difficulty
 
 _TOKEN_RE = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
+_SENTENCE_BOUNDARY_RE = re.compile(r"[.!?]+")
 
 
 def _min_max_normalize(values: np.ndarray) -> np.ndarray:
@@ -25,6 +26,15 @@ def _min_max_normalize(values: np.ndarray) -> np.ndarray:
 
 def _tokenize(text: str) -> list[str]:
     return [m.group(0).lower() for m in _TOKEN_RE.finditer(text)]
+
+
+def _count_sentences(text: str) -> int:
+    """Count non-empty sentence fragments split on ., !, ? (min 1 if text has words)."""
+    if not text or not text.strip():
+        return 0
+    parts = _SENTENCE_BOUNDARY_RE.split(text)
+    n = sum(1 for part in parts if part.strip())
+    return max(1, n)
 
 
 def _syllable_count(word: str) -> int:
@@ -74,16 +84,29 @@ def rarity_component(texts: list[str]) -> np.ndarray:
 
 
 def comprehensibility_component(texts: list[str]) -> np.ndarray:
-    """Normalized Flesch-Kincaid grade level (Ranaldi et al. §3.2.3)."""
+    """Normalized Flesch-Kincaid grade level (Ranaldi et al. §3.2.3).
+
+    Uses the standard grade-level formula with per-document sentence counting.
+    Ranaldi's displayed ``/100`` scaling is an affine rescale before min-max
+    normalization and does not change the ranking produced here.
+    """
     raw = np.zeros(len(texts), dtype=np.float64)
     for i, text in enumerate(texts):
         tokens = _tokenize(text)
         n_words = len(tokens)
         if n_words == 0:
             continue
+        n_sentences = _count_sentences(text)
+        if n_sentences == 0:
+            continue
         n_syllables = sum(_syllable_count(tok) for tok in tokens)
-        avg_word_syllables = n_syllables / n_words
-        raw[i] = 0.39 * (n_words / 100.0) + 11.8 * (avg_word_syllables / 100.0) - 15.59
+        avg_sentence_len = n_words / n_sentences
+        avg_syllables_per_word = n_syllables / n_words
+        raw[i] = (
+            0.39 * avg_sentence_len
+            + 11.8 * avg_syllables_per_word
+            - 15.59
+        )
     return _min_max_normalize(raw)
 
 

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from bio_is_curriculum.signals.lrc import (
+    _count_sentences,
     comprehensibility_component,
     length_component,
     lrc_difficulty,
@@ -28,6 +29,40 @@ def test_rarity_component_rare_words_score_higher():
     d = rarity_component(texts)
     assert d.shape == (3,)
     assert d[-1] > d[0]
+
+
+def test_comprehensibility_sentence_count_affects_score():
+    texts = [
+        "The cat sat on the mat.",
+        "The cat sat. On the mat.",
+    ]
+    d = comprehensibility_component(texts)
+    assert d.shape == (2,)
+    assert d[0] != d[1]
+
+
+def test_comprehensibility_harder_text_scores_higher():
+    texts = [
+        "The cat sat.",
+        "The extraordinary methodological investigation continued.",
+    ]
+    d = comprehensibility_component(texts)
+    assert d[1] > d[0]
+
+
+def test_comprehensibility_zero_words():
+    texts = ["", "!!!", "12345"]
+    d = comprehensibility_component(texts)
+    assert d.shape == (3,)
+    assert np.allclose(d, 0.0)
+
+
+def test_count_sentences_no_punctuation():
+    assert _count_sentences("hello world") == 1
+
+
+def test_count_sentences_multiple_boundaries():
+    assert _count_sentences("Hi. Bye! What?") == 3
 
 
 def test_comprehensibility_component_longer_harder():
