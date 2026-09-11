@@ -29,8 +29,8 @@ YAML / CLI  →  ExperimentConfig  →  pipeline/runner.py
 | `config/` | Single source of truth for defaults and YAML loading |
 | `data/` | Dataset I/O, val split, rare-class upsampling |
 | `selection/` | BIOIS bi-objective instance selection |
-| `signals/` | Difficulty scorers shared by CL and baselines |
-| `curriculum/` | Internal CL methods (biois_discrete, spcl_*) |
+| `signals/` | Difficulty scorers shared by CL and baselines (`biois.py`: entropy, redundancy, noise; `lrc.py`: length + rarity + Flesch–Kincaid) |
+| `curriculum/` | Internal CL methods (`biois_discrete` noise-aware phases, `spcl_*`) |
 | `baselines/` | Literature CL baselines (b1, b2 SPDCL, …) |
 | `models/` | RoBERTa and LR training backends |
 | `training/` | Phased vs dynamic training orchestration |

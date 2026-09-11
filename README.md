@@ -53,6 +53,11 @@ uv run bio-experiment experiments/campaigns/smoke_docker.yaml --folds 0
 # Curriculum signal ablations (4 datasets × 4 methods)
 uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
 
+# Full campaign in background
+mkdir -p logs
+nohup uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml \
+  > logs/curriculum_ablations_multi.log 2>&1 &
+
 # Full multi-dataset CV matrix
 uv run bio-experiment experiments/campaigns/full_cv_multi.yaml
 ```
@@ -71,7 +76,10 @@ Métodos de curriculum (`--curriculum-method`):
 
 | Método | Descrição |
 |---|---|
-| `biois_discrete` | 3 fases discretas Clean → Diverse → Hard (default) |
+| `biois_discrete` | 3 fases discretas Clean → Diverse → Hard; ordena por entropia com defer/downweight de ruído (default) |
+| `loss_discrete` | Mesmo schedule; dificuldade = CE por amostra (RoBERTa não treinado) |
+| `lrc_discrete` | Mesmo schedule; dificuldade LRC (comprimento + raridade + Flesch–Kincaid por documento) |
+| `td_discrete` | Mesmo schedule; dificuldade = confiança de probe PLM |
 | `spcl_soft` | Soft-pacing contínuo sobre sinais BIOIS (entropia/redundância) |
 | `spcl_loss` | SPCL canônico (Jiang et al. AAAI 2015): região Ψ derivada do BIOIS + scheme em `{binary, linear, log, mixture}` |
 
@@ -95,7 +103,7 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
 
 ### cl — sem IS, com CL
 
-BIOIS é executado apenas para gerar os sinais (beta=0, theta=0); curriculum organiza o treino em fases sobre o conjunto completo.
+BIOIS é executado apenas para gerar os sinais (beta=0, theta=0); curriculum organiza o treino em fases sobre o conjunto completo. Em `biois_discrete`, exemplos provavelmente ruidosos (erro confiante do classificador fraco) são adiados e recebem peso reduzido — sem remoção estocástica do dataset.
 
 ```sh
 uv run python main.py webkb --data_dir datasets --fold 0 \

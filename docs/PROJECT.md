@@ -6,10 +6,10 @@ Fine-tune **ModernBERT-base** on text classification benchmarks using **Bi-Objec
 
 ## Core hypothesis
 
-Weak-classifier signals (redundancy + noise/entropy from BIOIS) can:
+Weak-classifier signals (redundancy + noise + entropy from BIOIS) can:
 
-1. **Prune** redundant/noisy training instances (~30–40% reduction on large datasets).
-2. **Pace** difficulty during PLM fine-tuning (easy → hard phases).
+1. **Prune** redundant/noisy training instances (~30–40% reduction on large datasets) via stochastic IS (`beta`, `theta`).
+2. **Pace** difficulty during PLM fine-tuning (easy → hard phases). In `biois_discrete`, noise is handled deterministically: likely-noisy misclassifications are deferred via `max(entropy, noise)` and softly downweighted — separate from IS removal.
 
 Together, these yield competitive macro-F1 with less data and less training time vs. standard fine-tuning.
 

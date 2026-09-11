@@ -21,12 +21,12 @@ def score(...)-> np.ndarray:
 ```
 
 Existing signals:
-- `signals/biois.py` — weak-classifier redundancy + entropy
+- `signals/biois.py` — weak-classifier redundancy, entropy, and deterministic noise risk (`noise_scores`, `extract_biois_signals`); consumed by `biois_discrete` and the orchestrator
 - `signals/nuclear_norm.py` — SPDCL nuclear norm
 - `signals/heuristics.py` — length (deprecated curriculum ablation)
 - `signals/lexical.py` — TF-IDF rank (deprecated curriculum ablation)
 - `signals/loss.py` — per-sample CE loss (curriculum ablation)
-- `signals/lrc.py` — CL-LRC composite difficulty (curriculum ablation)
+- `signals/lrc.py` — CL-LRC composite difficulty: length + rarity + sentence-aware Flesch–Kincaid grade (curriculum ablation)
 - `signals/training_dynamics.py` — probe-epoch confidence/variability (curriculum ablation)
 
 **Note:** `loss_discrete`, `lrc_discrete`, and `td_discrete` are **curriculum signal ablations** (`curriculum.method: …`), not literature baselines. See [EXPERIMENTS.md](EXPERIMENTS.md) §3.

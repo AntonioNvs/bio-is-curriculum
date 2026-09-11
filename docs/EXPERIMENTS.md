@@ -37,6 +37,23 @@ Training organized in phases (easy → hard) using BIOIS metrics as the difficul
 - **Mode:** `cl`
 - **Internal variants:** BIOIS-discrete (clean → diverse → hard), SPCL soft, SPCL loss
 
+### `biois_discrete` (noise-aware)
+
+`biois_discrete` uses the same 3-phase discrete schedule as the heuristic ablations (`clean → diverse → hard`, per-class quantiles `q_low` / `q_mid` / `q_high`). Signals come from a fitted weak TF-IDF logistic-regression classifier (BIOIS `fitting_alpha`), shared via `signals/biois.py`:
+
+| Signal | Role in curriculum |
+|--------|-------------------|
+| **Entropy `e`** | Primary difficulty: normalized Shannon entropy of weak-classifier posteriors (higher = harder). |
+| **Redundancy `r`** | Downweights redundant *correct* predictions in the hard-phase mid→high entropy slice (`1 - curriculum_beta * r`). |
+| **Noise `n`** | Deterministic noise risk for *misclassified* samples: `n = 1 - e` (confident mistakes score highest). |
+
+Noise-aware scheduling (enabled by default, no extra YAML flags):
+
+1. **Defer:** phase ordering uses `e_eff = max(e, n)`, so confident weak-classifier mistakes are not treated as easy examples in early phases.
+2. **Downweight:** every phase multiplies sample weights by `1 - curriculum_beta * n` (with `beta = 0.5`, the noisiest mistakes keep at least half weight).
+
+In `cl` mode, BIOIS still runs with `theta = 0` (no stochastic instance removal); noise affects **ordering and weighting only**, not dataset size. Stochastic noise removal for IS remains controlled by `instance_selection.theta` in `is` / `is_cl` modes.
+
 ### Curriculum signal ablations (negative controls)
 
 Same discrete schedule as `biois_discrete` (same `curriculum_q`, phase names, epoch budget). Only the **difficulty signal** changes. These are ablations of the curriculum component, not literature baselines.
@@ -45,20 +62,35 @@ Soviany et al. (ACL Insights 2022) show that many heuristic curricula **do not b
 
 | `curriculum.method` | Difficulty signal | Reference | Status |
 |---------------------|-------------------|-----------|--------|
-| `biois_discrete` | BIOIS entropy (+ redundancy weighting in hard phase) | proposed | implemented |
+| `biois_discrete` | BIOIS entropy + noise defer/downweight (+ redundancy in hard phase) | proposed | implemented |
 | `loss_discrete` | per-sample CE from untrained/pretrained RoBERTa | SPL standard | implemented |
-| `lrc_discrete` | LRC composite (length + rarity + Flesch-Kincaid) | Ranaldi et al., RANLP 2023 | implemented |
+| `lrc_discrete` | LRC composite (length + rarity + sentence-aware Flesch–Kincaid grade) | Ranaldi et al., RANLP 2023 | implemented |
 | `td_discrete` | inverse training-dynamics confidence (probe PLM) | Christopoulou et al., EMNLP 2022 | implemented |
 | `length_discrete` | sequence length (complexity proxy) | Platanios et al., 2019 | deprecated |
 | `tfidf_discrete` | TF-IDF row norm (static lexical complexity) | Soviany et al., 2022 | deprecated |
 
-**Adaptation note:** `td_discrete` uses a short probe fine-tuning run only to score difficulty; the student model still follows the same 3-phase discrete schedule as `biois_discrete` (not the transfer-teacher two-stage setup from the TD-CL paper).
+**Adaptation notes:**
 
-**Key comparison:** `cl` + `biois_discrete` vs. `cl` + `loss_discrete` / `lrc_discrete` / `td_discrete` — does BIOIS entropy beat stronger curriculum signals when the scheduling machinery is held fixed?
+- `td_discrete` uses a short probe fine-tuning run only to score difficulty; the student model still follows the same 3-phase discrete schedule as `biois_discrete` (not the transfer-teacher two-stage setup from the TD-CL paper).
+- `lrc_discrete` applies Ranaldi et al.'s LRC composite to **classification documents** (not pre-training sentences). The comprehensibility term uses standard Flesch–Kincaid grade level with per-document sentence counting; length and rarity components are unchanged.
 
-Run matrix: `experiments/curriculum_ablations.yaml` (swap `curriculum.method` per run).
+**Key comparison:** `cl` + `biois_discrete` vs. `cl` + `loss_discrete` / `lrc_discrete` / `td_discrete` — does the full BIOIS signal (entropy + noise + redundancy) beat stronger curriculum signals when the scheduling machinery is held fixed?
 
-Launch: `uv run bio-experiment experiments/curriculum_ablations.yaml` (add `docker:` block or use `--docker`).
+Run matrix: [`experiments/campaigns/curriculum_ablations_multi.yaml`](../experiments/campaigns/curriculum_ablations_multi.yaml) (`curriculum.method` matrix over 4 datasets).
+
+Launch:
+
+```sh
+uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml
+```
+
+Background (long runs):
+
+```sh
+mkdir -p logs
+nohup uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml \
+  > logs/curriculum_ablations_multi.log 2>&1 &
+```
 
 ---
 

@@ -168,14 +168,35 @@ Paper-near profile: `experiments/spdcl_paper_near.yaml` (5 + 1 = 6 epochs).
 
 | Method | Difficulty signal | Requires BIOIS |
 |--------|-------------------|----------------|
-| `biois_discrete` | BIOIS entropy (+ redundancy in hard phase) | yes |
+| `biois_discrete` | BIOIS entropy + noise defer/downweight (+ redundancy in hard phase) | yes |
 | `loss_discrete` | per-sample CE (untrained RoBERTa forward pass) | no |
-| `lrc_discrete` | LRC composite (length + rarity + readability) | no |
+| `lrc_discrete` | LRC composite (length + rarity + sentence-aware Flesch–Kincaid) | no |
 | `td_discrete` | inverse probe-epoch confidence (`td_probe_epochs`, default 2) | no |
 | `length_discrete` | sequence word count (deprecated) | no |
 | `tfidf_discrete` | TF-IDF row L2 norm (deprecated) | no |
 | `spcl_soft` | BIOIS + soft pacing | yes |
 | `spcl_loss` | BIOIS + SPCL Algorithm 1 | yes |
+
+### `biois_discrete` signal details
+
+Implemented in `curriculum/methods/biois_discrete.py` using `signals/biois.py`. After the weak classifier is fit (same OOF LR pass as BIOIS IS):
+
+- **Entropy `e`:** normalized predictive entropy — primary difficulty for per-class quantile masks.
+- **Noise `n`:** `0` if correctly predicted; `1 - e` if misclassified (confident mistakes are highest risk).
+- **Phase ordering:** uses `e_eff = max(e, n)` so likely-noisy points are deferred to later phases.
+- **Sample weights:** multiplied by `1 - curriculum_beta * n` in every phase; hard-phase redundancy downweighting (`1 - curriculum_beta * r`) still applies on top for the mid→high entropy slice.
+
+No extra YAML keys are required — noise-aware behavior is the default for `biois_discrete`. In `cl` mode, `instance_selection.theta` does not remove instances; it only affects IS modes.
+
+### `lrc_discrete` signal details
+
+Implemented in `signals/lrc.py` (Ranaldi et al., RANLP 2023). Per training document:
+
+- **Length:** normalized word count.
+- **Rarity:** normalized sum of `-log p(w)` over corpus unigrams.
+- **Comprehensibility:** standard Flesch–Kincaid grade level `0.39 * (words/sentences) + 11.8 * (syllables/words) - 15.59`, with sentence boundaries on `.`, `!`, `?`, then min–max normalized.
+
+Final difficulty: `d_LRC = d_L + d_R + d_C`.
 
 `td_discrete` config (under `curriculum:`):
 
