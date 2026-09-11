@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from bio_is_curriculum.signals.nuclear_norm import NuclearNormScorer
+from bio_is_curriculum.signals.nuclear_norm import NuclearNormScorer, score_hidden_states
 from bio_is_curriculum.training.phased import eval_single_stage
 
 if TYPE_CHECKING:
@@ -68,8 +68,17 @@ def run_dynamic_curriculum(
     scorer = NuclearNormScorer()
     # Linguistic difficulty from pretrained backbone BEFORE any gradient step.
     t0_norm = time.perf_counter()
-    hidden = model.extract_hidden_states(texts)
-    scorer.score_pretrain(hidden)
+    pre_idx = _subsample_indices(n, norm_subsample, rng)
+    pre_texts = [texts[i] for i in pre_idx]
+    hidden = model.extract_hidden_states(pre_texts)
+    sampled_norms = score_hidden_states(hidden)
+    if len(pre_idx) < n:
+        full_norms = np.zeros(n, dtype=np.float64)
+        full_norms[pre_idx] = sampled_norms
+        scorer.initial_norms = full_norms
+        scorer._previous = full_norms.copy()
+    else:
+        scorer.score_pretrain(hidden)
     nuclear_norm_total += time.perf_counter() - t0_norm
 
     for epoch in range(total_epochs):

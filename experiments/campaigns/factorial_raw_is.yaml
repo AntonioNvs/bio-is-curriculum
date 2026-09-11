@@ -27,7 +27,6 @@ campaign:
       - total_time
 
   datasets:
-    reuters90: { n_splits: 5 }
     webkb: { n_splits: 10 }
     agnews: { n_splits: 5 }
     yelp_2013: { n_splits: 5 }

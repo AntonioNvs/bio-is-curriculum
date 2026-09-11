@@ -37,3 +37,14 @@ def test_delta_sort_direction():
     difficulty = np.array([0.1, 0.5, 0.3, 0.9])
     order = np.argsort(-difficulty)
     assert order[0] == 3  # largest delta first
+
+
+def test_subsample_indices():
+    from bio_is_curriculum.training.dynamic import _subsample_indices
+
+    rng = np.random.default_rng(0)
+    idx = _subsample_indices(100, 10, rng)
+    assert idx.shape == (10,)
+    assert idx[0] < idx[-1]
+    np.testing.assert_array_equal(_subsample_indices(5, None, rng), np.arange(5))
+    np.testing.assert_array_equal(_subsample_indices(5, 10, rng), np.arange(5))

@@ -98,6 +98,11 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
         args += ["--spdcl-curriculum-epochs", str(cfg.spdcl_curriculum_epochs)]
     if cfg.spdcl_norm_subsample is not None:
         args += ["--spdcl-norm-subsample", str(cfg.spdcl_norm_subsample)]
+    args += ["--b1-easy-fraction", str(cfg.b1_easy_fraction)]
+    if cfg.b1_use_global_quantile:
+        args.append("--b1-use-global-quantile")
+    else:
+        args.append("--no-b1-use-global-quantile")
     if cfg.model in ("modernbert", "roberta"):
         args += ["--hf-model", cfg.hf_model]
     if cfg.train_fraction < 1.0:

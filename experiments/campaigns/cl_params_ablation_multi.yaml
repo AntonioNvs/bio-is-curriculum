@@ -1,0 +1,62 @@
+# CL parameter ablation — entropy thresholds and unweighted Hard phase.
+# Variants: [0.3, 0.6] weighted, [0.2, 0.5] weighted, unweighted Hard (beta=0).
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dataset webkb --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dry-run
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: cl_params_ablation_multi
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - total_time
+  datasets:
+    webkb: { n_splits: 10 }
+    reuters90: { n_splits: 5 }
+    yelp_2013: { n_splits: 5 }
+    agnews: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      method: biois_discrete
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+      beta: 0.5
+    training:
+      epochs: 6
+      epochs_per_phase: 2
+      batch_size: 32
+      max_length: 256
+      lr: 2.0e-5
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [cl]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_q03-06_weighted"
+
+    - modes: [cl]
+      matrix:
+        curriculum.q_low: [0.2]
+        curriculum.q_mid: [0.5]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_q02-05_weighted"
+
+    - modes: [cl]
+      matrix:
+        curriculum.beta: [0.0]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_q03-06_unweighted"

@@ -1,0 +1,60 @@
+# Bengio b1 (margin-paced CL) with and without BIOIS instance selection.
+#
+# Modes:
+#   b1     — OOF LR margin curriculum on full training data (no IS)
+#   is_b1  — BIOIS prunes first; margin curriculum on the reduced set
+#
+# Training hyperparameters match curriculum_ablations_multi / spdcl_is_ablation
+# (ModernBERT profile). Bengio schedule: 2 phases × 3 epochs = 6 total (50% easy).
+#
+# Full campaign (all datasets, all folds):
+#   uv run bio-experiment experiments/campaigns/b1_is_ablation.yaml
+#
+# Smoke (fold 0, single dataset):
+#   uv run bio-experiment experiments/campaigns/b1_is_ablation.yaml --dataset webkb --folds 0
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 6
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: b1_is_ablation
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - total_time
+  datasets:
+    webkb: { n_splits: 10 }
+    reuters90: { n_splits: 5 }
+    agnews: { n_splits: 5 }
+    yelp_2013: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    baseline:
+      b1_easy_fraction: 0.5
+      b1_use_global_quantile: true
+    training:
+      hf_model: answerdotai/ModernBERT-base
+      epochs: 6
+      epochs_per_phase: 3
+      batch_size: 32
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [b1, is_b1]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_b1"

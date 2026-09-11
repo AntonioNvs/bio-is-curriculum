@@ -20,7 +20,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--mode",
         choices=[
-            "raw", "is", "cl", "is_cl", "is_continuous_cl", "is_continuos_cl", "is_b2",
+            "raw", "is", "cl", "is_cl", "is_continuous_cl", "is_continuos_cl",
+            "is_b1", "is_b2",
         ],
         default="is_cl",
     )
@@ -63,6 +64,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--spdcl-curriculum-epochs", dest="spdcl_curriculum_epochs", type=int, default=None)
     p.add_argument("--spdcl-anneal-epochs", dest="spdcl_anneal_epochs", type=int, default=1)
     p.add_argument("--spdcl-norm-subsample", dest="spdcl_norm_subsample", type=int, default=None)
+    p.add_argument("--b1-easy-fraction", dest="b1_easy_fraction", type=float, default=DEFAULTS["b1_easy_fraction"])
+    p.add_argument(
+        "--b1-use-global-quantile",
+        dest="b1_use_global_quantile",
+        action=argparse.BooleanOptionalAction,
+        default=DEFAULTS["b1_use_global_quantile"],
+    )
     p.add_argument("--model", choices=["lr", "modernbert", "roberta"], default="modernbert")
     p.add_argument("--hf-model", dest="hf_model", type=str, default="answerdotai/ModernBERT-base")
     p.add_argument("--train-fraction", dest="train_fraction", type=float, default=1.0)

@@ -5,15 +5,20 @@
 #   is_b2  — BIOIS selects instances first; selected set is treated as raw data for SPDCL
 #            (BIOIS metrics are NOT part of the SPDCL baseline strategy)
 #
-# Datasets: webkb, reuters90, agnews — all folds per dataset.
+# Training hyperparameters match curriculum_ablations_multi / cl_params_ablation_multi
+# (ModernBERT profile) for fair comparison with cl / is_cl. SPDCL schedule stays
+# paper-faithful: 5 curriculum + 1 anneal = 6 epochs total.
 #
-# Run on host GPU 5:
+# Datasets: webkb (10-fold), reuters90, agnews, yelp_2013 (5-fold each) — all folds.
+#
+# Full campaign (GPU 5, all datasets, all folds):
 #   uv run bio-experiment experiments/campaigns/spdcl_is_ablation.yaml
 #
-# Smoke (fold 0, webkb only):
+# Smoke (fold 0, single dataset):
 #   uv run bio-experiment experiments/campaigns/spdcl_is_ablation.yaml --dataset webkb --folds 0
 #
-# agnews is large (~128K train/fold); expect long nuclear-norm passes per epoch.
+# agnews (~128K train/fold) and yelp_2013 (~335K train/fold) are large; expect long
+# nuclear-norm passes per epoch.
 
 docker:
   image: bio-is-curriculum:latest
@@ -37,6 +42,7 @@ campaign:
     webkb: { n_splits: 10 }
     reuters90: { n_splits: 5 }
     agnews: { n_splits: 5 }
+    yelp_2013: { n_splits: 5 }
 
   defaults:
     model: modernbert
@@ -50,10 +56,11 @@ campaign:
     training:
       hf_model: answerdotai/ModernBERT-base
       epochs: 6
-      batch_size: 25
-      max_length: 250
-      lr: 5.0e-5
-      weight_decay: 0.01
+      batch_size: 32
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
       imbalance_method: inverse_freq_ce
 
   jobs:

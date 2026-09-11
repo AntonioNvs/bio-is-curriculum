@@ -1,6 +1,6 @@
 docker:
   image: bio-is-curriculum:latest
-  gpu_id: 5
+  gpu_id: 6
   cpus: 16
   memory: 32g
 

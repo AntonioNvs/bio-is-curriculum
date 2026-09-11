@@ -103,12 +103,27 @@ def _collect_mode_metadata(
             curriculum_method = DEFAULT_CURRICULUM_METHOD
 
         if mode not in mode_to_meta:
+            curriculum_q = cfg.get("curriculum_q")
             mode_to_meta[mode] = {
                 "curriculum_method": curriculum_method,
                 "scheme": cfg.get("curriculum_loss_scheme"),
+                "curriculum_q": curriculum_q if isinstance(curriculum_q, list) else None,
+                "curriculum_beta": cfg.get("curriculum_beta"),
             }
 
     return dataset, mode_to_meta
+
+
+def _format_cl_variant(meta: dict[str, object]) -> str | None:
+    parts: list[str] = []
+    curriculum_q = meta.get("curriculum_q")
+    if isinstance(curriculum_q, list) and len(curriculum_q) >= 2:
+        q_low, q_mid = curriculum_q[0], curriculum_q[1]
+        parts.append(f"q={q_low}/{q_mid}")
+    curriculum_beta = meta.get("curriculum_beta")
+    if curriculum_beta is not None:
+        parts.append(f"beta={curriculum_beta}")
+    return ", ".join(parts) if parts else None
 
 
 def _format_method_label(
@@ -118,11 +133,15 @@ def _format_method_label(
     if "cl" not in mode:
         return mode
 
-    curriculum_method = (meta or {}).get("curriculum_method") or DEFAULT_CURRICULUM_METHOD
-    scheme = (meta or {}).get("scheme")
+    meta = meta or {}
+    curriculum_method = meta.get("curriculum_method") or DEFAULT_CURRICULUM_METHOD
+    scheme = meta.get("scheme")
     label = curriculum_method
     if scheme:
         label = f"{curriculum_method}/{scheme}"
+    variant = _format_cl_variant(meta)
+    if variant:
+        label = f"{label}, {variant}"
     return f"{mode} ({label})"
 
 
