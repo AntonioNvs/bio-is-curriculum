@@ -47,10 +47,12 @@ Training organized in phases (easy → hard) using BIOIS metrics as the difficul
 | **Redundancy `r`** | Downweights redundant *correct* predictions in the hard-phase mid→high entropy slice (`1 - curriculum_beta * r`). |
 | **Noise `n`** | Deterministic noise risk for *misclassified* samples: `n = 1 - e` (confident mistakes score highest). |
 
-Noise-aware scheduling (enabled by default, no extra YAML flags):
+Margin/compute-aware scheduling (defaults in `curriculum_ablations_multi.yaml`):
 
-1. **Defer:** phase ordering uses `e_eff = max(e, n)`, so confident weak-classifier mistakes are not treated as easy examples in early phases.
-2. **Downweight:** every phase multiplies sample weights by `1 - curriculum_beta * n` (with `beta = 0.5`, the noisiest mistakes keep at least half weight).
+1. **Composite difficulty:** `0.6 * margin + 0.4 * entropy`, blended with a `0.25` length prior for phase ordering.
+2. **Defer:** `max(schedule, noise)` pushes confident weak-classifier mistakes out of early phases.
+3. **Downweight:** noise penalty `1 - curriculum_beta * n` applies in the **hard phase only**; redundancy downweight uses `min(r, r_cap)` in the hard mid→high slice.
+4. **Progressive max length:** train with `96 / 160 / 256` tokens in clean/diverse/hard (6 epochs total unchanged).
 
 In `cl` mode, BIOIS still runs with `theta = 0` (no stochastic instance removal); noise affects **ordering and weighting only**, not dataset size. Stochastic noise removal for IS remains controlled by `instance_selection.theta` in `is` / `is_cl` modes.
 

@@ -181,12 +181,25 @@ Paper-near profile: `experiments/spdcl_paper_near.yaml` (5 + 1 = 6 epochs).
 
 Implemented in `curriculum/methods/biois_discrete.py` using `signals/biois.py`. After the weak classifier is fit (same OOF LR pass as BIOIS IS):
 
-- **Entropy `e`:** normalized predictive entropy — primary difficulty for per-class quantile masks.
-- **Noise `n`:** `0` if correctly predicted; `1 - e` if misclassified (confident mistakes are highest risk).
-- **Phase ordering:** uses `e_eff = max(e, n)` so likely-noisy points are deferred to later phases.
-- **Sample weights:** multiplied by `1 - curriculum_beta * n` in every phase; hard-phase redundancy downweighting (`1 - curriculum_beta * r`) still applies on top for the mid→high entropy slice.
+- **Margin difficulty:** label-aware `P(y|x) - max P(other|x)`, per-class rank normalized.
+- **Entropy `e`:** Shannon entropy / `log(n_classes)`, per-class rank normalized.
+- **Bio difficulty:** `margin_weight * margin + entropy_weight * entropy` (defaults `0.6 / 0.4`).
+- **Length prior:** `length_weight` blend with normalized word count (default `0.25`) — compute-aware, not LRC rarity/readability.
+- **Noise `n`:** `0` if correct; `1 - bounded_entropy` if misclassified; deferral via `max(schedule, n)`.
+- **Sample weights:** noise downweight `1 - curriculum_beta * n` in **hard phase only**; redundancy downweight in hard mid→high slice uses `min(r, r_cap)`.
+- **Phase max lengths:** progressive caps `96 / 160 / 256` for clean/diverse/hard training (eval still uses full `max_length`).
 
-No extra YAML keys are required — noise-aware behavior is the default for `biois_discrete`. In `cl` mode, `instance_selection.theta` does not remove instances; it only affects IS modes.
+Optional YAML under `curriculum:`:
+
+```yaml
+margin_weight: 0.6
+entropy_weight: 0.4
+length_weight: 0.25
+noise_weight_phases: [hard]
+phase_max_lengths: [96, 160, 256]
+```
+
+In `cl` mode, `instance_selection.theta` does not remove instances; it only affects IS modes.
 
 ### `lrc_discrete` signal details
 
