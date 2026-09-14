@@ -35,6 +35,37 @@ def build_parser() -> argparse.ArgumentParser:
         "--curriculum-q", dest="curriculum_q", type=float, nargs=3,
         default=(0.3, 0.6, 0.95),
     )
+    p.add_argument(
+        "--curriculum-margin-weight",
+        dest="curriculum_margin_weight",
+        type=float,
+        default=0.6,
+    )
+    p.add_argument(
+        "--curriculum-entropy-weight",
+        dest="curriculum_entropy_weight",
+        type=float,
+        default=0.4,
+    )
+    p.add_argument(
+        "--curriculum-length-weight",
+        dest="curriculum_length_weight",
+        type=float,
+        default=0.25,
+    )
+    p.add_argument(
+        "--curriculum-noise-weight-phases",
+        dest="curriculum_noise_weight_phases",
+        nargs="+",
+        default=["hard"],
+    )
+    p.add_argument(
+        "--curriculum-phase-max-lengths",
+        dest="curriculum_phase_max_lengths",
+        type=int,
+        nargs=3,
+        default=(96, 160, 256),
+    )
     p.add_argument("--curriculum-n-steps", dest="curriculum_n_steps", type=int, default=6)
     p.add_argument("--curriculum-alpha-decay", dest="curriculum_alpha_decay", type=float, default=10.0)
     p.add_argument("--curriculum-soft-lambda-init", dest="curriculum_soft_lambda_init", type=float, default=0.25)

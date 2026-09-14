@@ -96,7 +96,11 @@ class BIOISCurriculumBase(CurriculumBase):
             )
 
             if has_set_phase:
-                self.model_.set_phase(phase["name"])
+                phase_max_len = phase.get("max_length")
+                if phase_max_len is not None:
+                    self.model_.set_phase(phase["name"], max_length=int(phase_max_len))
+                else:
+                    self.model_.set_phase(phase["name"])
 
             if use_text:
                 X_phase = [X_text[i] for i in indices]
@@ -137,6 +141,7 @@ class BIOISCurriculumBase(CurriculumBase):
                 "best_val_macro_f1": float("nan"),
                 "best_val_epoch": float("nan"),
                 "steps_to_best_val": float("nan"),
+                "phase_max_length": float("nan"),
             }
 
             if X_test is not None and y_test is not None:

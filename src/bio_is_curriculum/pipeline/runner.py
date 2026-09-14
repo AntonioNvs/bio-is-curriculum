@@ -145,6 +145,11 @@ def _build_curriculum_kwargs(cfg: ExperimentConfig) -> dict:
         curriculum_loss_recompute_every=cfg.curriculum_loss_recompute_every,
         td_probe_epochs=cfg.td_probe_epochs,
         td_metric=cfg.td_metric,
+        curriculum_margin_weight=cfg.curriculum_margin_weight,
+        curriculum_entropy_weight=cfg.curriculum_entropy_weight,
+        curriculum_length_weight=cfg.curriculum_length_weight,
+        curriculum_noise_weight_phases=cfg.curriculum_noise_weight_phases,
+        curriculum_phase_max_lengths=cfg.curriculum_phase_max_lengths,
     )
     return build_curriculum_kwargs(cfg.resolve_curriculum_method(), ns)
 

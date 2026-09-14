@@ -66,7 +66,8 @@ class DiscreteCurriculumBase(BIOISCurriculumBase):
                 hard_local = (e[indices] > e_mid_per_idx[indices]) & (
                     e[indices] <= e_high_per_idx[indices]
                 )
-                weights[hard_local] = 1.0 - self.beta * r[indices][hard_local]
+                r_local = np.minimum(r[indices][hard_local], self.r_cap)
+                weights[hard_local] = 1.0 - self.beta * r_local
                 weights = np.clip(weights, 1e-6, None)
             phases.append({"name": name, "indices": indices, "weights": weights})
 

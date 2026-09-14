@@ -84,6 +84,20 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
         if method_id == "td_discrete":
             kwargs["td_probe_epochs"] = getattr(args, "td_probe_epochs", 2)
             kwargs["td_metric"] = getattr(args, "td_metric", "confidence")
+        if method_id == "biois_discrete":
+            kwargs.update(
+                {
+                    "margin_weight": getattr(args, "curriculum_margin_weight", 0.6),
+                    "entropy_weight": getattr(args, "curriculum_entropy_weight", 0.4),
+                    "length_weight": getattr(args, "curriculum_length_weight", 0.25),
+                    "noise_weight_phases": getattr(
+                        args, "curriculum_noise_weight_phases", ("hard",)
+                    ),
+                    "phase_max_lengths": getattr(
+                        args, "curriculum_phase_max_lengths", (96, 160, 256)
+                    ),
+                }
+            )
         return kwargs
     if method_id == "spcl_soft":
         return {

@@ -173,6 +173,7 @@ class ModernBertModel(CurriculumModel):
         self._model = None
         self.global_step_: int = 0
         self._current_phase: str = "unknown"
+        self._phase_max_length: int | None = None
         self._token_count_total: int = 0
         self._sample_count_total: int = 0
         self._best_val_macro_f1: float = float("nan")
@@ -240,7 +241,10 @@ class ModernBertModel(CurriculumModel):
         )
 
         dataset = _TextDataset(texts, y.astype(np.int64), sample_weight)
-        collator = _DynamicPadCollator(self._tokenizer, self.max_length)
+        stage_max_length = (
+            self._phase_max_length if self._phase_max_length is not None else self.max_length
+        )
+        collator = _DynamicPadCollator(self._tokenizer, stage_max_length)
         shuffle_gen = torch.Generator()
         shuffle_gen.manual_seed(stage_seed)
 
@@ -408,11 +412,17 @@ class ModernBertModel(CurriculumModel):
             "best_val_macro_f1": self._best_val_macro_f1,
             "best_val_epoch": self._best_val_epoch,
             "steps_to_best_val": self._steps_to_best_val,
+            "phase_max_length": float(
+                self._phase_max_length
+                if self._phase_max_length is not None
+                else self.max_length
+            ),
         }
 
-    def set_phase(self, phase_name: str) -> None:
+    def set_phase(self, phase_name: str, *, max_length: int | None = None) -> None:
         """Informa ao modelo qual fase esta sendo treinada (para logs)."""
         self._current_phase = phase_name
+        self._phase_max_length = max_length
 
     def _lazy_init(self, num_labels: int) -> None:
         if self._tokenizer is None:

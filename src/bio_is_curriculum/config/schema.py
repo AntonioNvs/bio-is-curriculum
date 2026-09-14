@@ -33,6 +33,15 @@ class ExperimentConfig:
         DEFAULTS["curriculum_q_mid"],
         DEFAULTS["curriculum_q_high"],
     )
+    curriculum_margin_weight: float = DEFAULTS["curriculum_margin_weight"]
+    curriculum_entropy_weight: float = DEFAULTS["curriculum_entropy_weight"]
+    curriculum_length_weight: float = DEFAULTS["curriculum_length_weight"]
+    curriculum_noise_weight_phases: tuple[str, ...] = DEFAULTS[
+        "curriculum_noise_weight_phases"
+    ]
+    curriculum_phase_max_lengths: tuple[int, int, int] = DEFAULTS[
+        "curriculum_phase_max_lengths"
+    ]
     curriculum_n_steps: int = DEFAULTS["curriculum_n_steps"]
     curriculum_alpha_decay: float = DEFAULTS["curriculum_alpha_decay"]
     curriculum_soft_lambda_init: float = DEFAULTS["curriculum_soft_lambda_init"]
@@ -96,6 +105,18 @@ class ExperimentConfig:
         kwargs = {k: v for k, v in data.items() if k in known}
         if "curriculum_q" in kwargs and isinstance(kwargs["curriculum_q"], list):
             kwargs["curriculum_q"] = tuple(kwargs["curriculum_q"])
+        if "curriculum_noise_weight_phases" in kwargs and isinstance(
+            kwargs["curriculum_noise_weight_phases"], list
+        ):
+            kwargs["curriculum_noise_weight_phases"] = tuple(
+                kwargs["curriculum_noise_weight_phases"]
+            )
+        if "curriculum_phase_max_lengths" in kwargs and isinstance(
+            kwargs["curriculum_phase_max_lengths"], list
+        ):
+            kwargs["curriculum_phase_max_lengths"] = tuple(
+                kwargs["curriculum_phase_max_lengths"]
+            )
         return cls(**kwargs)
 
     def resolve_mode(self) -> str:

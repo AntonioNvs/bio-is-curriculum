@@ -99,7 +99,8 @@ class BIOIS(InstanceSelectionMixin):
         print('fitting_alpha_by_lr_default')
         from bio_is_curriculum.signals.oracle_margin import oof_lr_probas
 
-        probaEveryone = oof_lr_probas(X, y, random_state=0)
+        seed = self.random_state if self.random_state is not None else 0
+        probaEveryone = oof_lr_probas(X, y, random_state=seed)
         self.classes_ = unique_labels(y)
         pred = np.argmax(probaEveryone, axis=1)
         print(f"Micro: {f1_score(y, pred,average='micro')}")

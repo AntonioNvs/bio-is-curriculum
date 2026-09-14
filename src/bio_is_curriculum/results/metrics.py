@@ -82,4 +82,5 @@ def build_phase_metrics_row(
         "best_val_macro_f1": float(stats_row.get("best_val_macro_f1", float("nan"))),
         "best_val_epoch": float(stats_row.get("best_val_epoch", float("nan"))),
         "steps_to_best_val": float(stats_row.get("steps_to_best_val", float("nan"))),
+        "phase_max_length": float(stats_row.get("phase_max_length", float("nan"))),
     }

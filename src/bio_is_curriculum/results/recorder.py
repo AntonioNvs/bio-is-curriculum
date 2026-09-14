@@ -47,6 +47,7 @@ class RunRecorder:
         "hard_slice_quantile", "hard_slice_macro_f1",
         "avg_seq_len", "compute_proxy",
         "best_val_macro_f1", "best_val_epoch", "steps_to_best_val",
+        "phase_max_length",
     ]
     TRAIN_HISTORY_COLS = [
         "event", "phase", "epoch", "step", "loss", "lr",

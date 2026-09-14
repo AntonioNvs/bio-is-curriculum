@@ -79,12 +79,25 @@ def merge_yaml_to_experiment_config(yaml_cfg: dict) -> ExperimentConfig:
         "loss_recompute_every": "curriculum_loss_recompute_every",
         "td_probe_epochs": "td_probe_epochs",
         "td_metric": "td_metric",
+        "margin_weight": "curriculum_margin_weight",
+        "entropy_weight": "curriculum_entropy_weight",
+        "length_weight": "curriculum_length_weight",
+        "noise_weight_phases": "curriculum_noise_weight_phases",
+        "phase_max_lengths": "curriculum_phase_max_lengths",
     }
     for src, dst in curriculum_map.items():
         if src in c_cfg:
             data[dst] = c_cfg[src]
     if all(k in c_cfg for k in ("q_low", "q_mid", "q_high")):
         data["curriculum_q"] = (c_cfg["q_low"], c_cfg["q_mid"], c_cfg["q_high"])
+    if isinstance(data.get("curriculum_noise_weight_phases"), list):
+        data["curriculum_noise_weight_phases"] = tuple(
+            data["curriculum_noise_weight_phases"]
+        )
+    if isinstance(data.get("curriculum_phase_max_lengths"), list):
+        data["curriculum_phase_max_lengths"] = tuple(
+            data["curriculum_phase_max_lengths"]
+        )
 
     b_cfg = yaml_cfg.get("baseline", {})
     for key in (
