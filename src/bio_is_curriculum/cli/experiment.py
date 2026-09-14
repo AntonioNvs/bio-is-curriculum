@@ -115,6 +115,16 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
         q_low, q_mid, q_high = cfg.curriculum_q
         if cfg.curriculum_method in _DISCRETE_METHODS:
             args += ["--curriculum-q", str(q_low), str(q_mid), str(q_high)]
+        if cfg.curriculum_method == "biois_discrete":
+            args += [
+                "--curriculum-margin-weight", str(cfg.curriculum_margin_weight),
+                "--curriculum-entropy-weight", str(cfg.curriculum_entropy_weight),
+                "--curriculum-length-weight", str(cfg.curriculum_length_weight),
+                "--curriculum-noise-weight-phases",
+                *[str(p) for p in cfg.curriculum_noise_weight_phases],
+                "--curriculum-phase-max-lengths",
+                *[str(n) for n in cfg.curriculum_phase_max_lengths],
+            ]
         if cfg.curriculum_method == "td_discrete":
             args += [
                 "--td-probe-epochs", str(cfg.td_probe_epochs),

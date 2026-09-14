@@ -1,12 +1,22 @@
-# CL parameter ablation — entropy thresholds and unweighted Hard phase.
-# Variants: [0.3, 0.6] weighted, [0.2, 0.5] weighted, unweighted Hard (beta=0).
+# CL parameter ablation — margin/compute-aware biois_discrete scheduler.
+#
+# Three ablation axes (one focal change per job; all other params at defaults):
+#   1. Schedule  — tight phase quantiles (q=0.2/0.5)
+#   2. Signal    — entropy-dominant weights (0.3/0.7 margin/entropy)
+#   3. Compute   — flat token caps (256/256/256, no progressive lengths)
+#
+# Reference baseline (not re-run here): curriculum_ablations_multi biois_discrete
+# defaults (q=0.3/0.6, margin 0.6/0.4, phase_max_lengths 96/160/256).
+#
+# Rebuild image after scheduler changes:
+#   docker build -t bio-is-curriculum:latest .
 #
 # Smoke:   uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dataset webkb --folds 0
 # Dry-run: uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dry-run
 
 docker:
   image: bio-is-curriculum:latest
-  gpu_id: 7
+  gpu_id: 5
   cpus: 16
   memory: 32g
 
@@ -38,6 +48,11 @@ campaign:
       q_mid: 0.6
       q_high: 0.95
       beta: 0.5
+      margin_weight: 0.6
+      entropy_weight: 0.4
+      length_weight: 0.25
+      noise_weight_phases: [hard]
+      phase_max_lengths: [96, 160, 256]
     training:
       epochs: 6
       epochs_per_phase: 2
@@ -48,15 +63,18 @@ campaign:
 
   jobs:
     - modes: [cl]
-      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_q03-06_weighted"
-
-    - modes: [cl]
       matrix:
         curriculum.q_low: [0.2]
         curriculum.q_mid: [0.5]
-      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_q02-05_weighted"
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_sched_q02-05"
 
     - modes: [cl]
       matrix:
-        curriculum.beta: [0.0]
-      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_q03-06_unweighted"
+        curriculum.margin_weight: [0.3]
+        curriculum.entropy_weight: [0.7]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_sig_entropy"
+
+    - modes: [cl]
+      matrix:
+        curriculum.phase_max_lengths: [[256, 256, 256]]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_compute_flat"
