@@ -21,7 +21,7 @@ def score(...)-> np.ndarray:
 ```
 
 Existing signals:
-- `signals/biois.py` — weak-classifier redundancy, entropy, and deterministic noise risk (`noise_scores`, `extract_biois_signals`); consumed by `biois_discrete` and the orchestrator
+- `signals/biois.py` — weak-classifier margin, bounded entropy, redundancy, noise, and optional length prior (`extract_biois_signals` for IS/orchestrator; `extract_biois_curriculum_signals` for the margin scheduler in `biois_discrete`)
 - `signals/nuclear_norm.py` — SPDCL nuclear norm
 - `signals/heuristics.py` — length (deprecated curriculum ablation)
 - `signals/lexical.py` — TF-IDF rank (deprecated curriculum ablation)

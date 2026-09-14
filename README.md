@@ -50,7 +50,8 @@ YAML-first experiments via `bio-experiment` (Docker + GPU 7 configured in campai
 # Smoke test (single fold)
 uv run bio-experiment experiments/campaigns/smoke_docker.yaml --folds 0
 
-# Curriculum signal ablations (4 datasets × 4 methods)
+# Curriculum signal ablations (4 datasets; rebuild image after scheduler changes)
+docker build -t bio-is-curriculum:latest .
 uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
 
 # Full campaign in background
@@ -76,7 +77,7 @@ Métodos de curriculum (`--curriculum-method`):
 
 | Método | Descrição |
 |---|---|
-| `biois_discrete` | 3 fases discretas Clean → Diverse → Hard; ordena por entropia com defer/downweight de ruído (default) |
+| `biois_discrete` | 3 fases Clean → Diverse → Hard; ordena por margem + entropia (+ prior de comprimento); defer/downweight de ruído na fase hard; `phase_max_lengths` 96/160/256 (default) |
 | `loss_discrete` | Mesmo schedule; dificuldade = CE por amostra (RoBERTa não treinado) |
 | `lrc_discrete` | Mesmo schedule; dificuldade LRC (comprimento + raridade + Flesch–Kincaid por documento) |
 | `td_discrete` | Mesmo schedule; dificuldade = confiança de probe PLM |
@@ -103,7 +104,7 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
 
 ### cl — sem IS, com CL
 
-BIOIS é executado apenas para gerar os sinais (beta=0, theta=0); curriculum organiza o treino em fases sobre o conjunto completo. Em `biois_discrete`, exemplos provavelmente ruidosos (erro confiante do classificador fraco) são adiados e recebem peso reduzido — sem remoção estocástica do dataset.
+BIOIS é executado apenas para gerar os sinais (beta=0, theta=0); curriculum organiza o treino em fases sobre o conjunto completo. Em `biois_discrete`, a dificuldade combina margem multiclasse, entropia normalizada e prior de comprimento; erros confiantes do classificador fraco são adiados (`max(schedule, noise)`) e recebem peso reduzido na fase hard — sem remoção estocástica do dataset. Treino usa comprimento máximo progressivo por fase (96 → 160 → 256 tokens).
 
 ```sh
 uv run python main.py webkb --data_dir datasets --fold 0 \
@@ -259,12 +260,23 @@ results/experiments/
 
 Compare modes within one experiment via `summary.csv`. Compare across experiments via the manifest + `summary.py`.
 
+### Resultados preliminares — ablação de sinais (`curriculum_ablations_multi`)
+
+Macro-F1 (média ± meia-largura do IC 95%); tempo = média de `total_run_time_s` por fold. Campanha `20260914` com scheduler margin/compute-aware em `biois_discrete`.
+
+| Dataset | BIO-IS | LRC | Tempo BIO-IS (s) | Tempo LRC (s) |
+|---------|--------|-----|------------------|---------------|
+| WebKB | 0.764 ± 0.016 | 0.762 ± 0.015 | 297 | 297 |
+| Reuters-90 | 0.386 ± 0.024 | 0.383 ± 0.013 | 500 | 498 |
+
+LRC de `20260911-171345`; Yelp e AG News em execução. Detalhes em [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) §3.
+
 ## Opções principais
 
 ```
 --mode {raw,is,cl,is_cl,is_continuos_cl}  Modo de execução (default: is_cl)
 --baseline N                              Baseline da literatura (sobrescreve --mode)
---curriculum-method {biois_discrete,spcl_soft,spcl_loss}
+--curriculum-method {biois_discrete,loss_discrete,lrc_discrete,td_discrete,spcl_soft,spcl_loss}
 --model {lr,modernbert}                   Modelo (default: modernbert)
 --hf-model                                Checkpoint HuggingFace (default: answerdotai/ModernBERT-base)
 --train-fraction                          Fração do train split (default: 1.0)
@@ -278,8 +290,13 @@ Compare modes within one experiment via `summary.csv`. Compare across experiment
 --class-balanced-loss                     Peso por frequência de classe na CE (default: True)
 --beta / --theta                          Taxas de redução do BIOIS (default: 0.3 / 0.2)
 --hard-slice-quantile                     Quantil para hard-slice macro-F1 (default: 0.8)
---curriculum-beta                         Peso de redundância na Fase Hard (default: 0.5)
+--curriculum-beta                         Peso de redundância/ruído na Fase Hard (default: 0.5)
 --curriculum-q                            Quantis das fases discretas (default: 0.3 0.6 0.95)
+--curriculum-margin-weight                Peso da margem no schedule BIO-IS (default: 0.6)
+--curriculum-entropy-weight               Peso da entropia no schedule BIO-IS (default: 0.4)
+--curriculum-length-weight                Peso do prior de comprimento (default: 0.25)
+--curriculum-noise-weight-phases          Fases com downweight de ruído (default: hard)
+--curriculum-phase-max-lengths            Comprimento máximo por fase clean/diverse/hard (default: 96 160 256)
 --curriculum-n-steps                      Passos para spcl_soft / spcl_loss (default: 6)
 --curriculum-alpha-decay                  Suavidade do soft-pacing (default: 10.0)
 --curriculum-soft-*                       Parâmetros do SPCL soft (lambda, saturação, etc.)

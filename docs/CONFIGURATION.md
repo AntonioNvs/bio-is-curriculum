@@ -57,6 +57,12 @@ curriculum:
   q_low: 0.3
   q_mid: 0.6
   q_high: 0.95
+  beta: 0.5
+  margin_weight: 0.6
+  entropy_weight: 0.4
+  length_weight: 0.25
+  noise_weight_phases: [hard]
+  phase_max_lengths: [96, 160, 256]
 
 training:
   epochs: 6
@@ -168,7 +174,7 @@ Paper-near profile: `experiments/spdcl_paper_near.yaml` (5 + 1 = 6 epochs).
 
 | Method | Difficulty signal | Requires BIOIS |
 |--------|-------------------|----------------|
-| `biois_discrete` | BIOIS entropy + noise defer/downweight (+ redundancy in hard phase) | yes |
+| `biois_discrete` | margin + entropy + length prior; noise defer; hard-phase noise/redundancy downweight; progressive `phase_max_lengths` | yes |
 | `loss_discrete` | per-sample CE (untrained RoBERTa forward pass) | no |
 | `lrc_discrete` | LRC composite (length + rarity + sentence-aware Flesch–Kincaid) | no |
 | `td_discrete` | inverse probe-epoch confidence (`td_probe_epochs`, default 2) | no |
@@ -200,6 +206,12 @@ phase_max_lengths: [96, 160, 256]
 ```
 
 In `cl` mode, `instance_selection.theta` does not remove instances; it only affects IS modes.
+
+CLI equivalents: `--curriculum-margin-weight`, `--curriculum-entropy-weight`, `--curriculum-length-weight`, `--curriculum-noise-weight-phases`, `--curriculum-phase-max-lengths`.
+
+During phased training, `models/modernbert.py` applies `set_phase(name, max_length=…)` so each clean/diverse/hard epoch uses the corresponding entry in `phase_max_lengths`; validation and test inference still use `training.max_length`.
+
+**Parameter ablation campaign:** [`experiments/campaigns/cl_params_ablation_multi.yaml`](../experiments/campaigns/cl_params_ablation_multi.yaml) varies one axis at a time (schedule quantiles, signal weights, flat vs. progressive `phase_max_lengths`) against the `curriculum_ablations_multi` reference defaults. See [EXPERIMENTS.md](EXPERIMENTS.md) §3.
 
 ### `lrc_discrete` signal details
 
@@ -246,6 +258,11 @@ CLI: `--docker-gpu N` overrides `docker.gpu_id`. `--docker` forces Docker wrap e
 | `--dry-run` | Print expanded jobs / docker command |
 | `--no-docker` | Run locally (inside container) |
 | `--docker` | Force Docker wrap |
+| `--curriculum-margin-weight` | BIO-IS margin term in composite schedule (default `0.6`) |
+| `--curriculum-entropy-weight` | BIO-IS entropy term (default `0.4`) |
+| `--curriculum-length-weight` | Word-count prior blend (default `0.25`) |
+| `--curriculum-noise-weight-phases` | Phases where `1 - beta * noise` applies (default `hard`) |
+| `--curriculum-phase-max-lengths` | Per-phase token caps, e.g. `96 160 256` |
 
 Single-fold debugging: `uv run bio-run webkb --fold 0 --mode is_cl`
 

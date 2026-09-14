@@ -37,24 +37,47 @@ Training organized in phases (easy → hard) using BIOIS metrics as the difficul
 - **Mode:** `cl`
 - **Internal variants:** BIOIS-discrete (clean → diverse → hard), SPCL soft, SPCL loss
 
-### `biois_discrete` (noise-aware)
+### `biois_discrete` (margin + compute-aware)
 
 `biois_discrete` uses the same 3-phase discrete schedule as the heuristic ablations (`clean → diverse → hard`, per-class quantiles `q_low` / `q_mid` / `q_high`). Signals come from a fitted weak TF-IDF logistic-regression classifier (BIOIS `fitting_alpha`), shared via `signals/biois.py`:
 
 | Signal | Role in curriculum |
 |--------|-------------------|
-| **Entropy `e`** | Primary difficulty: normalized Shannon entropy of weak-classifier posteriors (higher = harder). |
-| **Redundancy `r`** | Downweights redundant *correct* predictions in the hard-phase mid→high entropy slice (`1 - curriculum_beta * r`). |
-| **Noise `n`** | Deterministic noise risk for *misclassified* samples: `n = 1 - e` (confident mistakes score highest). |
+| **Margin `m`** | Label-aware multiclass margin (`P(y|x) - max P(other|x)`), per-class rank normalized (higher = harder). |
+| **Entropy `e`** | Bounded Shannon entropy (`H / log K`), per-class rank normalized (higher = harder). |
+| **Schedule `s`** | `margin_weight * m + entropy_weight * e`, blended with a `length_weight` word-count prior when texts are available. |
+| **Noise `n`** | Deterministic noise risk for *misclassified* samples: `n = 1 - bounded_entropy` (confident mistakes score highest). |
+| **Redundancy `r`** | True-class confidence on correct predictions; downweights redundant samples in the hard-phase mid→high slice (`1 - curriculum_beta * min(r, r_cap)`). |
 
-Margin/compute-aware scheduling (defaults in `curriculum_ablations_multi.yaml`):
+Scheduler (defaults in `curriculum_ablations_multi.yaml`):
 
-1. **Composite difficulty:** `0.6 * margin + 0.4 * entropy`, blended with a `0.25` length prior for phase ordering.
-2. **Defer:** `max(schedule, noise)` pushes confident weak-classifier mistakes out of early phases.
-3. **Downweight:** noise penalty `1 - curriculum_beta * n` applies in the **hard phase only**; redundancy downweight uses `min(r, r_cap)` in the hard mid→high slice.
-4. **Progressive max length:** train with `96 / 160 / 256` tokens in clean/diverse/hard (6 epochs total unchanged).
+1. **Phase ordering:** sort by `max(s, n)` — noise defers confident weak-classifier mistakes out of early phases.
+2. **Downweight:** noise penalty `1 - curriculum_beta * n` in phases listed by `noise_weight_phases` (default: **hard only**).
+3. **Progressive max length:** train with `96 / 160 / 256` tokens in clean/diverse/hard via `model.set_phase()`; eval still uses full `max_length` (6 epochs total unchanged).
 
 In `cl` mode, BIOIS still runs with `theta = 0` (no stochastic instance removal); noise affects **ordering and weighting only**, not dataset size. Stochastic noise removal for IS remains controlled by `instance_selection.theta` in `is` / `is_cl` modes.
+
+**Rebuild the Docker image** after scheduler changes before launching a campaign:
+
+```sh
+docker build -t bio-is-curriculum:latest .
+```
+
+### Preliminary results (`curriculum_ablations_multi`)
+
+Fixed discrete schedule (`q = 0.3/0.6/0.95`, `beta = 0.5`, 6 epochs, ModernBERT). Macro-F1 is mean ± half-width of the 95% CI; runtime is mean end-to-end seconds per fold (`total_run_time_s`).
+
+| Dataset | Signal | Macro-F1 | Runtime (s) | Source |
+|---------|--------|----------|-------------|--------|
+| WebKB | BIO-IS (margin scheduler) | 0.764 ± 0.016 | 297 | `webkb-10cv-20260914-172338_biois_discrete` |
+| WebKB | LRC | 0.762 ± 0.015 | 297 | `webkb-10cv-20260911-171345_lrc_discrete` |
+| WebKB | Loss / TD | — | — | `20260904-210854` campaign (unchanged) |
+| Reuters-90 | BIO-IS (margin scheduler) | 0.386 ± 0.024 | 500 | `reuters90-5cv-20260914-172338_biois_discrete` |
+| Reuters-90 | LRC | 0.383 ± 0.013 | 498 | `reuters90-5cv-20260911-171345_lrc_discrete` |
+| Reuters-90 | Loss / TD | — | — | `20260904-210854` campaign (unchanged) |
+| Yelp-2013 / AG News | all signals | — | — | campaign in progress |
+
+On WebKB and Reuters-90, the margin scheduler closes the gap vs. LRC from the prior noise-only BIO-IS run (`20260911-171345`) and matches or slightly exceeds LRC macro-F1 with lower training time on Reuters. Yelp and AG News BIO-IS runs were still pending at `20260914-172338`.
 
 ### Curriculum signal ablations (negative controls)
 
@@ -64,7 +87,7 @@ Soviany et al. (ACL Insights 2022) show that many heuristic curricula **do not b
 
 | `curriculum.method` | Difficulty signal | Reference | Status |
 |---------------------|-------------------|-----------|--------|
-| `biois_discrete` | BIOIS entropy + noise defer/downweight (+ redundancy in hard phase) | proposed | implemented |
+| `biois_discrete` | margin + entropy + length prior; noise defer; hard-phase noise/redundancy downweight | proposed | implemented |
 | `loss_discrete` | per-sample CE from untrained/pretrained RoBERTa | SPL standard | implemented |
 | `lrc_discrete` | LRC composite (length + rarity + sentence-aware Flesch–Kincaid grade) | Ranaldi et al., RANLP 2023 | implemented |
 | `td_discrete` | inverse training-dynamics confidence (probe PLM) | Christopoulou et al., EMNLP 2022 | implemented |
@@ -93,6 +116,46 @@ mkdir -p logs
 nohup uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml \
   > logs/curriculum_ablations_multi.log 2>&1 &
 ```
+
+### CL parameter ablation (`biois_discrete` hyperparameters)
+
+Holds the curriculum **signal** fixed (`biois_discrete`) and varies one scheduler axis per job. Shared defaults match [`curriculum_ablations_multi.yaml`](../experiments/campaigns/curriculum_ablations_multi.yaml); the **reference row** for comparisons is the `biois_discrete` run from that campaign (not re-run here).
+
+| Axis | Job suffix | Focal change | All other params |
+|------|------------|--------------|------------------|
+| **Schedule** | `_sched_q02-05` | `q_low=0.2`, `q_mid=0.5` | margin 0.6/0.4, progressive lengths |
+| **Signal** | `_sig_entropy` | `margin_weight=0.3`, `entropy_weight=0.7` | default quantiles, progressive lengths |
+| **Compute** | `_compute_flat` | `phase_max_lengths: [256, 256, 256]` | default quantiles and signal weights |
+
+**Mapping from the pre-margin ablation** (`20260904-232743`):
+
+| Old job | New counterpart |
+|---------|-----------------|
+| `q03-06_weighted` | reference → `curriculum_ablations_multi` `biois_discrete` defaults |
+| `q02-05_weighted` | `_sched_q02-05` |
+| `q03-06_unweighted` (`beta=0`) | deferred (optional 4th job) |
+
+Run matrix: [`experiments/campaigns/cl_params_ablation_multi.yaml`](../experiments/campaigns/cl_params_ablation_multi.yaml) — 3 jobs × 4 datasets, `cl` mode only.
+
+```sh
+docker build -t bio-is-curriculum:latest .
+
+# Smoke (fold 0, single dataset)
+uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dataset webkb --folds 0
+
+# Full campaign
+uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml
+```
+
+Background:
+
+```sh
+mkdir -p logs
+nohup uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml \
+  > logs/cl_params_ablation_multi.log 2>&1 &
+```
+
+Compare each job vs. the `curriculum_ablations_multi` reference on macro-F1, hard-slice macro-F1, and `total_run_time_s` via the campaign manifest and `summary.py`.
 
 ---
 
@@ -182,5 +245,6 @@ Not new training runs; derived from results above.
 1. Baseline + Only IS + Only CL + IS+CL (2² factorial)
 2. IS+CL with CL variants (discrete, SPCL soft, SPCL loss)
 3. Curriculum signal ablations: `biois_discrete` vs. `loss_discrete` / `lrc_discrete` / `td_discrete`
-4. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM
-5. Analyses
+4. CL parameter ablation: schedule / signal / compute axes (`cl_params_ablation_multi.yaml`)
+5. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM
+6. Analyses
