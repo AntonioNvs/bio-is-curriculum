@@ -55,6 +55,22 @@ def test_length_discrete_phases_cumulative():
     assert np.allclose(hard_weights, 1.0)
 
 
+def test_discrete_phase_max_lengths_applied():
+    y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+    texts = ["a", "a b", "a b c", "a b c d", "x", "x y", "x y z", "x y z w"]
+    cur = LRCDiscreteCurriculum(
+        q_low=0.25,
+        q_mid=0.5,
+        q_high=1.0,
+        phase_max_lengths=(96, 160, 256),
+    )
+    cur._y_build = y
+    cur._texts = texts
+    r, e = cur._extract_signals(None, y)
+    phases = cur._build_phases(r, e)
+    assert [p["max_length"] for p in phases] == [96, 160, 256]
+
+
 def test_lrc_discrete_phases_cumulative():
     y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
     texts = [

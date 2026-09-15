@@ -40,6 +40,7 @@ class BIOISDiscreteCurriculum(DiscreteCurriculumBase):
             hard_slice_quantile=hard_slice_quantile,
             r_cap=r_cap,
             random_state=random_state,
+            phase_max_lengths=phase_max_lengths,
         )
         self.margin_weight = float(margin_weight)
         self.entropy_weight = float(entropy_weight)
@@ -48,11 +49,6 @@ class BIOISDiscreteCurriculum(DiscreteCurriculumBase):
             tuple(noise_weight_phases)
             if noise_weight_phases is not None
             else ("hard",)
-        )
-        self.phase_max_lengths = (
-            tuple(phase_max_lengths)
-            if phase_max_lengths is not None
-            else (96, 160, 256)
         )
         self._noise_: np.ndarray | None = None
         self._texts_build: list[str] | None = None
@@ -74,27 +70,22 @@ class BIOISDiscreteCurriculum(DiscreteCurriculumBase):
 
     def _build_phases(self, r, e):
         phases = super()._build_phases(r, e)
-        phase_max_by_name = dict(zip(self.PHASE_NAMES, self.phase_max_lengths))
 
-        if self._noise_ is not None:
-            noise = self._noise_
-            noise_phases = set(self.noise_weight_phases)
-            for phase in phases:
-                name = phase["name"]
-                phase["max_length"] = phase_max_by_name.get(name)
-                if name not in noise_phases:
-                    continue
-                indices = phase["indices"]
-                weights = phase["weights"]
-                phase["weights"] = np.clip(
-                    weights * (1.0 - self.beta * noise[indices]),
-                    1e-6,
-                    None,
-                )
+        if self._noise_ is None:
             return phases
 
+        noise = self._noise_
+        noise_phases = set(self.noise_weight_phases)
         for phase in phases:
-            phase["max_length"] = phase_max_by_name.get(phase["name"])
+            if phase["name"] not in noise_phases:
+                continue
+            indices = phase["indices"]
+            weights = phase["weights"]
+            phase["weights"] = np.clip(
+                weights * (1.0 - self.beta * noise[indices]),
+                1e-6,
+                None,
+            )
         return phases
 
     def fit(self, selector, X, y, **kwargs):

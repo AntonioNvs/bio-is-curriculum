@@ -80,6 +80,9 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
             "q_low": q_low,
             "q_mid": q_mid,
             "q_high": q_high,
+            "phase_max_lengths": getattr(
+                args, "curriculum_phase_max_lengths", (96, 160, 256)
+            ),
         }
         if method_id == "td_discrete":
             kwargs["td_probe_epochs"] = getattr(args, "td_probe_epochs", 2)
@@ -92,9 +95,6 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
                     "length_weight": getattr(args, "curriculum_length_weight", 0.25),
                     "noise_weight_phases": getattr(
                         args, "curriculum_noise_weight_phases", ("hard",)
-                    ),
-                    "phase_max_lengths": getattr(
-                        args, "curriculum_phase_max_lengths", (96, 160, 256)
                     ),
                 }
             )
