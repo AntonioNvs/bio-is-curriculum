@@ -1,3 +1,16 @@
+# Curriculum signal ablation with the margin/compute-aware discrete scheduler.
+#
+# biois_discrete already completed in:
+#   results/experiments/curriculum_ablations_multi_20260914-172338
+# This campaign reruns only the alternative difficulty signals (Loss, LRC, TD)
+# under the same schedule: q=0.3/0.6/0.95, phase_max_lengths=96/160/256.
+#
+# Full campaign (all datasets, all folds):
+#   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml
+#
+# Smoke (fold 0, single dataset):
+#   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --dataset webkb --folds 0
+
 docker:
   image: bio-is-curriculum:latest
   gpu_id: 6
@@ -31,12 +44,13 @@ campaign:
       q_mid: 0.6
       q_high: 0.95
       beta: 0.5
-      # biois_discrete margin/compute-aware scheduler (ignored by lrc_discrete)
+      # Shared discrete scheduler (all methods below).
+      phase_max_lengths: [96, 160, 256]
+      # BIOIS-only signal weights (ignored by loss/lrc/td).
       margin_weight: 0.6
       entropy_weight: 0.4
       length_weight: 0.25
       noise_weight_phases: [hard]
-      phase_max_lengths: [96, 160, 256]
     training:
       epochs: 6
       epochs_per_phase: 2
@@ -49,8 +63,8 @@ campaign:
     - modes: [cl]
       matrix:
         curriculum.method:
-          - biois_discrete
-          # - loss_discrete
-          # - lrc_discrete
-          # - td_discrete
+          - loss_discrete
+          - lrc_discrete
+          - td_discrete
+          # - biois_discrete  # completed: curriculum_ablations_multi_20260914-172338
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"
