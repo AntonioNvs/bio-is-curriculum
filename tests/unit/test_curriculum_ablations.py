@@ -131,6 +131,14 @@ def test_loss_discrete_fit_runs_phase_loop(monkeypatch):
     assert history_rows[0]["n_phases"] == 3
 
 
+def test_td_discrete_accepts_phase_max_lengths():
+    cur = TrainingDynamicsDiscreteCurriculum(
+        phase_max_lengths=(96, 160, 256),
+        td_probe_epochs=1,
+    )
+    assert cur.phase_max_lengths == (96, 160, 256)
+
+
 def test_td_discrete_fit_runs_phase_loop(monkeypatch):
     y = np.array([0, 1, 0, 1])
     texts = ["a", "b", "c", "d"]
@@ -139,6 +147,7 @@ def test_td_discrete_fit_runs_phase_loop(monkeypatch):
         q_mid=0.75,
         q_high=1.0,
         random_state=0,
+        phase_max_lengths=(96, 160, 256),
         td_probe_epochs=2,
     )
     cur.model = object()

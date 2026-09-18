@@ -91,6 +91,30 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("confidence", "variability"),
         default="confidence",
     )
+    p.add_argument(
+        "--sa-prompt-suffix",
+        dest="sa_prompt_suffix",
+        type=str,
+        default=DEFAULTS["sa_prompt_suffix"],
+    )
+    p.add_argument(
+        "--sa-hard-fraction",
+        dest="sa_hard_fraction",
+        type=float,
+        default=DEFAULTS["sa_hard_fraction"],
+    )
+    p.add_argument(
+        "--sa-rank-exponent",
+        dest="sa_rank_exponent",
+        type=float,
+        default=DEFAULTS["sa_rank_exponent"],
+    )
+    p.add_argument(
+        "--sa-score-batch-size",
+        dest="sa_score_batch_size",
+        type=int,
+        default=DEFAULTS["sa_score_batch_size"],
+    )
     p.add_argument("--spdcl-n-bins", dest="spdcl_n_bins", type=int, default=5)
     p.add_argument("--spdcl-curriculum-epochs", dest="spdcl_curriculum_epochs", type=int, default=None)
     p.add_argument("--spdcl-anneal-epochs", dest="spdcl_anneal_epochs", type=int, default=1)

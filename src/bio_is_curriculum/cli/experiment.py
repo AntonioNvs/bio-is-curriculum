@@ -130,6 +130,13 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
                 "--td-probe-epochs", str(cfg.td_probe_epochs),
                 "--td-metric", str(cfg.td_metric),
             ]
+        if cfg.curriculum_method == "self_adaptive_pmd":
+            args += [
+                "--sa-prompt-suffix", str(cfg.sa_prompt_suffix),
+                "--sa-hard-fraction", str(cfg.sa_hard_fraction),
+                "--sa-rank-exponent", str(cfg.sa_rank_exponent),
+                "--sa-score-batch-size", str(cfg.sa_score_batch_size),
+            ]
         if cfg.curriculum_method == "spcl_soft":
             args += [
                 "--curriculum-n-steps", str(cfg.curriculum_n_steps),

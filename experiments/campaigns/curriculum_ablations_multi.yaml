@@ -1,9 +1,12 @@
-# Curriculum signal ablation with the margin/compute-aware discrete scheduler.
+# Curriculum signal ablation — TD-only rerun.
 #
-# biois_discrete already completed in:
+# loss_discrete / lrc_discrete completed in:
+#   results/experiments/curriculum_ablations_multi_20260915-160947
+# biois_discrete completed in:
 #   results/experiments/curriculum_ablations_multi_20260914-172338
-# This campaign reruns only the alternative difficulty signals (Loss, LRC, TD)
-# under the same schedule: q=0.3/0.6/0.95, phase_max_lengths=96/160/256.
+#
+# Previous TD runs failed: TrainingDynamicsDiscreteCurriculum rejected
+# phase_max_lengths (fixed in heuristic_discrete.py). Rerun TD only.
 #
 # Full campaign (all datasets, all folds):
 #   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml
@@ -63,8 +66,8 @@ campaign:
     - modes: [cl]
       matrix:
         curriculum.method:
-          - loss_discrete
-          - lrc_discrete
           - td_discrete
-          # - biois_discrete  # completed: curriculum_ablations_multi_20260914-172338
+          # - loss_discrete  # completed: curriculum_ablations_multi_20260915-160947
+          # - lrc_discrete   # completed: curriculum_ablations_multi_20260915-160947
+          # - biois_discrete # completed: curriculum_ablations_multi_20260914-172338
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"

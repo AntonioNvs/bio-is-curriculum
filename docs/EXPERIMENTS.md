@@ -193,7 +193,7 @@ Methods designed for PLMs on NLU tasks (classification, NLI, etc.):
 | Training Dynamics CL (AnnealTD) | uncertainty stats during training (easy / ambiguous / hard) | Christopoulou et al., EMNLP 2022 | `td_discrete` (signal ablation) |
 | Competence-based CL | growing model competence (epoch function) | Platanios et al., 2019 | to implement |
 | CL-LRC | length + rarity + comprehensibility (LRC) | Ranaldi et al., RANLP 2023 | `lrc_discrete` (signal ablation) |
-| Self-adaptive CL | difficulty predicted by the PLM itself | ACL SRW 2025 | to implement |
+| Self-adaptive CL (PMD) | frozen PLM MLM confidence + PMD batches | Feng et al., ACL SRW 2025 | `self_adaptive_pmd` implemented |
 | SPDCL | linguistic difficulty + dynamic nuclear norm | arXiv 2210.14724 | `b2` implemented |
 
 ### Optional (appendix or extension)
@@ -206,11 +206,40 @@ Methods designed for PLMs on NLU tasks (classification, NLI, etc.):
 **Key comparisons for the paper:**
 
 - `is_cl` vs. **AnnealCR** and **AnnealTD** — BIOIS vs. most cited NLU fine-tuning CL methods
-- `is_cl` vs. **self-adaptive PLM** — external bi-objective signal vs. Transformer self-reported difficulty
+- `is_cl` vs. **self-adaptive PLM** (`self_adaptive_pmd`) — external bi-objective signal vs. Transformer self-reported difficulty
 - `cl` + `biois_discrete` vs. `cl` + heuristic ablations — BIOIS beats signals literature considers weak (§3)
 - `is_cl` vs. `b1` — gain beyond Bengio-style margin-paced CL (2-phase; differs from `is_cl` 3-phase BIOIS schedule)
 - `is_cl` vs. `b2` (SPDCL) — BIOIS vs. dynamic nuclear norm (same epoch budget; see `experiments/spdcl_paper_near.yaml`)
 - `raw` vs. `b2` — SPDCL gain over full-data training without IS
+
+### Self-adaptive PMD (`self_adaptive_pmd`)
+
+Feng, Liu & Schütze (ACL SRW 2025) score each training example with a **frozen** PLM via a cloze prompt + verbalizer, then fine-tune with difficulty-aware sampling. We implement the paper's strongest strategy (**PMD**) adapted to this repo:
+
+| Paper element | Adaptation here |
+|---------------|-----------------|
+| BERT/RoBERTa MLM scorer | Same `hf_model` as ModernBERT (`AutoModelForMaskedLM`), no gradient updates |
+| Hand-crafted verbalizers | **Automatic** one-token verbalizers from class-contrastive TF-IDF on the fitting split (labels are numeric; Reuters has 90 classes) |
+| Confidence = \|P_max − P_second\| | Identical after normalizing over verbalizer tokens |
+| PMD 6:4 hard/easy partitions | `hard_fraction=0.6`; squared-rank multinomial sampling (`rank_exponent=2`) |
+| 5 epochs, batch 16, no warmup | **Campaign-matched** 6 epochs, batch 32, warmup 0.06 (same as SPDCL / curriculum ablations) |
+| Prompt-based fine-tuning | Standard ModernBERT **classification** fine-tuning (scoring only is prompt/MLM) |
+
+Run matrix: [`experiments/campaigns/self_adaptive_pmd.yaml`](../experiments/campaigns/self_adaptive_pmd.yaml) — GPU **5**, 4 datasets, all folds (`cl` only).
+
+```sh
+docker build -t bio-is-curriculum:latest .
+
+# Smoke
+uv run bio-experiment experiments/campaigns/self_adaptive_pmd.yaml --dataset webkb --folds 0
+
+# Full campaign
+mkdir -p logs
+nohup uv run bio-experiment experiments/campaigns/self_adaptive_pmd.yaml \
+  > logs/self_adaptive_pmd.log 2>&1 &
+```
+
+Artifacts per fold: `self_adaptive_verbalizers.json`, `self_adaptive_scores.csv`, timing key `sa_score_time_s`.
 
 ---
 
@@ -235,6 +264,7 @@ Not new training runs; derived from results above.
 | CL signal ablations | ✗ | ✓ | length / loss / TF-IDF | Negative controls (§3) |
 | IS + CL (proposed) | ✓ | ✓ | BIOIS | **Main result** |
 | SPDCL (`b2`) | ✗ | ✓ | Nuclear norm | NLP literature baseline |
+| Self-adaptive PMD | ✗ | ✓ | Frozen MLM confidence | NLP literature baseline |
 | CL SOTA baselines | ✗/✓ | ✓ | TD, AnnealCR, LRC, PLM… | NLP literature comparison |
 | Analysis | — | — | — | Figures and discussion |
 
@@ -246,5 +276,5 @@ Not new training runs; derived from results above.
 2. IS+CL with CL variants (discrete, SPCL soft, SPCL loss)
 3. Curriculum signal ablations: `biois_discrete` vs. `loss_discrete` / `lrc_discrete` / `td_discrete`
 4. CL parameter ablation: schedule / signal / compute axes (`cl_params_ablation_multi.yaml`)
-5. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM
+5. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM (`self_adaptive_pmd`)
 6. Analyses

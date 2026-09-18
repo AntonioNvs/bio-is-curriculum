@@ -17,7 +17,7 @@ from typing import Callable
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
+from torch.utils.data import DataLoader, Dataset, Sampler, WeightedRandomSampler
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score
 from transformers import (
@@ -36,8 +36,75 @@ from bio_is_curriculum.curriculum.imbalance_losses import (
     validate_imbalance_method,
 )
 from bio_is_curriculum.data.augmentation import augment_minority_texts
+from bio_is_curriculum.signals.self_adaptive import (
+    pmd_partition_counts,
+    pmd_sampling_probs,
+)
 
 _NO_DECAY_SUFFIXES = ("bias", "LayerNorm.weight", "norm.weight", "RMSNorm.weight")
+
+
+class PMDBatchSampler(Sampler[list[int]]):
+    """Partitioned multinomial batch sampler (Feng et al. ACL SRW 2025 PMD).
+
+    Each batch draws ``hard_fraction`` examples from the hard-prioritized
+    squared-rank distribution and the remainder from the easy-prioritized
+    reverse distribution. Epoch length matches ``ceil(n / batch_size)`` batches.
+    """
+
+    def __init__(
+        self,
+        confidence: np.ndarray,
+        batch_size: int,
+        *,
+        hard_fraction: float = 0.6,
+        rank_exponent: float = 2.0,
+        generator: torch.Generator | None = None,
+    ):
+        conf = np.asarray(confidence, dtype=np.float64)
+        if conf.ndim != 1 or len(conf) == 0:
+            raise ValueError("confidence must be a non-empty 1-D array")
+        self.n = int(len(conf))
+        self.batch_size = int(batch_size)
+        self.n_hard, self.n_easy = pmd_partition_counts(
+            self.batch_size, hard_fraction=hard_fraction
+        )
+        hard_probs, easy_probs, _order = pmd_sampling_probs(
+            conf, rank_exponent=rank_exponent
+        )
+        self.hard_probs = torch.tensor(hard_probs, dtype=torch.double)
+        self.easy_probs = torch.tensor(easy_probs, dtype=torch.double)
+        self.generator = generator
+        self.num_batches = max(1, (self.n + self.batch_size - 1) // self.batch_size)
+
+    def __len__(self) -> int:
+        return self.num_batches
+
+    def __iter__(self):
+        for _ in range(self.num_batches):
+            parts: list[torch.Tensor] = []
+            if self.n_hard > 0:
+                parts.append(
+                    torch.multinomial(
+                        self.hard_probs,
+                        self.n_hard,
+                        replacement=True,
+                        generator=self.generator,
+                    )
+                )
+            if self.n_easy > 0:
+                parts.append(
+                    torch.multinomial(
+                        self.easy_probs,
+                        self.n_easy,
+                        replacement=True,
+                        generator=self.generator,
+                    )
+                )
+            batch = torch.cat(parts)
+            # Mild within-batch shuffle so hard/easy positions are not fixed.
+            perm = torch.randperm(batch.numel(), generator=self.generator)
+            yield batch[perm].tolist()
 
 
 def _seed_all(seed: int) -> None:
@@ -189,6 +256,7 @@ class ModernBertModel(CurriculumModel):
         X_val: list[str] | None = None,
         y_val: np.ndarray | None = None,
         balanced_sampling: bool = False,
+        sampling: dict | None = None,
     ):
         """Continua (ou inicia) o fine-tuning por `epochs_per_stage` epocas."""
         stage_seed = self.random_state + self._fit_stage_calls
@@ -248,7 +316,25 @@ class ModernBertModel(CurriculumModel):
         shuffle_gen = torch.Generator()
         shuffle_gen.manual_seed(stage_seed)
 
-        if balanced_sampling:
+        if sampling is not None and sampling.get("strategy") == "pmd":
+            conf = np.asarray(sampling["confidence"], dtype=np.float64)
+            if len(conf) != n:
+                raise ValueError(
+                    f"PMD confidence length {len(conf)} != dataset size {n}"
+                )
+            batch_sampler = PMDBatchSampler(
+                conf,
+                self.batch_size,
+                hard_fraction=float(sampling.get("hard_fraction", 0.6)),
+                rank_exponent=float(sampling.get("rank_exponent", 2.0)),
+                generator=shuffle_gen,
+            )
+            loader = DataLoader(
+                dataset,
+                batch_sampler=batch_sampler,
+                collate_fn=collator,
+            )
+        elif balanced_sampling:
             sampler_weights, num_samples = balanced_epoch_weights(y)
             sampler = WeightedRandomSampler(
                 weights=torch.tensor(sampler_weights, dtype=torch.double),

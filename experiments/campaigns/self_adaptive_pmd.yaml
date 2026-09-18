@@ -1,0 +1,74 @@
+# Self-adaptive PMD baseline (Feng, Liu & Schütze, ACL SRW 2025 adaptation).
+#
+# Mode:
+#   cl + curriculum.method=self_adaptive_pmd
+#     — frozen ModernBERT MLM scores train examples (prompt + auto verbalizers)
+#     — fine-tune ModernBERT classifier for 6 epochs with PMD batches
+#       (60% hard-prioritized / 40% easy-prioritized squared-rank sampling)
+#
+# Training hyperparameters match spdcl_is_ablation / curriculum_ablations_multi
+# (ModernBERT profile) for fair comparison. This is NOT an exact paper
+# reproduction: labels are numeric, so verbalizers are TF-IDF-derived per fold.
+#
+# Datasets: webkb (10-fold), reuters90, agnews, yelp_2013 (5-fold each) — all folds.
+#
+# Full campaign (GPU 5, all datasets, all folds):
+#   uv run bio-experiment experiments/campaigns/self_adaptive_pmd.yaml
+#
+# Smoke (fold 0, single dataset):
+#   uv run bio-experiment experiments/campaigns/self_adaptive_pmd.yaml --dataset webkb --folds 0
+#
+# Background:
+#   mkdir -p logs
+#   nohup uv run bio-experiment experiments/campaigns/self_adaptive_pmd.yaml \
+#     > logs/self_adaptive_pmd.log 2>&1 &
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 5
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: self_adaptive_pmd
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - sa_score_time_s
+      - total_time
+  datasets:
+    webkb: { n_splits: 10 }
+    reuters90: { n_splits: 5 }
+    agnews: { n_splits: 5 }
+    yelp_2013: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      method: self_adaptive_pmd
+      prompt_suffix: " This text is [MASK]."
+      hard_fraction: 0.6
+      rank_exponent: 2.0
+      score_batch_size: 64
+    training:
+      hf_model: answerdotai/ModernBERT-base
+      epochs: 6
+      epochs_per_phase: 6
+      batch_size: 32
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [cl]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_self_adaptive_pmd"

@@ -178,6 +178,7 @@ Paper-near profile: `experiments/spdcl_paper_near.yaml` (5 + 1 = 6 epochs).
 | `loss_discrete` | per-sample CE (untrained RoBERTa forward pass) | no |
 | `lrc_discrete` | LRC composite (length + rarity + sentence-aware Flesch–Kincaid) | no |
 | `td_discrete` | inverse probe-epoch confidence (`td_probe_epochs`, default 2) | no |
+| `self_adaptive_pmd` | frozen MLM top-2 margin + PMD batches (ACL SRW 2025) | no |
 | `length_discrete` | sequence word count (deprecated) | no |
 | `tfidf_discrete` | TF-IDF row L2 norm (deprecated) | no |
 | `spcl_soft` | BIOIS + soft pacing | yes |
@@ -229,6 +230,19 @@ Final difficulty: `d_LRC = d_L + d_R + d_C`.
 td_probe_epochs: 2
 td_metric: confidence   # or variability
 ```
+
+### `self_adaptive_pmd` (ACL SRW 2025 adaptation)
+
+```yaml
+curriculum:
+  method: self_adaptive_pmd
+  prompt_suffix: " This text is [MASK]."
+  hard_fraction: 0.6      # PMD |B1|:|B2| ≈ 6:4
+  rank_exponent: 2.0      # P(x_n) ∝ n^exponent
+  score_batch_size: 64
+```
+
+Set `training.epochs_per_phase` equal to `training.epochs` (single PMD stage). Campaign: [`experiments/campaigns/self_adaptive_pmd.yaml`](../experiments/campaigns/self_adaptive_pmd.yaml).
 
 ## GPU device
 

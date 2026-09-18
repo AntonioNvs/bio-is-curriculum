@@ -159,6 +159,7 @@ class TrainingDynamicsDiscreteCurriculum(HeuristicDiscreteCurriculum):
         hard_slice_quantile: float = 0.8,
         r_cap: float = 0.5,
         random_state: int = 42,
+        phase_max_lengths: tuple[int, int, int] | None = None,
         td_probe_epochs: int = 2,
         td_metric: str = "confidence",
     ):
@@ -171,6 +172,7 @@ class TrainingDynamicsDiscreteCurriculum(HeuristicDiscreteCurriculum):
             hard_slice_quantile=hard_slice_quantile,
             r_cap=r_cap,
             random_state=random_state,
+            phase_max_lengths=phase_max_lengths,
         )
         self.td_probe_epochs = td_probe_epochs
         self.td_metric = td_metric

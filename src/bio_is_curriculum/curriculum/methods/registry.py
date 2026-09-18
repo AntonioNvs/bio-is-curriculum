@@ -11,6 +11,9 @@ from bio_is_curriculum.curriculum.methods.heuristic_discrete import (
     TfidfDiscreteCurriculum,
     TrainingDynamicsDiscreteCurriculum,
 )
+from bio_is_curriculum.curriculum.methods.self_adaptive_pmd import (
+    SelfAdaptivePMDCurriculum,
+)
 from bio_is_curriculum.curriculum.methods.spcl_loss import SPCLLossCurriculum
 from bio_is_curriculum.curriculum.methods.spcl_soft import SPCLSoftCurriculum
 
@@ -21,6 +24,7 @@ REGISTRY: dict[str, type] = {
     TfidfDiscreteCurriculum.METHOD_ID: TfidfDiscreteCurriculum,
     LRCDiscreteCurriculum.METHOD_ID: LRCDiscreteCurriculum,
     TrainingDynamicsDiscreteCurriculum.METHOD_ID: TrainingDynamicsDiscreteCurriculum,
+    SelfAdaptivePMDCurriculum.METHOD_ID: SelfAdaptivePMDCurriculum,
     SPCLSoftCurriculum.METHOD_ID: SPCLSoftCurriculum,
     SPCLLossCurriculum.METHOD_ID: SPCLLossCurriculum,
 }
@@ -33,6 +37,8 @@ ALIASES: dict[str, str] = {
     "tfidf": "tfidf_discrete",
     "lrc": "lrc_discrete",
     "td": "td_discrete",
+    "self_adaptive": "self_adaptive_pmd",
+    "pmd": "self_adaptive_pmd",
     "continuous": "spcl_soft",
     "spcl": "spcl_soft",
     "loss": "spcl_loss",
@@ -99,6 +105,17 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
                 }
             )
         return kwargs
+    if method_id == "self_adaptive_pmd":
+        return {
+            **common,
+            "prompt_suffix": getattr(
+                args, "sa_prompt_suffix", " This text is [MASK]."
+            ),
+            "hard_fraction": getattr(args, "sa_hard_fraction", 0.6),
+            "rank_exponent": getattr(args, "sa_rank_exponent", 2.0),
+            "score_batch_size": getattr(args, "sa_score_batch_size", 64),
+            "epochs": getattr(args, "epochs", 6),
+        }
     if method_id == "spcl_soft":
         return {
             **common,
