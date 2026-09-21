@@ -1,0 +1,6 @@
+name,seconds
+data_load_time_s,0.2636451032012701
+preprocess_time_s,0.0
+model_train_time_s,18.061775751411915
+metric_eval_time_s,0.6905655767768621
+total_run_time_s,20.819679079577327

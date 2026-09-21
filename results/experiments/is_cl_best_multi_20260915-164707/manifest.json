@@ -1,0 +1,76 @@
+{
+  "schema_version": "1",
+  "event_description": "is_cl_best_multi",
+  "timestamp": "20260915-164707",
+  "config_path": "experiments/campaigns/is_cl_best_multi.yaml",
+  "started_at": "2026-09-15T16:47:07Z",
+  "finished_at": "2026-09-16T06:37:07Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 7,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "n_train_instances",
+      "n_removed",
+      "is_reduction",
+      "train_time_s",
+      "total_time",
+      "data_efficiency",
+      "efficiency_score"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "webkb-10cv-20260915-164707_is_cl",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "is_cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-10cv-20260915-164707_is_cl",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "reuters90-5cv-20260915-164707_is_cl",
+      "dataset": "reuters90",
+      "n_splits": 5,
+      "modes": [
+        "is_cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/reuters90-5cv-20260915-164707_is_cl",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "yelp_2013-5cv-20260915-164707_is_cl",
+      "dataset": "yelp_2013",
+      "n_splits": 5,
+      "modes": [
+        "is_cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/yelp_2013-5cv-20260915-164707_is_cl",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "agnews-5cv-20260915-164707_is_cl",
+      "dataset": "agnews",
+      "n_splits": 5,
+      "modes": [
+        "is_cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/agnews-5cv-20260915-164707_is_cl",
+      "status": "ok"
+    }
+  ]
+}

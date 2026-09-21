@@ -1,0 +1,93 @@
+{
+  "schema_version": "1",
+  "event_description": "curriculum_ablations_multi",
+  "timestamp": "20260920-173403",
+  "config_path": "experiments/campaigns/curriculum_ablations_multi.yaml",
+  "started_at": "2026-09-20T17:34:03Z",
+  "finished_at": "2026-09-21T05:37:53Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 5,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "train_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "dblp-5cv-20260920-173403_loss_discrete",
+      "dataset": "dblp",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "loss_discrete",
+      "path": "results/dblp-5cv-20260920-173403_loss_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "dblp-5cv-20260920-173403_lrc_discrete",
+      "dataset": "dblp",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "lrc_discrete",
+      "path": "results/dblp-5cv-20260920-173403_lrc_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "dblp-5cv-20260920-173403_td_discrete",
+      "dataset": "dblp",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "td_discrete",
+      "path": "results/dblp-5cv-20260920-173403_td_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "books-5cv-20260920-173403_loss_discrete",
+      "dataset": "books",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "loss_discrete",
+      "path": "results/books-5cv-20260920-173403_loss_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "books-5cv-20260920-173403_lrc_discrete",
+      "dataset": "books",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "lrc_discrete",
+      "path": "results/books-5cv-20260920-173403_lrc_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "books-5cv-20260920-173403_td_discrete",
+      "dataset": "books",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "td_discrete",
+      "path": "results/books-5cv-20260920-173403_td_discrete",
+      "status": "ok"
+    }
+  ]
+}

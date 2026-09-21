@@ -1,0 +1,15 @@
+mode,metric,mean,std,ci_95_low,ci_95_high,n_folds
+cl,macro_f1,0.415038,,,,1
+cl,best_val_macro_f1,0.430269,,,,1
+cl,compute_proxy,213573.694447,,,,1
+cl,avg_seq_len,152.335017,,,,1
+cl,accuracy,0.731310,,,,1
+cl,micro_f1,0.731310,,,,1
+cl,steps_to_best_val,1107.000000,,,,1
+cl,train_time_s,424.658739,,,,1
+cl,pred_time_s,23.068555,,,,1
+cl,f1_weighted,0.720717,,,,1
+cl,hard_slice_macro_f1,0.261377,,,,1
+cl,efficiency_score,0.058641,,,,1
+cl,data_efficiency,0.415038,,,,1
+cl,n_phases,3.000000,0.000000,,,1

@@ -1,0 +1,84 @@
+{
+  "schema_version": "1",
+  "event_description": "raw_baseline_multi",
+  "timestamp": "20260828-210758",
+  "config_path": "experiments/campaigns/raw_baseline_multi.yaml",
+  "started_at": "2026-08-28T21:07:58Z",
+  "finished_at": "2026-09-01T02:03:05Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 5,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "f1_weighted",
+      "accuracy",
+      "hard_slice_macro_f1",
+      "train_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "webkb-10cv-20260828-210758",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "raw"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-10cv-20260828-210758",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "reuters90-5cv-20260828-210758",
+      "dataset": "reuters90",
+      "n_splits": 5,
+      "modes": [
+        "raw"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/reuters90-5cv-20260828-210758",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "ohsumed-10cv-20260828-210758",
+      "dataset": "ohsumed",
+      "n_splits": 10,
+      "modes": [
+        "raw"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/ohsumed-10cv-20260828-210758",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "yelp_2013-5cv-20260828-210758",
+      "dataset": "yelp_2013",
+      "n_splits": 5,
+      "modes": [
+        "raw"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/yelp_2013-5cv-20260828-210758",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "medline-5cv-20260828-210758",
+      "dataset": "medline",
+      "n_splits": 5,
+      "modes": [
+        "raw"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/medline-5cv-20260828-210758",
+      "status": "ok"
+    }
+  ]
+}

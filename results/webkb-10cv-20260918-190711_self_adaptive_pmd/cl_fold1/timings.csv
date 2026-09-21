@@ -1,0 +1,5 @@
+name,seconds
+data_load_time_s,0.740776339545846
+preprocess_time_s,0.0
+sa_score_time_s,47.88475636392832
+cl_signal_extract,47.88475636392832

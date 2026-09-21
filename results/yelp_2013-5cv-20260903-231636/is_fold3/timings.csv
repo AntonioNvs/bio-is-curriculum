@@ -1,0 +1,5 @@
+name,seconds
+train_subsample_time_s,0.06938927620649338
+data_load_time_s,16.362151321023703
+is_fit_time_s,72.0118965767324
+preprocess_time_s,72.0118965767324

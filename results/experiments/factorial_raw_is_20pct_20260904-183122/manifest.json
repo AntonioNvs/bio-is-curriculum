@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "event_description": "factorial_raw_is_20pct",
+  "timestamp": "20260904-183122",
+  "config_path": "experiments/campaigns/factorial_raw_is.yaml",
+  "started_at": "2026-09-04T18:31:22Z",
+  "finished_at": "2026-09-04T20:31:09Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 5,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "f1_weighted",
+      "accuracy",
+      "hard_slice_macro_f1",
+      "n_train_instances",
+      "n_removed",
+      "train_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "reuters90-5cv-20260904-183122",
+      "dataset": "reuters90",
+      "n_splits": 5,
+      "modes": [
+        "raw",
+        "is"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/reuters90-5cv-20260904-183122",
+      "status": "ok"
+    }
+  ]
+}
