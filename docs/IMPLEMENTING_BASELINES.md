@@ -28,8 +28,9 @@ Existing signals:
 - `signals/loss.py` — per-sample CE loss (curriculum ablation)
 - `signals/lrc.py` — CL-LRC composite difficulty: length + rarity + sentence-aware Flesch–Kincaid grade (curriculum ablation)
 - `signals/training_dynamics.py` — probe-epoch confidence/variability (curriculum ablation)
+- `signals/self_adaptive.py` — frozen MLM cloze confidence + automatic verbalizers; PMD rank weights (Feng et al., ACL SRW 2025)
 
-**Note:** `loss_discrete`, `lrc_discrete`, and `td_discrete` are **curriculum signal ablations** (`curriculum.method: …`), not literature baselines. See [EXPERIMENTS.md](EXPERIMENTS.md) §3.
+**Note:** `loss_discrete`, `lrc_discrete`, and `td_discrete` are **curriculum signal ablations** (`curriculum.method: …`), not literature baselines. See [EXPERIMENTS.md](EXPERIMENTS.md) §3. `self_adaptive_pmd` is a **literature baseline** registered as `curriculum.method` (see [BASELINES.md](BASELINES.md)).
 
 ## 3. Implement schedule
 

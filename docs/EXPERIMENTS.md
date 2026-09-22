@@ -214,7 +214,9 @@ Methods designed for PLMs on NLU tasks (classification, NLI, etc.):
 
 ### Self-adaptive PMD (`self_adaptive_pmd`)
 
-Feng, Liu & Schütze (ACL SRW 2025) score each training example with a **frozen** PLM via a cloze prompt + verbalizer, then fine-tune with difficulty-aware sampling. We implement the paper's strongest strategy (**PMD**) adapted to this repo:
+We adapt the self-adaptive curriculum of Feng, Liu & Schütze (ACL SRW 2025). Before any classifier update, a frozen ModernBERT masked language model scores every training example via a cloze prompt and one-token verbalizers; because our labels are numeric, verbalizers are chosen automatically per fold by class-contrastive TF–IDF rather than hand-crafted keywords. Difficulty follows the paper's confidence margin $|P_{\max}-P_{\mathrm{second}}|$ after normalizing over verbalizer tokens (low margin = hard). Fine-tuning then uses the paper's strongest strategy, **PMD**: each batch is partitioned $60{:}40$ into hard- and easy-prioritized draws, with squared-rank multinomial probabilities over the confidence order. We keep the same ModernBERT training budget as our other baselines (6 epochs, batch size 32) so that the comparison isolates the difficulty signal and sampling scheme, not the optimization schedule. Unlike Bengio and SPDCL, this baseline relies on the PLM's own pretrained confidence rather than a weak classifier or training-dynamics geometry, and we evaluate it in full-data `cl` mode (no BIOIS reduction).
+
+Full catalog entry: [BASELINES.md](BASELINES.md#self-adaptive-cl--pmd-feng-et-al-acl-srw-2025).
 
 | Paper element | Adaptation here |
 |---------------|-----------------|
@@ -240,6 +242,15 @@ nohup uv run bio-experiment experiments/campaigns/self_adaptive_pmd.yaml \
 ```
 
 Artifacts per fold: `self_adaptive_verbalizers.json`, `self_adaptive_scores.csv`, timing key `sa_score_time_s`.
+
+**Results** (`results/experiments/self_adaptive_pmd_20260918-192111`): Macro-F1 / total time are mean ± half-width of the 95% CI.
+
+| Dataset | Macro-F1 | Total time (s) |
+|---------|----------|----------------|
+| WebKB | 0.787 ± 0.016 | 573 ± 4 |
+| Reuters-90 | 0.377 ± 0.020 | 828 ± 6 |
+| AG News | 0.945 ± 0.001 | 3,843 ± 13 |
+| Yelp-2013 | 0.642 ± 0.002 | 20,459 ± 49 |
 
 ---
 
@@ -276,5 +287,5 @@ Not new training runs; derived from results above.
 2. IS+CL with CL variants (discrete, SPCL soft, SPCL loss)
 3. Curriculum signal ablations: `biois_discrete` vs. `loss_discrete` / `lrc_discrete` / `td_discrete`
 4. CL parameter ablation: schedule / signal / compute axes (`cl_params_ablation_multi.yaml`)
-5. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM (`self_adaptive_pmd`)
+5. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM (`self_adaptive_pmd`, **done**)
 6. Analyses
