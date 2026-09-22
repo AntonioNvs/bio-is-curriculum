@@ -1,22 +1,23 @@
-# Curriculum signal ablation — TD-only rerun.
+# Curriculum signal ablation (CL metrics) — DBLP + Books.
 #
-# loss_discrete / lrc_discrete completed in:
-#   results/experiments/curriculum_ablations_multi_20260915-160947
-# biois_discrete completed in:
-#   results/experiments/curriculum_ablations_multi_20260914-172338
+# Same discrete schedule (q=0.3/0.6/0.95, phase_max_lengths 96/160/256);
+# only curriculum.method (difficulty signal) changes:
+#   biois_discrete | loss_discrete | lrc_discrete | td_discrete
 #
-# Previous TD runs failed: TrainingDynamicsDiscreteCurriculum rejected
-# phase_max_lengths (fixed in heuristic_discrete.py). Rerun TD only.
-#
-# Full campaign (all datasets, all folds):
+# Full campaign (GPU 5, both datasets, all folds):
 #   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml
 #
 # Smoke (fold 0, single dataset):
-#   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --dataset webkb --folds 0
+#   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --dataset dblp --folds 0
+#
+# Background:
+#   mkdir -p logs
+#   nohup uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml \
+#     > logs/curriculum_ablations_multi.log 2>&1 &
 
 docker:
   image: bio-is-curriculum:latest
-  gpu_id: 6
+  gpu_id: 5
   cpus: 16
   memory: 32g
 
@@ -32,10 +33,8 @@ campaign:
       - train_time_s
       - total_time
   datasets:
-    webkb: { n_splits: 10 }
-    reuters90: { n_splits: 5 }
-    yelp_2013: { n_splits: 5 }
-    agnews: { n_splits: 5 }
+    dblp: { n_splits: 5 }
+    books: { n_splits: 5 }
 
   defaults:
     model: modernbert
@@ -66,8 +65,8 @@ campaign:
     - modes: [cl]
       matrix:
         curriculum.method:
+          # - biois_discrete
+          - loss_discrete
+          - lrc_discrete
           - td_discrete
-          # - loss_discrete  # completed: curriculum_ablations_multi_20260915-160947
-          # - lrc_discrete   # completed: curriculum_ablations_multi_20260915-160947
-          # - biois_discrete # completed: curriculum_ablations_multi_20260914-172338
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"

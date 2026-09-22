@@ -1,0 +1,57 @@
+# 2² factorial (raw, is, cl, is_cl) on DBLP + Books (ATC / Zenodo).
+#
+# Smoke:  uv run bio-experiment experiments/campaigns/dblp_books_factorial.yaml --dataset dblp --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/dblp_books_factorial.yaml --dry-run
+# Full:   nohup uv run bio-experiment experiments/campaigns/dblp_books_factorial.yaml \
+#           > logs/dblp_books_factorial.log 2>&1 &
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 6
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: dblp_books_factorial
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - f1_weighted
+      - accuracy
+      - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
+      - train_time_s
+      - total_time
+
+  datasets:
+    dblp: { n_splits: 5 }
+    books: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      method: biois_discrete
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+    training:
+      epochs: 6
+      epochs_per_phase: 2
+      batch_size: 16
+      eval_batch_size: 32
+      lr: 2.0e-5
+      weight_decay: 1.0e-3
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [raw, is, cl, is_cl]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}"

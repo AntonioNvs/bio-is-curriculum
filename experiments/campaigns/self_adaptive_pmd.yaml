@@ -70,5 +70,5 @@ campaign:
       imbalance_method: inverse_freq_ce
 
   jobs:
-    - modes: [cl]
+    - modes: [is_cl]
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_self_adaptive_pmd"

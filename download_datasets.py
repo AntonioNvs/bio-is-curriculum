@@ -97,6 +97,16 @@ DATASETS: list[dict] = [
         "zenodo_id": "5259056",
         "files": ["texts.txt", "score.txt", "split_5_with_val.pkl"],
     },
+    {
+        "name": "dblp",
+        "zenodo_id": "7555264",
+        "zip_file": "dblp.zip",
+    },
+    {
+        "name": "books",
+        "zenodo_id": "7555256",
+        "zip_file": "books.zip",
+    },
 ]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

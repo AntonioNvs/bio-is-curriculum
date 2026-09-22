@@ -36,3 +36,7 @@ results/**/train_subsample.json
 
 logs/
 *.out
+
+*.bib
+*.tex
+**/acl_latex*
