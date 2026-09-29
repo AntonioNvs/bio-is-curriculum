@@ -1,0 +1,93 @@
+{
+  "schema_version": "1",
+  "event_description": "cl_params_ablation_multi",
+  "timestamp": "20260923-165613",
+  "config_path": "experiments/campaigns/cl_params_ablation_multi.yaml",
+  "started_at": "2026-09-23T16:56:13Z",
+  "finished_at": "2026-09-24T06:56:33Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 5,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "train_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "dblp-5cv-20260923-165613_sched_q02-05",
+      "dataset": "dblp",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/dblp-5cv-20260923-165613_sched_q02-05",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "dblp-5cv-20260923-165613_sig_entropy",
+      "dataset": "dblp",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/dblp-5cv-20260923-165613_sig_entropy",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "dblp-5cv-20260923-165613_compute_flat",
+      "dataset": "dblp",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/dblp-5cv-20260923-165613_compute_flat",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "books-5cv-20260923-165613_sched_q02-05",
+      "dataset": "books",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/books-5cv-20260923-165613_sched_q02-05",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "books-5cv-20260923-165613_sig_entropy",
+      "dataset": "books",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/books-5cv-20260923-165613_sig_entropy",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "books-5cv-20260923-165613_compute_flat",
+      "dataset": "books",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/books-5cv-20260923-165613_compute_flat",
+      "status": "ok"
+    }
+  ]
+}

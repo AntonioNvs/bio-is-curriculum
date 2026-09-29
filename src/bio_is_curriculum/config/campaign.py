@@ -140,6 +140,8 @@ def expand_campaign(
         n_splits = int(ds_cfg.get("n_splits", default_n_splits))
 
         for job in campaign.jobs:
+            if job.datasets is not None and dataset not in job.datasets:
+                continue
             for matrix_combo in _matrix_combos(job.matrix):
                 yaml_cfg = _job_yaml_for_combo(
                     campaign,

@@ -1,4 +1,5 @@
 # CL parameter ablation — margin/compute-aware biois_discrete scheduler.
+# Datasets: DBLP + Books (ATC / Zenodo).
 #
 # Three ablation axes (one focal change per job; all other params at defaults):
 #   1. Schedule  — tight phase quantiles (q=0.2/0.5)
@@ -11,8 +12,10 @@
 # Rebuild image after scheduler changes:
 #   docker build -t bio-is-curriculum:latest .
 #
-# Smoke:   uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dataset webkb --folds 0
+# Smoke:   uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dataset dblp --folds 0
 # Dry-run: uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml --dry-run
+# Full:    nohup uv run bio-experiment experiments/campaigns/cl_params_ablation_multi.yaml \
+#            > logs/cl_params_ablation_dblp_books.log 2>&1 &
 
 docker:
   image: bio-is-curriculum:latest
@@ -32,10 +35,8 @@ campaign:
       - train_time_s
       - total_time
   datasets:
-    webkb: { n_splits: 10 }
-    reuters90: { n_splits: 5 }
-    yelp_2013: { n_splits: 5 }
-    agnews: { n_splits: 5 }
+    dblp: { n_splits: 5 }
+    books: { n_splits: 5 }
 
   defaults:
     model: modernbert

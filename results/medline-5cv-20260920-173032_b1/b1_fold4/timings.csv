@@ -3,3 +3,6 @@ data_load_time_s,27.738730454817414
 preprocess_time_s,0.0
 b1_margin_score_time_s,407.52986146323383
 cl_phase_build,0.0844388660043478
+model_train_time_s,37403.174447456375
+metric_eval_time_s,1319.7203664630651
+total_run_time_s,38528.250763827935

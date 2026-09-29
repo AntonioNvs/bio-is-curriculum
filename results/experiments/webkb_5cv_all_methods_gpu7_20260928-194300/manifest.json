@@ -1,0 +1,148 @@
+{
+  "schema_version": "1",
+  "event_description": "webkb_5cv_all_methods_gpu7",
+  "timestamp": "20260928-194300",
+  "config_path": "experiments/campaigns/webkb_5cv_all_methods_gpu7.yaml",
+  "started_at": "2026-09-28T19:43:00Z",
+  "finished_at": "2026-09-29T04:23:19Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 7,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "n_train_instances",
+      "n_removed",
+      "is_reduction",
+      "train_time_s",
+      "sa_score_time_s",
+      "nuclear_norm_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "webkb-5cv-20260928-194300",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "raw",
+        "is",
+        "cl",
+        "is_cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-5cv-20260928-194300",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_loss_discrete",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "loss_discrete",
+      "path": "results/webkb-5cv-20260928-194300_loss_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_lrc_discrete",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "lrc_discrete",
+      "path": "results/webkb-5cv-20260928-194300_lrc_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_td_discrete",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "td_discrete",
+      "path": "results/webkb-5cv-20260928-194300_td_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_sched_q02-05",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-5cv-20260928-194300_sched_q02-05",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_sig_entropy",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-5cv-20260928-194300_sig_entropy",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_compute_flat",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-5cv-20260928-194300_compute_flat",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_b1",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "b1",
+        "is_b1"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-5cv-20260928-194300_b1",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_spdcl",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "b2",
+        "is_b2"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-5cv-20260928-194300_spdcl",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-5cv-20260928-194300_self_adaptive_pmd",
+      "dataset": "webkb",
+      "n_splits": 5,
+      "modes": [
+        "cl",
+        "is_cl"
+      ],
+      "curriculum_method": "self_adaptive_pmd",
+      "path": "results/webkb-5cv-20260928-194300_self_adaptive_pmd",
+      "status": "ok"
+    }
+  ]
+}

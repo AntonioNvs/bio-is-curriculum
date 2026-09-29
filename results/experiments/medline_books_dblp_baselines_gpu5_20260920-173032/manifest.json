@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "event_description": "medline_books_dblp_baselines_gpu5",
+  "timestamp": "20260920-173032",
+  "config_path": "experiments/campaigns/medline_books_dblp_baselines_gpu5.yaml",
+  "started_at": "2026-09-24T17:06:37Z",
+  "finished_at": "2026-09-28T13:28:42Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 5,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "n_train_instances",
+      "n_removed",
+      "train_time_s",
+      "nuclear_norm_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "medline-5cv-20260920-173032_spdcl",
+      "dataset": "medline",
+      "n_splits": 5,
+      "modes": [
+        "b2",
+        "is_b2"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/medline-5cv-20260920-173032_spdcl",
+      "status": "ok"
+    }
+  ]
+}

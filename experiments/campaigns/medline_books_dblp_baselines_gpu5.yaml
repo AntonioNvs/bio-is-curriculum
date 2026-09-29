@@ -1,0 +1,68 @@
+# Medline / Books / DBLP baselines — GPU 5 half (time-balanced with gpu6).
+#
+# Workload (~180–190 GPU-h):
+#   medline SPDCL only (b2, is_b2) — medline dwarfs books/dblp (~688k vs ~27–30k)
+#
+# Skips completed medline b1/is_b1 (results/medline-5cv-20260920-173032_b1).
+# Pins the original campaign timestamp so SPDCL results land in the same tree.
+#
+# Before first launch, drop the incomplete failed fold:
+#   rm -rf results/medline-5cv-20260920-173032_spdcl/b2_fold0
+#
+# Launch:
+#   nohup uv run bio-experiment experiments/campaigns/medline_books_dblp_baselines_gpu5.yaml \
+#     > logs/medline_books_dblp_baselines_gpu5.log 2>&1 &
+#
+# Dry-run:
+#   uv run bio-experiment experiments/campaigns/medline_books_dblp_baselines_gpu5.yaml --dry-run
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 5
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: medline_books_dblp_baselines_gpu5
+  timestamp: "20260920-173032"
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
+      - train_time_s
+      - nuclear_norm_time_s
+      - total_time
+  datasets:
+    medline: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    baseline:
+      spdcl_n_bins: 5
+      spdcl_curriculum_epochs: 5
+      spdcl_anneal_epochs: 1
+      # Cap nuclear-norm pass — full medline (~688k) OOMs under 32g Docker RAM.
+      spdcl_norm_subsample: 15000
+    training:
+      epochs: 6
+      epochs_per_phase: 3
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [b2, is_b2]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_spdcl"

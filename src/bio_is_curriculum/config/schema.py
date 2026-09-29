@@ -226,6 +226,8 @@ class CampaignJobSpec:
     matrix: dict[str, list[Any]] = field(default_factory=dict)
     experiment_id: str | None = None
     folds: list[int] | None = None
+    # Optional subset of campaign.datasets; None means all campaign datasets.
+    datasets: list[str] | None = None
 
 
 @dataclass

@@ -149,12 +149,14 @@ def _parse_campaign_jobs(raw_jobs: list) -> list[CampaignJobSpec]:
     for entry in raw_jobs:
         if not isinstance(entry, dict):
             raise ValueError("Each campaign job must be a mapping")
+        job_datasets = entry.get("datasets")
         jobs.append(
             CampaignJobSpec(
                 modes=list(entry.get("modes", [])),
                 matrix=dict(entry.get("matrix", {})),
                 experiment_id=entry.get("experiment_id"),
                 folds=entry.get("folds"),
+                datasets=list(job_datasets) if job_datasets is not None else None,
             )
         )
     return jobs
