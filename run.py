@@ -57,6 +57,7 @@ DEFAULTS = {
     "lr": 2.0e-5,
     "weight_decay": 1.0e-3,
     "warmup_ratio": 0.06,
+    "imbalance_method": "inv_freq",
     "class_balanced_loss": True,
     # Curriculum
     "curriculum_method": "biois_discrete",
@@ -123,9 +124,11 @@ def _merge_defaults(config: dict) -> dict:
         t_cfg = config["training"]
         for k in ("epochs", "epochs_per_phase", "batch_size", "eval_batch_size",
                   "max_length", "lr", "weight_decay", "warmup_ratio",
-                  "class_balanced_loss"):
+                  "class_balanced_loss", "imbalance_method"):
             if k in t_cfg:
                 merged[k] = t_cfg[k]
+        if "imbalance_method" not in t_cfg and "class_balanced_loss" in t_cfg:
+            merged["imbalance_method"] = "inv_freq" if t_cfg["class_balanced_loss"] else "none"
 
     # Curriculum
     if "curriculum" in config:
@@ -189,7 +192,9 @@ def _build_cli_args(cfg: dict, mode: str, fold: int, experiment_id: str, results
     ]
     if cfg["model"] == "roberta":
         args += ["--hf-model", cfg["hf_model"]]
-    if not cfg["class_balanced_loss"]:
+    if cfg.get("imbalance_method") is not None:
+        args += ["--imbalance-method", str(cfg["imbalance_method"])]
+    elif not cfg["class_balanced_loss"]:
         args.append("--no-class-balanced-loss")
 
     # Curriculum

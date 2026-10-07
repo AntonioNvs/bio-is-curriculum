@@ -34,6 +34,7 @@ os.environ.setdefault("PYTHONHASHSEED", "42")
 
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
+from scipy import sparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -44,6 +45,7 @@ from iSel.biois import BIOIS
 from results.metrics import build_phase_metrics_row
 from results.run import RunRecorder
 from data.rare_class_upsampling import upsample_min_per_class
+from data.text_augmentation import augment_minority_texts
 from baselines import get_baseline, baseline_run_id
 
 
@@ -62,6 +64,55 @@ def _print_oversampling(stage: str, stats) -> None:
             f"  Oversampling ({stage}): {stats.n_before} -> {stats.n_after} "
             f"(+{stats.n_added} instancias)"
         )
+
+
+def _append_rows(X, source_idx: np.ndarray):
+    """Duplica linhas em X (sparse/denso/lista) seguindo source_idx."""
+    if source_idx.size == 0:
+        return X
+    if isinstance(X, list):
+        out = list(X)
+        out.extend(X[i] for i in source_idx.tolist())
+        return out
+    if sparse.issparse(X):
+        return sparse.vstack([X, X[source_idx]], format="csr")
+    return np.vstack([np.asarray(X), np.asarray(X)[source_idx]])
+
+
+def _maybe_apply_eda_minority(
+    *,
+    stage_label: str,
+    method: str,
+    model_name: str,
+    X,
+    y,
+    texts,
+    random_state: int,
+    min_count: int = BIOIS_STRATKFOLD_SPLITS,
+):
+    """Aplica EDA em classes minoritarias e mantem alinhamento de estruturas paralelas."""
+    y_arr = np.asarray(y)
+    if method != "eda_minority" or model_name != "roberta":
+        return X, y_arr, texts, np.empty(0, dtype=int)
+    if texts is None:
+        return X, y_arr, texts, np.empty(0, dtype=int)
+
+    texts_aug, y_aug, source_idx = augment_minority_texts(
+        texts=texts,
+        y=y_arr,
+        min_count=min_count,
+        random_state=random_state,
+    )
+    if source_idx.size == 0:
+        print(f"  EDA ({stage_label}): sem alteracoes (n={len(y_arr)})")
+        return X, y_arr, texts, source_idx
+
+    X_aug = _append_rows(X, source_idx)
+    print(
+        f"  EDA ({stage_label}): {len(y_arr)} -> {len(y_aug)} "
+        f"(+{int(source_idx.size)} instancias sinteticas)"
+    )
+    return X_aug, y_aug, texts_aug, source_idx
 
 
 
@@ -86,7 +137,7 @@ def _build_model(args, recorder: RunRecorder):
             lr=args.lr,
             weight_decay=args.weight_decay,
             warmup_ratio=args.warmup_ratio,
-            class_balanced_loss=args.class_balanced_loss,
+            imbalance_method=args.imbalance_method,
             random_state=args.random_state,
             history_callback=recorder.log_train_step,
         )
@@ -340,11 +391,26 @@ def main():
         help="Fração de steps com warmup linear (default 0.06 para fine-tune curto).",
     )
     parser.add_argument(
+        "--imbalance-method",
+        dest="imbalance_method",
+        choices=("none", "inv_freq", "effective_num", "distribution_balanced", "eda_minority"),
+        default=None,
+        help=(
+            "Estrategia de desbalanceamento para RoBERTa: "
+            "none | inv_freq | effective_num | distribution_balanced | eda_minority. "
+            "Default: inv_freq."
+        ),
+    )
+    parser.add_argument(
         "--class-balanced-loss",
         dest="class_balanced_loss",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Ativa peso por frequencia de classe na cross-entropy (default: True).",
+        default=None,
+        help=(
+            "LEGADO: liga/desliga weighting antigo por classe. "
+            "Mapeamento: --no-class-balanced-loss => imbalance_method=none; "
+            "--class-balanced-loss => imbalance_method=inv_freq."
+        ),
     )
     parser.add_argument(
         "--hard-slice-quantile",
@@ -365,6 +431,24 @@ def main():
                         help="ID da execucao individual (ignorado se --experiment-id for fornecido)")
 
     args = parser.parse_args()
+
+    if args.imbalance_method is None:
+        if args.class_balanced_loss is False:
+            args.imbalance_method = "none"
+        else:
+            args.imbalance_method = "inv_freq"
+    elif args.class_balanced_loss is not None:
+        print(
+            "AVISO: --class-balanced-loss/--no-class-balanced-loss foi ignorado "
+            "porque --imbalance-method foi fornecido explicitamente."
+        )
+
+    if args.model != "roberta" and args.imbalance_method != "none":
+        print(
+            f"AVISO: --imbalance-method={args.imbalance_method} exige --model roberta. "
+            "Usando none para este run."
+        )
+        args.imbalance_method = "none"
 
     if args.curriculum_method is None:
         args.curriculum_method = (
@@ -405,6 +489,7 @@ def main():
     print(f"run_id : {recorder.run_id}")
     print(f"mode   : {args.mode}")
     print(f"model  : {args.model} ({args.hf_model if args.model == 'roberta' else 'sklearn LR'})")
+    print(f"imbal. : {args.imbalance_method}")
     print(f"results: {recorder.run_dir}")
     print("=" * 50)
 
@@ -580,8 +665,20 @@ def main():
     if args.mode == "raw":
         y_tr = y_texts_train if y_texts_train is not None else y_train
         y_te = y_test_texts  if y_test_texts  is not None else y_test
+        X_train_aug = X_train
+        texts_train_aug = texts_train
+        if args.imbalance_method == "eda_minority":
+            X_train_aug, y_tr, texts_train_aug, _ = _maybe_apply_eda_minority(
+                stage_label="raw train universe",
+                method=args.imbalance_method,
+                model_name=args.model,
+                X=X_train,
+                y=y_tr,
+                texts=texts_train,
+                random_state=args.random_state,
+            )
         print(f"\n[raw] Treinando {args.model} em {len(y_tr)} instancias por {args.epochs} epocas...")
-        X_train_input = texts_train if texts_train else X_train
+        X_train_input = texts_train_aug if texts_train_aug else X_train_aug
         X_val_input = texts_val if texts_val else X_val
         X_test_input = texts_test if texts_test else X_test
         y_val_input = y_texts_val if y_texts_val is not None else y_val
@@ -627,6 +724,17 @@ def main():
             random_state=args.random_state,
         )
         _print_oversampling("pos-IS (conjunto efetivamente treinado)", st_post_is)
+        if args.imbalance_method == "eda_minority":
+            X_train_aug, y_sub, texts_aug, _ = _maybe_apply_eda_minority(
+                stage_label="is train universe",
+                method=args.imbalance_method,
+                model_name=args.model,
+                X=X_train_input,
+                y=y_sub,
+                texts=(X_train_input if isinstance(X_train_input, list) else None),
+                random_state=args.random_state,
+            )
+            X_train_input = texts_aug if texts_aug is not None else X_train_aug
         print(f"\n[is] Treinando {args.model} em {len(y_sub)} instancias por {args.epochs} epocas...")
         if hasattr(model, "set_phase"):
             model.set_phase("full")
@@ -708,6 +816,29 @@ def main():
                     ),
                     _pred=np.concatenate(
                         [cl_selector._pred, cl_selector._pred[dup]], axis=0
+                    ),
+                )
+
+        if args.imbalance_method == "eda_minority":
+            X_cl, y_cl, texts_cl, eda_src_idx = _maybe_apply_eda_minority(
+                stage_label=f"{args.mode} curriculum universe",
+                method=args.imbalance_method,
+                model_name=args.model,
+                X=X_cl,
+                y=y_cl,
+                texts=texts_cl,
+                random_state=args.random_state,
+            )
+            if eda_src_idx.size > 0 and cl_selector is not None:
+                cl_selector = SimpleNamespace(
+                    _probaEveryone=np.concatenate(
+                        [cl_selector._probaEveryone, cl_selector._probaEveryone[eda_src_idx]], axis=0
+                    ),
+                    _y_proba_of_pred=np.concatenate(
+                        [cl_selector._y_proba_of_pred, cl_selector._y_proba_of_pred[eda_src_idx]], axis=0
+                    ),
+                    _pred=np.concatenate(
+                        [cl_selector._pred, cl_selector._pred[eda_src_idx]], axis=0
                     ),
                 )
 

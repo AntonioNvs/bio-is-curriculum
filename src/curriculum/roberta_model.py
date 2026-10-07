@@ -132,6 +132,11 @@ class RobertaModel(CurriculumModel):
     warmup_ratio : float
         Fracao de steps para warmup linear (por fase).
 
+    imbalance_method : str
+        Estrategia de desbalanceamento em ``{"none", "inv_freq",
+        "effective_num", "distribution_balanced", "eda_minority"}``.
+        ``eda_minority`` atua no pipeline de dados e usa loss base ``none``.
+
     device : str, optional
         ``"cuda"``, ``"cpu"`` ou ``None`` para autodeteccao.
 
@@ -142,6 +147,10 @@ class RobertaModel(CurriculumModel):
         Chamado a cada step com ``(phase_name, step, epoch, loss, lr)``.
         Use para gravar ``train_history.csv`` via ``RunRecorder``.
     """
+
+    _ALLOWED_IMBALANCE_METHODS = frozenset(
+        {"none", "inv_freq", "effective_num", "distribution_balanced", "eda_minority"}
+    )
 
     def __init__(
         self,
@@ -154,7 +163,7 @@ class RobertaModel(CurriculumModel):
         lr: float = 2e-5,
         weight_decay: float = 1e-3,
         warmup_ratio: float = 0.06,
-        class_balanced_loss: bool = True,
+        imbalance_method: str = "inv_freq",
         device: str | None = None,
         random_state: int = 42,
         history_callback: Callable | None = None,
@@ -168,7 +177,7 @@ class RobertaModel(CurriculumModel):
         self.lr = lr
         self.weight_decay = weight_decay
         self.warmup_ratio = warmup_ratio
-        self.class_balanced_loss = class_balanced_loss
+        self.imbalance_method = imbalance_method
         self.random_state = random_state
         self.history_callback = history_callback
 
@@ -188,6 +197,55 @@ class RobertaModel(CurriculumModel):
         self._best_val_macro_f1: float = float("nan")
         self._best_val_epoch: float = float("nan")
         self._steps_to_best_val: float = float("nan")
+
+        if self.imbalance_method not in self._ALLOWED_IMBALANCE_METHODS:
+            raise ValueError(
+                f"imbalance_method invalido: {self.imbalance_method!r}. "
+                f"Escolha entre {sorted(self._ALLOWED_IMBALANCE_METHODS)}."
+            )
+
+    def _effective_num_weights(self, class_counts: np.ndarray, beta: float = 0.9999) -> np.ndarray:
+        counts = np.maximum(class_counts.astype(np.float64), 0.0)
+        eff_num = 1.0 - np.power(beta, counts)
+        weights = (1.0 - beta) / np.maximum(eff_num, 1e-12)
+        weights[counts <= 0] = 0.0
+        return weights
+
+    def _normalize_weights(self, weights: np.ndarray) -> np.ndarray:
+        w = np.asarray(weights, dtype=np.float64)
+        pos = w > 0
+        if not np.any(pos):
+            return np.ones_like(w, dtype=np.float64)
+        mean_pos = float(np.mean(w[pos]))
+        if mean_pos <= 0:
+            return np.ones_like(w, dtype=np.float64)
+        w = w / mean_pos
+        w = np.clip(w, 0.1, 10.0)
+        return w
+
+    def _build_class_weights(self, y: np.ndarray, num_labels: int) -> tuple[np.ndarray, str]:
+        method = self.imbalance_method
+        if method == "eda_minority":
+            method = "none"
+        counts = np.bincount(y.astype(np.int64), minlength=num_labels)
+        n = max(int(len(y)), 1)
+
+        if method == "none":
+            return np.ones(num_labels, dtype=np.float64), method
+        if method == "inv_freq":
+            weights = n / np.maximum(counts * num_labels, 1)
+            return self._normalize_weights(weights), method
+        if method == "effective_num":
+            weights = self._effective_num_weights(counts, beta=0.9999)
+            return self._normalize_weights(weights), method
+        if method == "distribution_balanced":
+            prior = counts.astype(np.float64) / max(float(np.sum(counts)), 1.0)
+            # Adaptacao single-label: reweight por prior suavizado + focal por amostra.
+            weights = 1.0 / np.sqrt(np.maximum(prior, 1e-12))
+            weights[counts <= 0] = 0.0
+            return self._normalize_weights(weights), method
+        raise ValueError(f"Metodo de desbalanceamento nao suportado: {method}")
+
 
     # ------------------------------------------------------------------
     # CurriculumModel interface
@@ -257,12 +315,10 @@ class RobertaModel(CurriculumModel):
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
         )
 
+        class_weights_np, loss_method = self._build_class_weights(y, self.num_labels)
         class_weights = None
-        if self.class_balanced_loss:
-            class_counts = np.bincount(y.astype(np.int64), minlength=self.num_labels)
-            # Inverse-frequency weighting scaled to mean ~1 for stable gradients.
-            inv_freq = n / np.maximum(class_counts * self.num_labels, 1)
-            class_weights = torch.tensor(inv_freq, dtype=torch.float, device=self.device)
+        if loss_method != "none":
+            class_weights = torch.tensor(class_weights_np, dtype=torch.float, device=self.device)
 
         self._model.train()
         for epoch in range(self.epochs_per_stage):
@@ -283,6 +339,11 @@ class RobertaModel(CurriculumModel):
                     reduction="none",
                     weight=class_weights,
                 )
+                if loss_method == "distribution_balanced":
+                    # Focal modulation por fase (stats locais) para destacar cauda dura.
+                    pt = torch.softmax(logits, dim=-1).gather(1, labels.view(-1, 1)).squeeze(1)
+                    focal = torch.pow((1.0 - pt).clamp(min=1e-4), 2.0)
+                    loss_per_sample = loss_per_sample * focal
                 loss = (loss_per_sample * weights).sum() / weights.sum().clamp_min(1e-12)
                 loss.backward()
 

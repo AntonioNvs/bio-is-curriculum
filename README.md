@@ -20,6 +20,16 @@ Métodos de curriculum (`--curriculum-method`):
 | `spcl_soft` | Soft-pacing contínuo sobre sinais BIOIS (entropia/redundância) |
 | `spcl_loss` | SPCL canônico (Jiang et al. AAAI 2015): região Ψ derivada do BIOIS + scheme em `{binary, linear, log, mixture}` |
 
+Estratégias de desbalanceamento para RoBERTa (`--imbalance-method`):
+
+| Método | Descrição |
+|---|---|
+| `none` | Cross-entropy padrão, sem ajuste |
+| `inv_freq` | Peso inverso da frequência de classe (legado do projeto) |
+| `effective_num` | Class-Balanced Loss com número efetivo de amostras |
+| `distribution_balanced` | Adaptação single-label da Distribution-Balanced Loss com reweighting + focal |
+| `eda_minority` | Aumentação EDA para classes minoritárias (aplicada uma vez antes das fases de curriculum) |
+
 ### raw — sem IS, sem CL
 
 Fine-tuning padrão no conjunto de treino completo (modelo "cru", sem nenhum tratamento).
@@ -78,6 +88,15 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
 (Eqs. 4–7 do paper SPCL). Use `--no-curriculum-loss-prior-reliability`
 para usar apenas entropia BIOIS no prior `a`.
 
+### Exemplo: Reuters90 com troca explícita de estratégia de desbalanceamento
+
+```sh
+uv run python main.py reuters90 --data_dir datasets --fold 0 --n-splits 5 \
+    --mode is_cl --curriculum-method spcl_loss \
+    --imbalance-method effective_num \
+    --epochs-per-phase 2 --beta 0.3 --theta 0.2
+```
+
 ## Organização do código (`src/`)
 
 ```
@@ -115,6 +134,7 @@ Para comparar modos, basta carregar os `phase_metrics.csv` de cada pasta.
 ```
 --mode {raw,is,cl,is_cl,is_continuos_cl}  Modo de execução (default: is_cl)
 --curriculum-method {biois_discrete,spcl_soft,spcl_loss}  Estratégia de CL
+--imbalance-method {none,inv_freq,effective_num,distribution_balanced,eda_minority}
 --model {lr,roberta}             Modelo (default: roberta)
 --hf-model                       Checkpoint HuggingFace (default: roberta-base)
 --epochs                         Épocas para treino único / raw / is (default: 6)
