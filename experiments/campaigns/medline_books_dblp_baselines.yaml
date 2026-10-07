@@ -1,0 +1,95 @@
+# Literature baselines on Medline / Books / DBLP — CL and IS+CL each.
+#
+# Baselines:
+#   Bengio (b1)           — modes b1, is_b1
+#   SPDCL (b2)            — modes b2, is_b2
+#   Self-adaptive PMD     — modes cl, is_cl  (curriculum.method=self_adaptive_pmd)
+#
+# Training budget matches other ModernBERT baseline campaigns (6 epochs, bs 32).
+#
+# --- Prefer the time-balanced GPU split (resume after medline b1 finished) ---
+#   GPU 5: experiments/campaigns/medline_books_dblp_baselines_gpu5.yaml
+#          medline SPDCL (b2, is_b2)  — ~180–190 GPU-h
+#   GPU 6: experiments/campaigns/medline_books_dblp_baselines_gpu6.yaml
+#          medline SA + books all + dblp all  — ~180–190 GPU-h
+#
+#   rm -rf results/medline-5cv-20260920-173032_spdcl/b2_fold0   # incomplete FAIL
+#   nohup uv run bio-experiment experiments/campaigns/medline_books_dblp_baselines_gpu5.yaml \
+#     > logs/medline_books_dblp_baselines_gpu5.log 2>&1 &
+#   nohup uv run bio-experiment experiments/campaigns/medline_books_dblp_baselines_gpu6.yaml \
+#     > logs/medline_books_dblp_baselines_gpu6.log 2>&1 &
+#
+# Full single-GPU (original; do NOT re-run — medline b1 already complete under
+# timestamp 20260920-173032):
+#   nohup uv run bio-experiment experiments/campaigns/medline_books_dblp_baselines.yaml \
+#     > logs/medline_books_dblp_baselines.log 2>&1 &
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 6
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: medline_books_dblp_baselines
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
+      - train_time_s
+      - sa_score_time_s
+      - nuclear_norm_time_s
+      - total_time
+  datasets:
+    medline: { n_splits: 5 }
+    books: { n_splits: 5 }
+    dblp: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    baseline:
+      b1_easy_fraction: 0.5
+      b1_use_global_quantile: true
+      spdcl_n_bins: 5
+      spdcl_curriculum_epochs: 5
+      spdcl_anneal_epochs: 1
+      spdcl_norm_subsample: 15000
+    curriculum:
+      # Used only by the self-adaptive job below.
+      prompt_suffix: " This text is [MASK]."
+      hard_fraction: 0.6
+      rank_exponent: 2.0
+      score_batch_size: 64
+    training:
+      epochs: 6
+      epochs_per_phase: 3
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [b1, is_b1]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_b1"
+
+    - modes: [b2, is_b2]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_spdcl"
+
+    - modes: [cl, is_cl]
+      matrix:
+        curriculum.method: [self_adaptive_pmd]
+        training.epochs_per_phase: [6]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_self_adaptive_pmd"

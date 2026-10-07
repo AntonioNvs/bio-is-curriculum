@@ -1,0 +1,59 @@
+{
+  "schema_version": "1",
+  "event_description": "dblp_books_factorial",
+  "timestamp": "20260919-162835",
+  "config_path": "experiments/campaigns/dblp_books_factorial.yaml",
+  "started_at": "2026-09-19T16:28:35Z",
+  "finished_at": "2026-09-20T08:35:17Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 6,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "f1_weighted",
+      "accuracy",
+      "hard_slice_macro_f1",
+      "n_train_instances",
+      "n_removed",
+      "train_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "dblp-5cv-20260919-162835",
+      "dataset": "dblp",
+      "n_splits": 5,
+      "modes": [
+        "raw",
+        "is",
+        "cl",
+        "is_cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/dblp-5cv-20260919-162835",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "books-5cv-20260919-162835",
+      "dataset": "books",
+      "n_splits": 5,
+      "modes": [
+        "raw",
+        "is",
+        "cl",
+        "is_cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/books-5cv-20260919-162835",
+      "status": "ok"
+    }
+  ]
+}

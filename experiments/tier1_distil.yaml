@@ -10,7 +10,7 @@
 
 dataset: webkb
 n_splits: 10
-model: roberta
+model: modernbert
 hf_model: distilroberta-base
 
 modes:

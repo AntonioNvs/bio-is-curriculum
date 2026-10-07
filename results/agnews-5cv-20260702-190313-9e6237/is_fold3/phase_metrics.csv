@@ -1,0 +1,2 @@
+phase,n_samples,n_iter,train_time_s,pred_time_s,micro_f1,macro_f1,f1_weighted,accuracy,hard_slice_quantile,hard_slice_macro_f1,avg_seq_len,compute_proxy,best_val_macro_f1,best_val_epoch,steps_to_best_val
+full,25520,23532,1613.0467573814094,34.69450717139989,0.945141065830721,0.9451080274541306,0.9451080274541305,0.945141065830721,0.8,0.790805714865947,55.96667835288118,1317007.875,0.9401986720323199,6.0,23532.0

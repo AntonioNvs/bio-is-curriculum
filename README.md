@@ -8,27 +8,81 @@ Treinamento curricular guiado por redundância e ruído para classificação de 
 uv sync
 ```
 
+### Datasets
+
+Os datasets vêm do [Zenodo](https://zenodo.org/) (mesma suíte do [bio-is](https://github.com/waashk/bio-is) / [atcBench](https://github.com/waashk/atcBench)) e são organizados em `datasets/<nome>/` com o layout:
+
+```
+datasets/<nome>/
+    texts.txt          # documentos (um por linha)
+    score.txt          # rótulos de classe
+    splits/            # split_5.pkl, split_10.pkl (partições CV)
+    tfidf/             # matrizes TF-IDF em CSR (.gz) por fold
+```
+
+A representação TF-IDF usada pelo BIOIS segue o pré-processamento do bio-is: remoção de stopwords (scikit-learn) e retenção apenas de termos que aparecem em pelo menos dois documentos (`min_df=2`).
+
+```sh
+uv run python download_datasets.py              # todos
+uv run python download_datasets.py webkb reuters90 agnews yelp_2013 medline  # subset
+```
+
+| Dataset | Tamanho | Dim. | # Classes | Densidade | Desbalanceamento | CV | Link |
+|---------|---------|------|-----------|-----------|------------------|----|------|
+| `webkb` | 8,199 | 23,047 | 7 | 209 | Desbalanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555368) |
+| `reuters90` | 13,327 | 27,302 | 90 | 171 | Extremamente desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555298) |
+| `mpqa` | 10,606 | 2,643 | 2 | 3 | Desbalanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555268) |
+| `twitter` | 6,997 | 8,135 | 6 | 28 | Desbalanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7554707) |
+| `sst1` | 11,855 | 9,015 | 5 | 19 | Balanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555319) |
+| `yelp_reviews` | 5,000 | 23,631 | 2 | 132 | Balanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555396) |
+| `20ng` | 18,846 | 97,401 | 20 | 96 | Balanceado | 10-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555237) |
+| `agnews` | 127,600 | 39,837 | 4 | 37 | Balanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555424) |
+| `yelp_2013` | 335,018 | 62,964 | 6 | 152 | Desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555898) |
+| `medline` | 860,424 | 125,981 | 7 | 77 | Desbalanceado | 5-fold | [Zenodo](https://doi.org/10.5281/zenodo.7555820) |
+
+**Experimental use:** `webkb` and `reuters90` are for fast ablations. Multi-dataset batches use [`experiments/campaigns/full_cv_multi.yaml`](experiments/campaigns/full_cv_multi.yaml). Large-scale efficiency claims use `agnews`, `yelp_2013`, and `medline` via [`experiments/campaigns/large_datasets_5cv.yaml`](experiments/campaigns/large_datasets_5cv.yaml).
+
+## Quick start (recommended)
+
+YAML-first experiments via `bio-experiment` (Docker + GPU 7 configured in campaign YAML):
+
+```sh
+# Smoke test (single fold)
+uv run bio-experiment experiments/campaigns/smoke_docker.yaml --folds 0
+
+# Curriculum signal ablations (4 datasets; rebuild image after scheduler changes)
+docker build -t bio-is-curriculum:latest .
+uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --folds 0
+
+# Full campaign in background
+mkdir -p logs
+nohup uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml \
+  > logs/curriculum_ablations_multi.log 2>&1 &
+
+# Full multi-dataset CV matrix
+uv run bio-experiment experiments/campaigns/full_cv_multi.yaml
+```
+
+Legacy shims still work: `uv run python run.py experiments/smoke.yaml` → same as `bio-experiment`.
+
+Campaign configs live in [`experiments/campaigns/`](experiments/campaigns/). Single-dataset YAMLs remain in [`experiments/`](experiments/).
+
+The experiment design doc is [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md).
+
 ## Modos de execução (matriz IS × CL)
 
-A flag `--mode` seleciona a combinação de instance selection (IS) e curriculum learning (CL). Use `--model lr` para trocar RoBERTa por Regressão Logística (mais rápido para testes rápidos).
+A flag `--mode` seleciona a combinação de instance selection (IS) e curriculum learning (CL). Use `--model lr` para trocar RoBERTa por Regressão Logística (mais rápido para testes).
 
 Métodos de curriculum (`--curriculum-method`):
 
 | Método | Descrição |
 |---|---|
-| `biois_discrete` | 3 fases discretas Clean → Diverse → Hard (default) |
+| `biois_discrete` | 3 fases Clean → Diverse → Hard; ordena por margem + entropia (+ prior de comprimento); defer/downweight de ruído na fase hard; `phase_max_lengths` 96/160/256 (default) |
+| `loss_discrete` | Mesmo schedule; dificuldade = CE por amostra (RoBERTa não treinado) |
+| `lrc_discrete` | Mesmo schedule; dificuldade LRC (comprimento + raridade + Flesch–Kincaid por documento) |
+| `td_discrete` | Mesmo schedule; dificuldade = confiança de probe PLM |
 | `spcl_soft` | Soft-pacing contínuo sobre sinais BIOIS (entropia/redundância) |
 | `spcl_loss` | SPCL canônico (Jiang et al. AAAI 2015): região Ψ derivada do BIOIS + scheme em `{binary, linear, log, mixture}` |
-
-Estratégias de desbalanceamento para RoBERTa (`--imbalance-method`):
-
-| Método | Descrição |
-|---|---|
-| `none` | Cross-entropy padrão, sem ajuste |
-| `inv_freq` | Peso inverso da frequência de classe (legado do projeto) |
-| `effective_num` | Class-Balanced Loss com número efetivo de amostras |
-| `distribution_balanced` | Adaptação single-label da Distribution-Balanced Loss com reweighting + focal |
-| `eda_minority` | Aumentação EDA para classes minoritárias (aplicada uma vez antes das fases de curriculum) |
 
 ### raw — sem IS, sem CL
 
@@ -50,7 +104,7 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
 
 ### cl — sem IS, com CL
 
-BIOIS é executado apenas para gerar os sinais (beta=0, theta=0); curriculum organiza o treino em 3 fases sobre o conjunto completo.
+BIOIS é executado apenas para gerar os sinais (beta=0, theta=0); curriculum organiza o treino em fases sobre o conjunto completo. Em `biois_discrete`, a dificuldade combina margem multiclasse, entropia normalizada e prior de comprimento; erros confiantes do classificador fraco são adiados (`max(schedule, noise)`) e recebem peso reduzido na fase hard — sem remoção estocástica do dataset. Treino usa comprimento máximo progressivo por fase (96 → 160 → 256 tokens).
 
 ```sh
 uv run python main.py webkb --data_dir datasets --fold 0 \
@@ -81,96 +135,176 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
 uv run python main.py webkb --data_dir datasets --fold 0 \
     --mode is_cl --curriculum-method spcl_loss \
     --curriculum-loss-scheme linear \
-    --curriculum-n-steps 10 --epochs-per-phase 2
+    --curriculum-n-steps 6 --epochs-per-phase 2
 ```
 
 `--curriculum-loss-scheme` aceita `binary | linear | log | mixture`
 (Eqs. 4–7 do paper SPCL). Use `--no-curriculum-loss-prior-reliability`
 para usar apenas entropia BIOIS no prior `a`.
 
-### Exemplo: Reuters90 com troca explícita de estratégia de desbalanceamento
+## Baselines da literatura
+
+Baselines são indexados por `--baseline N` (ou token `bN` em runners multi-fold). Resultados ficam em `b{N}_fold<k>/`.
+
+| Índice | Token | Método | Referência |
+|---|---|---|---|
+| 1 | `b1` | Margin-paced CL | Bengio et al., ICML 2009 |
 
 ```sh
-uv run python main.py reuters90 --data_dir datasets --fold 0 --n-splits 5 \
-    --mode is_cl --curriculum-method spcl_loss \
-    --imbalance-method effective_num \
-    --epochs-per-phase 2 --beta 0.3 --theta 0.2
+# Execução individual
+uv run python main.py webkb --fold 0 --baseline 1 --epochs-per-phase 2
+
+# Via run.py (tier2_base_baselines.yaml inclui b1)
+uv run python run.py experiments/tier2_base_baselines.yaml
+
+# Via run_experiment.py
+uv run python run_experiment.py webkb --modes raw is cl is_cl b1 --n-splits 10
 ```
 
-## Organização do código (`src/`)
+O baseline `b1` usa margem multiclasse OOF de LR em TF-IDF (`signals/oracle_margin.py`) — currículo em 2 fases (easy → target), sem BIOIS, máscara de ruído ou peso de redundância.
+
+## Multi-fold experiments
+
+`bio-experiment` runs all modes × folds, aggregates per experiment folder, and writes a manifest JSON.
+
+```sh
+uv run bio-experiment experiments/webkb.yaml --folds 0 1 2
+```
+
+Each job produces `results/<experiment_id>/summary.csv` (mean ± 95% CI per mode).
+
+### Manifest and Excel export
+
+After a campaign completes:
+
+```sh
+uv run python summary.py results/experiments/curriculum_ablations_multi_<timestamp>/
+```
+
+This writes `.xlsx` and `.csv` summaries next to the manifest. Configure sheet layout in the YAML:
+
+```yaml
+campaign:
+  name: my_experiment
+  summary:
+    layout: compare_by_dataset
+    metrics: [macro_f1, hard_slice_macro_f1, train_time_s, total_time]
+```
+
+See [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) for details.
+
+## Result aggregation (legacy)
+
+For runs without a manifest, deprecated folder discovery still works:
+
+```sh
+uv run python summary.py --compare --run-prefix 20260711-022935 --datasets webkb reuters90
+```
+
+Notebook de análise exploratória: `analysis/analysis.ipynb`.
+
+## Code layout
 
 ```
-src/
-├── curriculum/
-│   ├── core.py              # orquestrador compartilhado
-│   ├── methods/             # estratégias de curriculum
-│   │   ├── biois_discrete.py
-│   │   ├── spcl_soft.py
-│   │   ├── spcl_loss.py
-│   │   └── registry.py
-│   └── models.py
-├── baselines/               # baselines da literatura (--baseline N)
-├── iSel/                    # instance selection (BIOIS)
-└── results/                 # gravação de métricas CL e IS
+├── main.py                  # shim → bio-run
+├── run.py                   # shim → bio-experiment
+├── run_experiment.py        # shim → bio-experiment
+├── summary.py               # manifest → Excel/CSV export
+├── download_datasets.py     # Zenodo download
+├── experiments/             # YAML configs
+│   └── campaigns/           # multi-dataset campaign YAMLs
+├── scripts/                 # utility scripts (e.g. export_imbalance_comparison.py)
+├── analysis/                # analysis notebooks
+└── src/bio_is_curriculum/
+    ├── cli/                 # bio-run, bio-experiment, bio-summary
+    ├── config/              # schema, campaign expansion, defaults
+    ├── curriculum/          # curriculum methods and orchestrator
+    ├── selection/           # BIOIS instance selection
+    ├── data/                # dataset loader
+    └── results/             # metrics, aggregator, manifest, summary export
 ```
 
 ## Resultados
 
-Cada execução gera uma pasta `results/<mode>-<timestamp>-<hex6>/` com:
+### Estrutura por execução isolada
+
+Cada run gera `results/<mode>-<timestamp>-<hex6>/` com os artefatos abaixo.
+
+### Grouped structure (multi-fold)
+
+With `--experiment-id` (used by `bio-experiment`):
+
+```
+results/<experiment_id>/
+    raw_fold0/
+    is_fold0/
+    ...
+    summary.csv
+
+results/experiments/
+    <event>_<timestamp>/
+        manifest.json
+        summary.xlsx
+        summary.csv
+```
 
 | Arquivo | Conteúdo |
 |---|---|
 | `config.json` | Todos os hiperparâmetros, dataset, fold e commit git |
-| `timings.csv` | `name, seconds` — tempos de IS, CL, treino, total |
-| `phase_metrics.csv` | `phase, n_samples, n_iter, train_time_s, pred_time_s, micro_f1, macro_f1, accuracy, hard_slice_macro_f1` |
+| `timings.csv` | `name, seconds` — data_load, preprocess, model_train, total |
+| `phase_metrics.csv` | Métricas por fase: F1, accuracy, hard_slice_macro_f1, avg_seq_len, compute_proxy, … |
 | `train_history.csv` | `phase, epoch, step, loss, lr` — uma linha por step de treino |
 | `predictions_test.csv` | `idx, y_true, y_pred, pred_entropy` — predições finais no teste |
 | `instance_selection.json` | Métricas de IS: redução, n_before/after, remoção por classe |
+| `summary.csv` | (nível experimento) média ± IC 95% por modo, incluindo `efficiency_score` e `data_efficiency` |
 
-Para comparar modos, basta carregar os `phase_metrics.csv` de cada pasta.
+Compare modes within one experiment via `summary.csv`. Compare across experiments via the manifest + `summary.py`.
+
+### Resultados preliminares — ablação de sinais (`curriculum_ablations_multi`)
+
+Macro-F1 (média ± meia-largura do IC 95%); tempo = média de `total_run_time_s` por fold. Campanha `20260914` com scheduler margin/compute-aware em `biois_discrete`.
+
+| Dataset | BIO-IS | LRC | Tempo BIO-IS (s) | Tempo LRC (s) |
+|---------|--------|-----|------------------|---------------|
+| WebKB | 0.764 ± 0.016 | 0.762 ± 0.015 | 297 | 297 |
+| Reuters-90 | 0.386 ± 0.024 | 0.383 ± 0.013 | 500 | 498 |
+
+LRC de `20260911-171345`; Yelp e AG News em execução. Detalhes em [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) §3.
 
 ## Opções principais
 
 ```
 --mode {raw,is,cl,is_cl,is_continuos_cl}  Modo de execução (default: is_cl)
---curriculum-method {biois_discrete,spcl_soft,spcl_loss}  Estratégia de CL
---imbalance-method {none,inv_freq,effective_num,distribution_balanced,eda_minority}
---model {lr,roberta}             Modelo (default: roberta)
---hf-model                       Checkpoint HuggingFace (default: roberta-base)
---epochs                         Épocas para treino único / raw / is (default: 6)
---epochs-per-phase               Épocas por fase do curriculum (default: 2)
---batch-size                     Batch de treino (default: 16)
---max-length                     Comprimento máximo de tokenização (default: 256)
---beta / --theta                 Taxas de redução do BIOIS (default: 0.3 / 0.2)
---curriculum-beta                Peso de redundância na Fase Hard: w=1-beta*r (default: 0.5)
---curriculum-n-steps             Passos para spcl_soft / spcl_loss (default: 10)
---curriculum-alpha-decay         Suavidade do soft-pacing (default: 10.0)
---curriculum-loss-scheme         Scheme do SPCL canônico: binary|linear|log|mixture (default: linear)
---curriculum-lambda-init         Lambda inicial do SPCL canônico (default: 0.5)
---curriculum-lambda-step         Passo aditivo μ de lambda (Alg.1 SPCL, default: 0.5)
---curriculum-lambda-mult         Multiplicador de lambda (default: 1.0; >1.0 sobrescreve --lambda-step)
---curriculum-lambda-max          Teto opcional de lambda (default: sem teto)
---curriculum-lambda2             λ₂ do scheme mixture (default: λ_init/2)
---curriculum-loss-prior-reliability  Usa reliability BIOIS no prior a (default: True)
---results-dir                    Diretório base de resultados (default: results/)
+--baseline N                              Baseline da literatura (sobrescreve --mode)
+--curriculum-method {biois_discrete,loss_discrete,lrc_discrete,td_discrete,spcl_soft,spcl_loss}
+--model {lr,modernbert}                   Modelo (default: modernbert)
+--hf-model                                Checkpoint HuggingFace (default: answerdotai/ModernBERT-base)
+--train-fraction                          Fração do train split (default: 1.0)
+--n-splits                                Folds no split file (default: 10)
+--epochs                                  Épocas para treino único / raw / is (default: 6)
+--epochs-per-phase                        Épocas por fase do curriculum (default: 1)
+--batch-size                              Batch de treino (default: 32)
+--eval-batch-size                         Batch de avaliação (default: 64)
+--max-length                              Comprimento máximo de tokenização (default: 256)
+--lr / --weight-decay / --warmup-ratio    Hiperparâmetros de fine-tune ModernBERT
+--class-balanced-loss                     Peso por frequência de classe na CE (default: True)
+--beta / --theta                          Taxas de redução do BIOIS (default: 0.3 / 0.2)
+--hard-slice-quantile                     Quantil para hard-slice macro-F1 (default: 0.8)
+--curriculum-beta                         Peso de redundância/ruído na Fase Hard (default: 0.5)
+--curriculum-q                            Quantis das fases discretas (default: 0.3 0.6 0.95)
+--curriculum-margin-weight                Peso da margem no schedule BIO-IS (default: 0.6)
+--curriculum-entropy-weight               Peso da entropia no schedule BIO-IS (default: 0.4)
+--curriculum-length-weight                Peso do prior de comprimento (default: 0.25)
+--curriculum-noise-weight-phases          Fases com downweight de ruído (default: hard)
+--curriculum-phase-max-lengths            Comprimento máximo por fase clean/diverse/hard (default: 96 160 256)
+--curriculum-n-steps                      Passos para spcl_soft / spcl_loss (default: 6)
+--curriculum-alpha-decay                  Suavidade do soft-pacing (default: 10.0)
+--curriculum-soft-*                       Parâmetros do SPCL soft (lambda, saturação, etc.)
+--curriculum-loss-scheme                  Scheme do SPCL canônico: binary|linear|log|mixture
+--curriculum-lambda-init/step/mult/max    Controle de λ no SPCL canônico
+--curriculum-lambda2                      λ₂ do scheme mixture (default: λ_init/2)
+--curriculum-loss-prior-reliability       Usa reliability BIOIS no prior a (default: True)
+--curriculum-loss-recompute-every         Recomputa losses a cada K steps no SPCL (default: 2)
+--experiment-id                           Agrupa runs multi-fold sob results/<id>/
+--results-dir                             Diretório base de resultados (default: results/)
 ```
-
-TO-DO para 26/05 (entregáveis da reunião)
-
-Código
-- [X] Implementar flag `--baseline N` (índice de baseline da literatura — ver `BASELINES.md`). Começar com `--baseline 1` (Bengio et al. 2009 confidence-paced CL) reusando `_probaEveryone` do BIOIS, sem mask de ruído nem peso de redundância
-
-Experimentos (em ordem de prioridade)
-- [ ] webkb 10cv × {raw, baseline=1, is, cl, is_cl} — 50 runs, foco no 2² + ablação CL ingênuo
-- [ ] reuters90 5cv × 5 modos, começando por `FOLDS="0 1 2"` (`--n-splits 5` para caber no tempo; manter `upsample_min_per_class` ligado pelas classes <5 ex.)
-- [ ] mpqa 10cv × 5 modos
-
-Análises pro slide
-- [ ] Tabela macro-f1 média ± IC95 com Wilcoxon pareado (`raw` vs cada modo, `cl` vs `is_cl`, `--baseline 1` vs `is_cl`)
-- [ ] Gráfico Pareto tempo×macro-f1 (`timings.csv::model_train_time_s`)
-- [ ] Bar chart macro-f1 por classe ordenada por frequência, evidenciando ganho nas raras
-- [ ] Dois números-âncora pro título: macro-f1 nas raras (`raw` → `is_cl`) e redução de tempo (cl → is_cl)
-
-Adiados (não cabem em 1 dia)
-- [ ] Variação de balanceamento/weighting no CL — segundo experimento, sem ele o 2² já fica limpo
-- [ ] Baseline externo SOTA — comparação interessante é interna (cl vs is_cl vs cl_bengio); SOTA fica como next-step

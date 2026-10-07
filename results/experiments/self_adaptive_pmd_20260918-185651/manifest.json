@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "event_description": "self_adaptive_pmd",
+  "timestamp": "20260918-185651",
+  "config_path": "experiments/campaigns/self_adaptive_pmd.yaml",
+  "started_at": "2026-09-18T18:56:51Z",
+  "finished_at": "2026-09-18T19:06:48Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 5,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "train_time_s",
+      "sa_score_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "webkb-10cv-20260918-185651_self_adaptive_pmd",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "self_adaptive_pmd",
+      "path": "results/webkb-10cv-20260918-185651_self_adaptive_pmd",
+      "status": "ok"
+    }
+  ]
+}

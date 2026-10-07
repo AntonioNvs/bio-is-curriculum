@@ -1,0 +1,64 @@
+# Re-run Bengio (b1 / is_b1) on Reuters-90 and AG News.
+#
+# Motivation: earlier b1 runs on these datasets show anomalously high
+# model_train_time vs Raw (~1.5–2.2×), while healthy runs (WebKB 5-fold,
+# Yelp, Books) sit near the expected ~0.75× sample-epoch ratio.
+#
+# Modes:
+#   b1     — OOF LR margin curriculum on full training data (no IS)
+#   is_b1  — BIOIS prunes first; margin curriculum on the reduced set
+#
+# Schedule matches other ModernBERT baselines: 2 phases × 3 epochs = 6 total.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/b1_rerun_reuters_agnews_gpu7.yaml --dataset reuters90 --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/b1_rerun_reuters_agnews_gpu7.yaml --dry-run
+# Full:
+#   mkdir -p logs
+#   nohup uv run bio-experiment experiments/campaigns/b1_rerun_reuters_agnews_gpu7.yaml \
+#     > logs/b1_rerun_reuters_agnews_gpu7.log 2>&1 &
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: b1_rerun_reuters_agnews_gpu7
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - total_time
+  datasets:
+    reuters90: { n_splits: 5 }
+    agnews: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    baseline:
+      b1_easy_fraction: 0.5
+      b1_use_global_quantile: true
+    training:
+      epochs: 6
+      epochs_per_phase: 3
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [b1, is_b1]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_b1"

@@ -1,0 +1,60 @@
+{
+  "schema_version": "1",
+  "event_description": "cl_params_ablation_multi",
+  "timestamp": "20260914-220716",
+  "config_path": "experiments/campaigns/cl_params_ablation_multi.yaml",
+  "started_at": "2026-09-14T22:07:16Z",
+  "finished_at": "2026-09-14T22:23:44Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 6,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "train_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "webkb-10cv-20260914-220716_sched_q02-05",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-10cv-20260914-220716_sched_q02-05",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-10cv-20260914-220716_sig_entropy",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-10cv-20260914-220716_sig_entropy",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-10cv-20260914-220716_compute_flat",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-10cv-20260914-220716_compute_flat",
+      "status": "ok"
+    }
+  ]
+}

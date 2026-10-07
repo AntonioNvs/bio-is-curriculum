@@ -1,0 +1,62 @@
+# Resume spdcl_is_ablation for datasets that did not complete (agnews, yelp_2013).
+#
+# Original run (20260908-234459) completed webkb + reuters90, then OOM'd on agnews
+# during the full-dataset nuclear-norm pretrain pass (~102K samples × hidden states
+# exceeds the 32g Docker memory limit).
+#
+# This campaign reuses the same experiment_id timestamp so results land alongside
+# the partial agnews run. Remove the incomplete fold before launching:
+#   rm -rf results/agnews-5cv-20260908-234459_spdcl/b2_fold0
+#
+# Launch (GPU 5):
+#   nohup uv run bio-experiment experiments/campaigns/spdcl_is_ablation_resume.yaml \
+#     > logs/spdcl_is_ablation_resume.log 2>&1 &
+#
+# Dry-run:
+#   uv run bio-experiment experiments/campaigns/spdcl_is_ablation_resume.yaml --dry-run
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 5
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: spdcl_is_ablation_resume
+  timestamp: "20260908-234459"
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - nuclear_norm_time_s
+      - total_time
+  datasets:
+    agnews: { n_splits: 5 }
+    yelp_2013: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    baseline:
+      spdcl_n_bins: 5
+      spdcl_curriculum_epochs: 5
+      spdcl_anneal_epochs: 1
+      spdcl_norm_subsample: 15000
+    training:
+      hf_model: answerdotai/ModernBERT-base
+      epochs: 6
+      batch_size: 32
+      max_length: 256
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [b2, is_b2]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_spdcl"

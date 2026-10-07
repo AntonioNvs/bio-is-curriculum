@@ -1,0 +1,193 @@
+import io
+import os
+
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_svmlight_file
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import LabelEncoder
+
+
+def normalize_splits_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure fold_id exists — some Zenodo datasets only ship train_idxs/test_idxs."""
+    if "fold_id" not in df.columns:
+        df = df.copy()
+        df["fold_id"] = list(range(len(df)))
+    return df
+
+
+class DatasetLoader:
+    """
+    Loads text data, labels, and pre-defined splits for text classification datasets.
+    Assumes a directory structure where each dataset has 'texts.txt', 'score.txt', 
+    and a 'splits' folder containing .pkl split files.
+    """
+    def __init__(self, data_dir: str, dataset_name: str):
+        self.dataset_path = os.path.join(data_dir, dataset_name)
+    
+    def load_texts_and_scores(self):
+        """
+        Loads the texts and scores from the dataset directory.
+        Returns:
+            texts (list): A list of document texts.
+            scores (list): A list of labels for the documents.
+        """
+        texts_path = os.path.join(self.dataset_path, 'texts.txt')
+        score_path = os.path.join(self.dataset_path, 'score.txt')
+        
+        if not os.path.exists(texts_path) or not os.path.exists(score_path):
+            raise FileNotFoundError(f"Missing texts.txt or score.txt in {self.dataset_path}")
+
+        with io.open(texts_path, 'rt', newline='\n', encoding='utf-8', errors='ignore') as f:
+            texts = [line.rstrip('\n').strip() for line in f.readlines()]
+
+        with io.open(score_path, 'rt', newline='\n', encoding='utf-8', errors='ignore') as f:
+            scores = [line.rstrip('\n').strip() for line in f.readlines()]
+            try:
+                # Attempt to safely convert numeric discrete scores to integers
+                scores = [int(s) if s.isdigit() or (s.startswith('-') and s[1:].isdigit()) else s for s in scores]
+            except ValueError:
+                pass
+                
+        return texts, scores
+    
+    def load_splits(self, n_splits=10, with_val=False):
+        """
+        Loads split indices from the standard .pkl files (e.g., split_10.pkl).
+        These `.pkl` files contain a DataFrame with fold structure.
+        """
+        suffix = f"_{n_splits}_with_val.pkl" if with_val else f"_{n_splits}.pkl"
+        pkl_path = os.path.join(self.dataset_path, 'splits', f"split{suffix}")
+        
+        if not os.path.exists(pkl_path):
+            raise FileNotFoundError(f"Split file not found: {pkl_path}")
+            
+        df_splits = pd.read_pickle(pkl_path)
+        return normalize_splits_df(df_splits)
+
+    def load_texts_fold(self, fold: int, n_splits: int = 10):
+        """Load raw texts and labels for a given fold, aligned with load_tfidf_fold.
+
+        The split .pkl stores train_idxs/test_idxs that match the rows of the
+        pre-built TF-IDF files (same upstream generation pipeline), so index i
+        from BIOIS/curriculum maps to texts_train[i] for the same instance.
+
+        Shuffling/validation splitting is intentionally left to the caller (cli.py)
+        so that the same indices are applied consistently to both the TF-IDF matrix
+        and the raw texts, keeping them aligned.
+
+        Returns:
+            texts_train (list[str]), y_train (ndarray),
+            texts_test (list[str]),  y_test  (ndarray)
+        """
+        texts, scores = self.load_texts_and_scores()
+        df = self.load_splits(n_splits=n_splits)
+        row = df[df["fold_id"] == fold].iloc[0]
+        train_idx = list(row["train_idxs"])
+        test_idx = list(row["test_idxs"])
+
+        train_scores = [scores[i] for i in train_idx]
+        test_scores = [scores[i] for i in test_idx]
+
+        le = LabelEncoder().fit(train_scores)
+        y_train = le.transform(train_scores)
+        y_test = le.transform(test_scores)
+
+        texts_train = [texts[i] for i in train_idx]
+        texts_test = [texts[i] for i in test_idx]
+
+        return texts_train, y_train, texts_test, y_test
+
+    def load_tfidf_fold(self, fold: int):
+        """Load the prebuilt per-fold TF-IDF matrices and labels.
+
+        Mirrors the upstream bio-is loader (``utils/general.py::get_data``):
+        reads ``tfidf/train{fold}.gz`` and ``tfidf/test{fold}.gz`` (svmlight
+        format), aligns feature dimensionality between train and test, and
+        encodes labels to a 0..n-1 contiguous integer range using a
+        ``LabelEncoder`` fitted on the training labels.
+
+        Shuffling/validation splitting is intentionally left to the caller (cli.py)
+        so that the same indices are applied consistently to both the TF-IDF matrix
+        and the raw texts, keeping them aligned.
+
+        Returns:
+            X_train (csr_matrix), y_train (ndarray), X_test (csr_matrix), y_test (ndarray)
+        """
+        tfidf_dir = os.path.join(self.dataset_path, "tfidf")
+        train_path = os.path.join(tfidf_dir, f"train{fold}.gz")
+        test_path = os.path.join(tfidf_dir, f"test{fold}.gz")
+
+        if not os.path.exists(train_path) or not os.path.exists(test_path):
+            raise FileNotFoundError(
+                f"Missing prebuilt TF-IDF files for fold {fold} in {tfidf_dir}"
+            )
+
+        X_train, y_train_raw = load_svmlight_file(train_path, dtype=np.float64)
+        X_test, y_test_raw = load_svmlight_file(test_path, dtype=np.float64)
+
+        if X_train.shape[1] != X_test.shape[1]:
+            n_features = max(X_train.shape[1], X_test.shape[1])
+            X_train, y_train_raw = load_svmlight_file(
+                train_path, dtype=np.float64, n_features=n_features
+            )
+            X_test, y_test_raw = load_svmlight_file(
+                test_path, dtype=np.float64, n_features=n_features
+            )
+
+        le = LabelEncoder().fit(y_train_raw)
+        y_train = le.transform(y_train_raw)
+        y_test = le.transform(y_test_raw)
+
+        return X_train, y_train, X_test, y_test
+
+    def load_aligned_fold(self, fold: int, n_splits: int = 10):
+        """Load texts + TF-IDF + labels com alinhamento garantido por linha.
+
+        Os arquivos svmlight pre-construidos em ``tfidf/train{fold}.gz`` foram
+        gerados por um pipeline upstream com ordem propria, que NAO coincide com
+        a ordem dos indices em ``splits/split_{n_splits}.pkl``. Misturar essas
+        duas fontes corrompe o pareamento (texto, label) e leva o RoBERTa ao
+        colapso em uma unica classe.
+
+        Aqui montamos tudo a partir da MESMA fonte: ``texts.txt`` + ``score.txt``
+        + indices do split. O TF-IDF e recomputado em memoria com
+        ``TfidfVectorizer`` ajustado no treino do fold, garantindo que linha ``i``
+        de ``X_train`` corresponda exatamente a ``texts_train[i]`` e
+        ``y_train[i]``.
+
+        Returns:
+            X_train (csr_matrix), y_train (ndarray),
+            X_test  (csr_matrix), y_test  (ndarray),
+            texts_train (list[str]), texts_test (list[str])
+        """
+        texts, scores = self.load_texts_and_scores()
+        df = self.load_splits(n_splits=n_splits)
+        row = df[df["fold_id"] == fold].iloc[0]
+        train_idx = list(row["train_idxs"])
+        test_idx = list(row["test_idxs"])
+
+        texts_train = [texts[i] for i in train_idx]
+        texts_test = [texts[i] for i in test_idx]
+        train_scores = [scores[i] for i in train_idx]
+        test_scores = [scores[i] for i in test_idx]
+
+        le = LabelEncoder().fit(train_scores)
+        y_train = le.transform(train_scores)
+        y_test = le.transform(test_scores)
+
+        # Pré-processamento alinhado à prática-padrão do upstream svmlight:
+        # sublinear_tf + min_df>=2 + max_df<=0.95 + stopwords removidas.
+        # Defaults sklearn produzem vocab grande e mal-calibrado, o que estraga
+        # a calibração do LR fraco do BIOIS — especialmente o sinal de entropia
+        # que define a fase clean do curriculum.
+        vec = TfidfVectorizer(
+            sublinear_tf=True,
+            min_df=2,
+            max_df=0.95,
+            stop_words="english",
+        )
+        X_train = vec.fit_transform(texts_train)
+        X_test = vec.transform(texts_test)
+
+        return X_train, y_train, X_test, y_test, texts_train, texts_test

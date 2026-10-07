@@ -1,0 +1,9 @@
+name,seconds
+data_load_time_s,0.719300938770175
+is_fit_time_s,12.10138520412147
+preprocess_time_s,12.10138520412147
+cl_signal_extract,1.161527007818222
+cl_phase_build,101.69556145556271
+model_train_time_s,393.16069134138525
+metric_eval_time_s,14.777932094410062
+total_run_time_s,430.423004925251

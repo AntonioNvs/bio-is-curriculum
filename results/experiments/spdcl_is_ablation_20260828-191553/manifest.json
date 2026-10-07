@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "event_description": "spdcl_is_ablation",
+  "timestamp": "20260828-191553",
+  "config_path": "experiments/campaigns/spdcl_is_ablation.yaml",
+  "started_at": "2026-08-28T19:15:53Z",
+  "finished_at": "2026-08-28T19:35:33Z",
+  "docker": {
+    "image": "bio-is-curriculum:latest",
+    "gpu_id": 5,
+    "cpus": 16,
+    "memory": "32g"
+  },
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "train_time_s",
+      "nuclear_norm_time_s",
+      "total_time"
+    ],
+    "datasets": null
+  },
+  "runs": [
+    {
+      "experiment_id": "webkb-10cv-20260828-191553_spdcl",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "b2",
+        "is_b2"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-10cv-20260828-191553_spdcl",
+      "status": "ok"
+    }
+  ]
+}

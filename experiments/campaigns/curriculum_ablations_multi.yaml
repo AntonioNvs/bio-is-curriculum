@@ -1,0 +1,72 @@
+# Curriculum signal ablation (CL metrics) — DBLP + Books.
+#
+# Same discrete schedule (q=0.3/0.6/0.95, phase_max_lengths 96/160/256);
+# only curriculum.method (difficulty signal) changes:
+#   biois_discrete | loss_discrete | lrc_discrete | td_discrete
+#
+# Full campaign (GPU 5, both datasets, all folds):
+#   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml
+#
+# Smoke (fold 0, single dataset):
+#   uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml --dataset dblp --folds 0
+#
+# Background:
+#   mkdir -p logs
+#   nohup uv run bio-experiment experiments/campaigns/curriculum_ablations_multi.yaml \
+#     > logs/curriculum_ablations_multi.log 2>&1 &
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 5
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: curriculum_ablations_multi
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - total_time
+  datasets:
+    dblp: { n_splits: 5 }
+    books: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+      beta: 0.5
+      # Shared discrete scheduler (all methods below).
+      phase_max_lengths: [96, 160, 256]
+      # BIOIS-only signal weights (ignored by loss/lrc/td).
+      margin_weight: 0.6
+      entropy_weight: 0.4
+      length_weight: 0.25
+      noise_weight_phases: [hard]
+    training:
+      epochs: 6
+      epochs_per_phase: 2
+      batch_size: 32
+      max_length: 256
+      lr: 2.0e-5
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [cl]
+      matrix:
+        curriculum.method:
+          # - biois_discrete
+          - loss_discrete
+          - lrc_discrete
+          - td_discrete
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_{method}"

@@ -1,0 +1,2 @@
+phase,n_samples,n_train_samples,n_classes_present,n_classes_total,n_classes_missing,n_rare_classes_pinned,n_iter,train_time_s,pred_time_s,micro_f1,macro_f1,f1_weighted,accuracy,hard_slice_quantile,hard_slice_macro_f1,avg_seq_len,compute_proxy,best_val_macro_f1,best_val_epoch,steps_to_best_val
+full,818,nan,nan,nan,nan,nan,822,510.14211285859346,5.067078394815326,0.8704156479217604,0.8259972367503534,0.8706295945677409,0.8704156479217604,0.8,0.543597920792491,145.46194285714284,119569.71702857142,0.8340612841617444,6.0,822.0

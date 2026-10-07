@@ -12,4 +12,32 @@ wheels/
 datasets/**
 
 analysis/training_metrics_export_*.xlsx
+*.xlsx
 .claude
+# Results: track metrics/summary only; ignore bulky per-fold dumps
+results/**
+!results/
+!results/**/
+!results/**/.gitkeep
+!results/**/summary.csv
+!results/**/summary.xlsx
+!results/**/phase_metrics.csv
+!results/**/timings.csv
+!results/**/config.json
+!results/**/manifest.json
+
+# Explicitly keep ignoring heavy artifacts (even if new patterns appear)
+results/**/train_history.csv
+results/**/predictions_test.csv
+results/**/self_adaptive_scores.csv
+results/**/instance_selection.json
+results/**/self_adaptive_verbalizers.json
+results/**/train_subsample.json
+
+plots/**
+logs/
+*.out
+
+*.bib
+*.tex
+**/acl_latex*

@@ -1,0 +1,158 @@
+{
+  "schema_version": "1",
+  "event_description": "curriculum_ablations_multi",
+  "timestamp": "20260828-014706",
+  "config_path": "experiments/campaigns/curriculum_ablations_multi.yaml",
+  "note": "Partial export: webkb, reuters90, yelp_2013 only (medline still running)",
+  "summary": {
+    "layout": "compare_by_dataset",
+    "metrics": [
+      "macro_f1",
+      "micro_f1",
+      "hard_slice_macro_f1",
+      "train_time_s",
+      "total_time",
+      "efficiency_score",
+      "data_efficiency"
+    ],
+    "datasets": [
+      "webkb",
+      "reuters90",
+      "yelp_2013"
+    ]
+  },
+  "runs": [
+    {
+      "experiment_id": "webkb-10cv-20260828-014706_biois_discrete",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/webkb-10cv-20260828-014706_biois_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-10cv-20260828-014706_length_discrete",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "length_discrete",
+      "path": "results/webkb-10cv-20260828-014706_length_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-10cv-20260828-014706_loss_discrete",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "loss_discrete",
+      "path": "results/webkb-10cv-20260828-014706_loss_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "webkb-10cv-20260828-014706_tfidf_discrete",
+      "dataset": "webkb",
+      "n_splits": 10,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "tfidf_discrete",
+      "path": "results/webkb-10cv-20260828-014706_tfidf_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "reuters90-5cv-20260828-014706_biois_discrete",
+      "dataset": "reuters90",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/reuters90-5cv-20260828-014706_biois_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "reuters90-5cv-20260828-014706_length_discrete",
+      "dataset": "reuters90",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "length_discrete",
+      "path": "results/reuters90-5cv-20260828-014706_length_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "reuters90-5cv-20260828-014706_loss_discrete",
+      "dataset": "reuters90",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "loss_discrete",
+      "path": "results/reuters90-5cv-20260828-014706_loss_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "reuters90-5cv-20260828-014706_tfidf_discrete",
+      "dataset": "reuters90",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "tfidf_discrete",
+      "path": "results/reuters90-5cv-20260828-014706_tfidf_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "yelp_2013-5cv-20260828-014706_biois_discrete",
+      "dataset": "yelp_2013",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "biois_discrete",
+      "path": "results/yelp_2013-5cv-20260828-014706_biois_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "yelp_2013-5cv-20260828-014706_length_discrete",
+      "dataset": "yelp_2013",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "length_discrete",
+      "path": "results/yelp_2013-5cv-20260828-014706_length_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "yelp_2013-5cv-20260828-014706_loss_discrete",
+      "dataset": "yelp_2013",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "loss_discrete",
+      "path": "results/yelp_2013-5cv-20260828-014706_loss_discrete",
+      "status": "ok"
+    },
+    {
+      "experiment_id": "yelp_2013-5cv-20260828-014706_tfidf_discrete",
+      "dataset": "yelp_2013",
+      "n_splits": 5,
+      "modes": [
+        "cl"
+      ],
+      "curriculum_method": "tfidf_discrete",
+      "path": "results/yelp_2013-5cv-20260828-014706_tfidf_discrete",
+      "status": "ok"
+    }
+  ]
+}
