@@ -24,6 +24,9 @@ dev = ["pytest>=8.0"]
 bio-run = "bio_is_curriculum.cli.main:main"
 bio-experiment = "bio_is_curriculum.cli.experiment:main"
 bio-summary = "bio_is_curriculum.results.summary_export:main"
+bio-significance = "bio_is_curriculum.results.significance:main"
+bio-identify-latest = "bio_is_curriculum.results.discovery:main"
+bio-equivalence = "bio_is_curriculum.results.equivalence:main"
 
 [build-system]
 requires = ["setuptools>=68"]

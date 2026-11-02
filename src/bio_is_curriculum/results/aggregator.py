@@ -19,6 +19,59 @@ _LAST_METRICS = {
 _SUM_METRICS = {"train_time_s", "pred_time_s"}
 
 
+def reduce_phase_metric(df: pd.DataFrame, metric: str) -> float:
+    """Collapse a fold's ``phase_metrics.csv`` rows into a single value.
+
+    Mirrors the per-fold reduction used to build ``summary.csv``: maximum over
+    phases for performance metrics, last phase for training-state metrics, and
+    sum over phases for timings.
+    """
+    if metric in _MAX_METRICS:
+        return float(df[metric].max())
+    if metric in _LAST_METRICS:
+        return float(df[metric].iloc[-1])
+    if metric in _SUM_METRICS:
+        return float(df[metric].sum())
+    return float("nan")
+
+
+def collect_per_fold_map(
+    experiment_dir: str,
+    mode: str,
+    folds: list[int],
+    metric: str,
+) -> dict[int, float]:
+    """Return ``{fold_index: metric_value}`` for one mode/metric.
+
+    Missing/empty files and NaN values are skipped, so the returned mapping only
+    contains folds with a valid value (needed for fold-paired statistical tests).
+    """
+    result: dict[int, float] = {}
+    for fold in folds:
+        path = os.path.join(experiment_dir, f"{mode}_fold{fold}", "phase_metrics.csv")
+        if not os.path.exists(path):
+            continue
+        df = pd.read_csv(path)
+        if df.empty or metric not in df.columns or len(df[metric]) == 0:
+            continue
+        val = reduce_phase_metric(df, metric)
+        if np.isnan(val):
+            continue
+        result[fold] = val
+    return result
+
+
+def collect_per_fold_values(
+    experiment_dir: str,
+    mode: str,
+    folds: list[int],
+    metric: str,
+) -> list[float]:
+    """Return per-fold metric values in ascending fold order."""
+    per_fold = collect_per_fold_map(experiment_dir, mode, folds, metric)
+    return [per_fold[f] for f in sorted(per_fold)]
+
+
 def aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.DataFrame:
     metrics_of_interest = list(_MAX_METRICS | _LAST_METRICS | _SUM_METRICS)
     records: dict[str, dict[str, list[float]]] = {
@@ -39,21 +92,11 @@ def aggregate(experiment_dir: str, modes: list[str], folds: list[int]) -> pd.Dat
                 continue
             phase_counts[mode].append(len(df))
 
-            for k in _MAX_METRICS:
-                if k in df.columns and len(df[k]) > 0:
-                    val = float(df[k].max())
+            for metric in metrics_of_interest:
+                if metric in df.columns and len(df[metric]) > 0:
+                    val = reduce_phase_metric(df, metric)
                     if not np.isnan(val):
-                        records[mode][k].append(val)
-            for k in _LAST_METRICS:
-                if k in df.columns and len(df[k]) > 0:
-                    val = float(df[k].iloc[-1])
-                    if not np.isnan(val):
-                        records[mode][k].append(val)
-            for k in _SUM_METRICS:
-                if k in df.columns and len(df[k]) > 0:
-                    val = float(df[k].sum())
-                    if not np.isnan(val):
-                        records[mode][k].append(val)
+                        records[mode][metric].append(val)
 
     if missing:
         print(f"\nWARNING: {len(missing)} missing/empty result file(s).")
