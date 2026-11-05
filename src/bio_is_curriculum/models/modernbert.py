@@ -534,10 +534,16 @@ class ModernBertModel(CurriculumModel):
         return float(self._token_count_total / self._sample_count_total)
 
     def _compute_proxy(self) -> float:
-        avg_seq_len = self._avg_seq_len()
-        if np.isnan(avg_seq_len):
+        """Custo acumulado em tokens processados.
+
+        Usa o contador exato de tokens (`attention_mask.sum()` somado a cada
+        passo). A versao anterior, `global_step * avg_seq_len`, omitia o
+        `batch_size` e subestimava o custo por um fator igual ao batch size,
+        o que inflava artificialmente o ganho de configs com batch grande.
+        """
+        if self._sample_count_total == 0:
             return float("nan")
-        return float(self.global_step_ * avg_seq_len)
+        return float(self._token_count_total)
 
     def extract_hidden_states(self, texts: list[str]) -> list[np.ndarray]:
         """Last-layer token hidden states per sample for nuclear-norm scoring."""

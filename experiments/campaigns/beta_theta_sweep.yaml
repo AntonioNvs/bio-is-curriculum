@@ -1,0 +1,100 @@
+# β/θ sensitivity — 2-D grid over the two BIOIS reduction rates.
+#
+# WHY THIS EXISTS
+# The paper fixes β=0.3 (redundant-correct removal rate) and θ=0.2
+# (low-entropy misclassification removal rate) and reports both as chosen
+# constants. The Limitations section admits this: "We use fixed BIOIS reduction
+# rates (β=0.3, θ=0.2) ...". A single operating point cannot distinguish "the
+# method is robust" from "we happened to land on a good cell", and it is the
+# cheapest open question in the paper.
+#
+# WHAT IT BUYS
+#   - A robustness claim: macro-F1 across the 3x3 grid, reported as mean ± range.
+#   - The mechanism check: θ should help where pruning *costs* accuracy (books,
+#     where IS drops Bengio 0.837 -> 0.821) and should be neutral where the data
+#     is already clean (dblp, where Raw 0.826 -> IS+CL 0.820 is inside δ=0.01).
+#     If θ does not recover books, the "noise removal" story is not doing the work.
+#   - β=0.3/θ=0.2 is inside the grid, so the default is re-measured as the anchor.
+#
+# DATASET SELECTION (three, chosen so each answers a different question)
+#   reuters90 — stress test. Smallest and most imbalanced, lowest macro-F1 (0.386).
+#               Where over-pruning should show up first.
+#   dblp      — the flat case. Pruning is close to free here, so the grid should
+#               be near-isotropic; a useful negative control.
+#   books     — the case where pruning hurts. θ is supposed to earn its keep here.
+#   medline is DROPPED on purpose. It plays the same role as books but costs
+#   45 GPU-h for IS versus books' 1.84 — 25x the price for the same qualitative
+#   point. If books shows the effect, medline only confirms it at 25x cost.
+#
+# MODE: is only. The grid characterises the pruning rule; CL is held out so the
+# 9x3x3 = 81 runs stay interpretable and cheap. β/θ enter CL too (BIOIS-CL reuses
+# the same posteriors), so a follow-up grid on modes: [is_cl] is the natural
+# extension once a cell of interest is identified here.
+#
+# COST: 3 datasets x 9 cells x 3 folds ≈ 24 GPU-h.
+#   per fold per IS run: reuters90 0.14h | dblp 0.39h | books 0.35h
+# Cheap. Run it in one night on a single GPU.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/beta_theta_sweep.yaml --dataset reuters90 --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/beta_theta_sweep.yaml --dry-run
+# Full:    nohup uv run bio-experiment experiments/campaigns/beta_theta_sweep.yaml \
+#            > logs/beta_theta_sweep.log 2>&1 &
+#
+# Template vars from the matrix: {beta} and {theta} (last dotted component).
+# θ=0.0 is the control: the low-entropy removal rule switched off entirely.
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 6
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: beta_theta_sweep
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - f1_weighted
+      - accuracy
+      - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
+      - is_reduction
+      - train_time_s
+      - total_time
+
+  datasets:
+    reuters90: { n_splits: 5 }
+    dblp: { n_splits: 5 }
+    books: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    # 3 folds, not 5: the grid is 9 cells wide, so fold-level noise matters less
+    # than cell-to-cell coverage. Widen to [0,1,2,3,4] on the winning cell later.
+    folds: [0, 1, 2]
+    random_state: 42
+    training:
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      epochs: 6
+      epochs_per_phase: 2
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    # 3 x 3 = 9 cells, expanded by itertools.product over the two matrix keys.
+    # The curriculum block is omitted: it is unused in mode=is, and leaving it
+    # out keeps the grid signature unambiguous.
+    - modes: [is]
+      matrix:
+        instance_selection.beta: [0.1, 0.3, 0.5]
+        instance_selection.theta: [0.0, 0.2, 0.4]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_sweep_b{beta}_t{theta}"

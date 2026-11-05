@@ -1,0 +1,112 @@
+# 2² factorial — matched-configuration re-run (Raw / IS / CL / IS+CL).
+#
+# WHY THIS EXISTS
+# The paper's factorial table mixes configurations across the four cells of the
+# same dataset, because results/discovery.py::_matches_method filters on mode /
+# curriculum_method / n_splits / train_fraction but NOT on hf_model or
+# batch_size. Verified from config.json of the resolved cells:
+#   - medline : Raw = roberta-base (125M); IS, CL, IS+CL = ModernBERT-base (149M)
+#   - yelp_2013 / agnews / reuters90 : Raw+IS at bs=16, CL+IS+CL at bs=32
+#   - dblp / books : the only matched blocks
+# This campaign re-runs every cell under ONE config so the comparison is valid.
+#
+# SIDE BENEFIT (the main reason to run it first)
+# runner.py calls recorder.save_predictions() unconditionally, so every run here
+# emits predictions_test.csv. Zero of the ~259 existing run dirs have that file.
+# It is the substrate for the paired bootstrap (bio-equivalence), the per-class
+# breakdown, probe calibration, and the label-noise recovery metric.
+#
+# PREREQUISITE PATCHES (do these before launching, or the re-run repeats the bug)
+#   1. models/modernbert.py::_compute_proxy -> return float(self._token_count_total)
+#      Currently returns global_step * avg_seq_len, which omits batch_size and so
+#      is exactly 2x smaller at bs=32 than at bs=16. The honest reuters90 speedup
+#      is ~2.9x, not the reported 5.8x.
+#   2. results/discovery.py::_matches_method -> also compare hf_model and batch_size,
+#      so a mixed-config cell can never be silently resolved again.
+#
+# COST (5 folds, bs=32): ~235 GPU-h for all six datasets.
+#   reuters90 2.7 | books 6.9 | dblp 7.7 | agnews 12.3 | yelp_2013 65.1 | medline 151.1
+# Critical path = one medline Raw fold ~= 9-10h. Drop medline to cut 61% of compute.
+# Order cheap-first: reuters90, books, dblp, agnews, then yelp_2013, then medline.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml --dataset reuters90 --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml --dry-run
+# Full:    nohup uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml \
+#            > logs/factorial_matched_2x2.log 2>&1 &
+#
+# NOTE: there is no --mode CLI flag; modes come from the `modes:` list below.
+# To parallelise, split by dataset (--dataset) and by fold (--folds N).
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 5
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: factorial_matched_2x2
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - f1_weighted
+      - accuracy
+      - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
+      - is_reduction
+      - train_time_s
+      - total_time
+
+  datasets:
+    reuters90: { n_splits: 5 }
+    books: { n_splits: 5 }
+    dblp: { n_splits: 5 }
+    agnews: { n_splits: 5 }
+    yelp_2013: { n_splits: 5 }
+    medline: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    random_state: 42
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      method: biois_discrete
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+      beta: 0.5
+      margin_weight: 0.6
+      entropy_weight: 0.4
+      length_weight: 0.25
+      noise_weight_phases: [hard]
+      phase_max_lengths: [96, 160, 256]
+    training:
+      # bs=32 matches the paper text (~line 316) and the whole baselines table.
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      epochs: 6
+      epochs_per_phase: 2
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    # The 2² itself. Suffixed so discovery never resolves a stale mixed-config dir.
+    - modes: [raw, is, cl, is_cl]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_factorial_matched"
+
+    # Compute-matched control: Raw at fewer epochs, to pre-empt
+    # "IS+CL is just training less". Reuses the same matched config.
+    - modes: [raw]
+      matrix:
+        training.epochs: [2, 4]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_raw_ep{epochs}"

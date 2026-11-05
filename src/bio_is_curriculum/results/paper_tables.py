@@ -16,7 +16,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 FACTORIAL_DATASETS = [
-    "webkb",
     "reuters90",
     "dblp",
     "books",
@@ -26,13 +25,22 @@ FACTORIAL_DATASETS = [
 ]
 # The signal/params ablations never include medline.
 ABLATION_DATASETS = [
-    "webkb",
     "reuters90",
     "dblp",
     "books",
     "yelp_2013",
     "agnews",
 ]
+
+# Config fields that every run feeding a paper table must agree on. The 2^2
+# factorial is only interpretable if its four cells share the encoder and the
+# batch size; the repository contains older runs that do not (``roberta-base``
+# at ``batch_size`` 16 next to ``ModernBERT-base`` at 32), and resolving those
+# silently is what produced the unmatched cells this list now rejects.
+REQUIRED_CONFIG = {
+    "hf_model": "answerdotai/ModernBERT-base",
+    "batch_size": 32,
+}
 
 # Canonical BIO-IS discrete curriculum (the paper's "Default" configuration).
 _DEFAULT_MATCH = {

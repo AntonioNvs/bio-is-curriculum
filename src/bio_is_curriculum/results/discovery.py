@@ -12,12 +12,18 @@ from __future__ import annotations
 import json
 import os
 import re
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Mapping
 
 import pandas as pd
 
-from bio_is_curriculum.results.paper_tables import PAPER_TABLES, TableSpec
+from bio_is_curriculum.results.paper_tables import (
+    PAPER_TABLES,
+    REQUIRED_CONFIG,
+    TableSpec,
+)
 
 _FOLD_RE = re.compile(r"^(?P<mode>.+)_fold(?P<fold>\d+)$")
 
@@ -99,7 +105,23 @@ def scan_run_dirs(results_dir: str | Path) -> list[RunRecord]:
     return records
 
 
-def _matches_method(record: RunRecord, method, n_splits: int) -> bool:
+def _config_mismatches(
+    cfg: Mapping[str, Any], expected: Mapping[str, Any]
+) -> dict[str, tuple[Any, Any]]:
+    """Return ``{key: (found, wanted)}`` for every expected field that differs."""
+    return {
+        key: (cfg.get(key), wanted)
+        for key, wanted in expected.items()
+        if cfg.get(key) != wanted
+    }
+
+
+def _matches_method(
+    record: RunRecord,
+    method,
+    n_splits: int,
+    expected_config: Mapping[str, Any] | None = None,
+) -> bool:
     if method.mode not in record.complete_modes:
         return False
     if record.n_splits != n_splits:
@@ -109,6 +131,11 @@ def _matches_method(record: RunRecord, method, n_splits: int) -> bool:
     if record.curriculum_method != method.curriculum_method:
         return False
     cfg = record.config()
+    # Encoder and batch size are not part of ``method.match`` because they are
+    # supposed to be constant across a table. Enforce that here so a mixed
+    # cell can never be resolved silently.
+    if expected_config and _config_mismatches(cfg, expected_config):
+        return False
     for key, expected in method.match.items():
         if cfg.get(key) != expected:
             return False
@@ -119,8 +146,18 @@ def resolve_latest(
     results_dir: str | Path,
     table: TableSpec,
     n_splits: int = 5,
+    expected_config: Mapping[str, Any] | None = None,
 ) -> pd.DataFrame:
-    """Return one row per ``(dataset, method)`` cell with its latest run dir."""
+    """Return one row per ``(dataset, method)`` cell with its latest run dir.
+
+    ``expected_config`` lists config fields every run must agree on (defaults to
+    :data:`~bio_is_curriculum.results.paper_tables.REQUIRED_CONFIG`). Runs that
+    disagree are dropped, and a warning names them, so a table cell is never
+    filled from a run whose encoder or batch size differs from the rest. Pass an
+    empty mapping to disable the check and resolve legacy runs.
+    """
+    if expected_config is None:
+        expected_config = REQUIRED_CONFIG
     records = scan_run_dirs(results_dir)
     rows: list[dict] = []
     for dataset in table.datasets:
@@ -129,8 +166,30 @@ def resolve_latest(
                 r
                 for r in records
                 if r.dataset == dataset
-                and _matches_method(r, method, n_splits)
+                and _matches_method(r, method, n_splits, expected_config)
             ]
+            # Runs that matched everything except the shared config, reported so
+            # the exclusion is visible rather than looking like "no run exists".
+            rejected = [
+                r
+                for r in records
+                if r.dataset == dataset
+                and not _matches_method(r, method, n_splits, expected_config)
+                and _matches_method(r, method, n_splits, None)
+            ]
+            if rejected:
+                shown = rejected[:5]
+                detail = "; ".join(
+                    f"{r.experiment_id} {_config_mismatches(r.config(), expected_config)}"
+                    for r in shown
+                )
+                if len(rejected) > len(shown):
+                    detail += f"; (+{len(rejected) - len(shown)} more)"
+                warnings.warn(
+                    f"[{table.name}/{dataset}/{method.name}] {len(rejected)} run dir(s) "
+                    f"excluded for config mismatch against {dict(expected_config)}: {detail}",
+                    stacklevel=2,
+                )
             if not candidates:
                 rows.append(
                     {
@@ -168,10 +227,11 @@ def identify_latest(
     results_dir: str | Path,
     tables: list[TableSpec] | None = None,
     n_splits: int = 5,
+    expected_config: Mapping[str, Any] | None = None,
 ) -> pd.DataFrame:
     """Resolve latest runs for all paper tables into a single DataFrame."""
     frames = [
-        resolve_latest(results_dir, table, n_splits=n_splits)
+        resolve_latest(results_dir, table, n_splits=n_splits, expected_config=expected_config)
         for table in (tables or PAPER_TABLES)
     ]
     return pd.concat(frames, ignore_index=True)
@@ -188,12 +248,26 @@ def _parse_args(argv=None):
         "--output", default=None, help="Optional CSV path to write the mapping."
     )
     parser.add_argument("--n-splits", type=int, default=5, help="Expected CV folds.")
+    parser.add_argument(
+        "--allow-config-mismatch",
+        action="store_true",
+        help=(
+            "Resolve cells even when a run's hf_model/batch_size differs from "
+            "REQUIRED_CONFIG. Use only to inspect legacy results; the paper "
+            "tables require matched configs."
+        ),
+    )
     return parser.parse_args(argv)
 
 
 def main(argv=None) -> None:
     args = _parse_args(argv)
-    df = identify_latest(args.results_dir, n_splits=args.n_splits)
+    # An empty mapping disables the check; ``None`` would be re-defaulted to
+    # REQUIRED_CONFIG by resolve_latest.
+    expected = {} if args.allow_config_mismatch else REQUIRED_CONFIG
+    df = identify_latest(
+        args.results_dir, n_splits=args.n_splits, expected_config=expected
+    )
     if args.output:
         df.to_csv(args.output, index=False)
         print(f"Saved mapping to: {os.path.abspath(args.output)}")
