@@ -1,0 +1,100 @@
+# Random stratified subsample at matched retention — is selection even needed?
+#
+# WHY THIS EXISTS
+# IS removes redundant-correct and low-entropy-misclassified instances, then CL
+# schedules what remains. The cheapest possible alternative is to throw away the
+# same FRACTION of training data at random — no posteriors, no redundancy score,
+# no phases. If that matches IS+CL, the whole method is a expensive way to
+# subsample.
+#
+# This is a *fraction* control, not a *count* control: it matches the retention
+# rate, so the remaining arms see the same number of training instances. That is
+# what makes it the right null for "the gain is just less data".
+#
+# train_fraction uses StratifiedShuffleSplit over the train split
+# (data/preprocessing.py), so the subsample keeps the class distribution of the
+# full training set. That is deliberately more generous to the control than a
+# uniform subsample would be — if plain stratified subsampling matched BIOIS,
+# the method would be dead, and the control should be able to show that.
+#
+# !! PLACEHOLDER — DO NOT RUN BEFORE FILLING IN !!
+# The value must be 1 - is_reduction MEASURED on Y1's summary, per dataset. The
+# retention differs by dataset (books prunes far more than reuters90), so a
+# single guessed constant is a control with the wrong denominator — it would
+# either give the control MORE data than IS+CL kept (inflating the baseline) or
+# less. The runbook is explicit: "não chutar 0.66".
+#
+# scripts/run_campaign.py refuses to execute this campaign while the
+# TODO(placeholder) marker below is present, so a mistyped launch cannot burn
+# GPU-hours on a mis-specified control. Fill it in, then remove the marker.
+#
+#   # after Y1, per dataset:
+#   jq -r '.summary' results/<y1_dir>/manifest.json     # or read summary.csv
+#   #   train_fraction = 1 - is_reduction
+#
+# If retention genuinely differs per dataset, split this into one job per dataset
+# with its own matrix value rather than averaging.
+#
+# DATASETS: the same three as Y3, so the control lines up against the score arms.
+#
+# COST: 3 datasets x 5 folds = 15 runs ≈ 5.1 GPU-h.
+#
+# RunPod: pods have no Docker daemon, so ALWAYS pass --no-docker, and run from
+# the repo root (results_dir/data_dir are relative). scripts/run_campaign.py does
+# both. gpu_id is recorded in the manifest for provenance only.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/controls_random_stratified.yaml \
+#            --no-docker --dataset reuters90 --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/controls_random_stratified.yaml \
+#            --no-docker --dry-run
+#
+# Template var from the matrix: {train_fraction} — the short name is the last
+# dotted component (only curriculum.method/loss_scheme have short aliases in
+# config/campaign.py::_MATRIX_KEY_ALIASES), so "{frac}" would raise KeyError.
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 0
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: controls_random_stratified
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - hard_slice_macro_f1
+      - n_train_instances
+      - train_time_s
+      - total_time
+
+  datasets:
+    books:     { n_splits: 5 }
+    reuters90: { n_splits: 5 }
+    agnews:    { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    random_state: 42
+    training:
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      epochs: 6
+      epochs_per_phase: 2
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    - modes: [raw]
+      matrix:
+        # TODO(placeholder): replace 0.66 with the measured 1 - is_reduction from
+        # Y1's summary, per dataset, and delete this marker. See the header.
+        training.train_fraction: [0.66]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_raw_rand{train_fraction}"

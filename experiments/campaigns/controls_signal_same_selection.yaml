@@ -1,0 +1,142 @@
+# Score controls at frozen selection — is the *difficulty score* doing the work?
+#
+# WHY THIS EXISTS
+# The paper's decisive question is whether BIOIS-CL beats simple alternatives at
+# the same budget. Y1 answers it against Raw/IS/CL, but every one of those arms
+# changes two things at once: which instances survive, and in what order they are
+# presented. This campaign freezes the first and varies only the second.
+#
+# All four jobs are mode=is_cl with the SAME beta, theta and random_state, so
+# BIOIS selects the same survivors in all four. Only the curriculum's difficulty
+# score changes:
+#
+#   sel_composite      margin 0.6 + entropy 0.4 + length 0.25  (the paper's score)
+#   sel_margin_only    margin 1.0 + entropy 0.0                (drop the entropy term)
+#   sel_entropy_only   margin 0.0 + entropy 1.0                (drop the margin term)
+#   sel_random_phases  uniform random e                        (drop difficulty entirely)
+#
+# The first three need no new code — margin_weight and entropy_weight are already
+# config keys, and a one-element matrix is a fixed override (config/campaign.py
+# ::_job_yaml_for_combo). The fourth needs patch P4 (random_discrete), now
+# implemented: it subclasses BIOISDiscreteCurriculum and replaces ONLY the
+# ordering score e. The redundancy r, the noise term, the hard-phase weighting
+# 1 - beta*min(r, r_cap), the noise downweighting and the class-coverage
+# tie-break are all inherited unchanged, so "phase order" is the sole variable.
+#
+# Because per_class_low_quantile_mask re-quantiles inside its per-class loop, a
+# global uniform e still yields the SAME per-class phase quotas as BIOIS. The
+# control is therefore quota-matched by construction, not by luck — see
+# tests/unit/test_random_discrete.py.
+#
+# HOW TO READ THE RESULT
+#   composite ≈ margin_only ≈ entropy_only  -> the composite is not the point;
+#                                              one signal carries it.
+#   composite > both                        -> the blend is load-bearing.
+#   composite ≈ random_phases               -> the difficulty ORDER does not
+#                                              matter; the gain comes from
+#                                              selection, not from scheduling.
+# Only the last comparison needs P4, and it is the one that decides whether the
+# paper's curriculum story survives.
+#
+# KNOWN CONFOUND — final eligibility. With q_high=0.95 the natural schedule also
+# changes WHICH instances are never trained at all. To separate that from the
+# score effect, re-run the reference job with curriculum.q_high: [1.0] as a
+# sensitivity. Not included here; it is a 3-run add-on, not a new campaign.
+#
+# DATASETS: books (where pruning hurts), reuters90 (smallest/most imbalanced),
+# agnews (counterpoint with a small loss).
+#
+# COST: 3 datasets x 4 jobs x 5 folds = 60 runs ≈ 11.6 GPU-h.
+#
+# RunPod: pods have no Docker daemon, so ALWAYS pass --no-docker, and run from
+# the repo root (results_dir/data_dir are relative). scripts/run_campaign.py does
+# both. gpu_id is recorded in the manifest for provenance only.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/controls_signal_same_selection.yaml \
+#            --no-docker --dataset reuters90 --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/controls_signal_same_selection.yaml \
+#            --no-docker --dry-run
+#
+# Template vars: {method} where the matrix sets curriculum.method.
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 0
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: controls_signal_same_selection
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
+      - is_reduction
+      - train_time_s
+      - total_time
+
+  datasets:
+    books:     { n_splits: 5 }
+    reuters90: { n_splits: 5 }
+    agnews:    { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    random_state: 42
+    instance_selection:
+      # Frozen across all four arms: same survivors, same budget.
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      method: biois_discrete
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+      beta: 0.5
+      margin_weight: 0.6
+      entropy_weight: 0.4
+      length_weight: 0.25
+      noise_weight_phases: [hard]
+      phase_max_lengths: [96, 160, 256]
+    training:
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      epochs: 6
+      epochs_per_phase: 2
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    # Reference: the composite score. Repeated here so it shares this campaign's
+    # timestamp and is resolved from this directory rather than from Y1.
+    - modes: [is_cl]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_sel_composite"
+
+    # Margin only — one-element matrix = fixed override.
+    - modes: [is_cl]
+      matrix:
+        curriculum.margin_weight: [1.0]
+        curriculum.entropy_weight: [0.0]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_sel_margin_only"
+
+    # Entropy only.
+    - modes: [is_cl]
+      matrix:
+        curriculum.margin_weight: [0.0]
+        curriculum.entropy_weight: [1.0]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_sel_entropy_only"
+
+    # Random phase ordering (P4). Same survivors, same per-class quotas, random e.
+    - modes: [is_cl]
+      matrix:
+        curriculum.method: [random_discrete]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_sel_random_phases"

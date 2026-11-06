@@ -24,15 +24,26 @@
 #   2. results/discovery.py::_matches_method -> also compare hf_model and batch_size,
 #      so a mixed-config cell can never be silently resolved again.
 #
-# COST (5 folds, bs=32): ~235 GPU-h for all six datasets.
-#   reuters90 2.7 | books 6.9 | dblp 7.7 | agnews 12.3 | yelp_2013 65.1 | medline 151.1
-# Critical path = one medline Raw fold ~= 9-10h. Drop medline to cut 61% of compute.
-# Order cheap-first: reuters90, books, dblp, agnews, then yelp_2013, then medline.
+# COST (5 folds, bs=32): ~94.7 GPU-h for the five datasets below.
+#   reuters90 2.7 | books 6.9 | dblp 7.7 | agnews 12.3 | yelp_2013 65.1
+# medline is DEFERRED in this run (commented out below): at ~151 GPU-h it is 61% of
+# the full block and would dominate the critical path. Enable it only if the budget
+# allows.
+# Order cheap-first: reuters90, books, dblp, agnews, then yelp_2013.
 #
-# Smoke:   uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml --dataset reuters90 --folds 0
-# Dry-run: uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml --dry-run
-# Full:    nohup uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml \
-#            > logs/factorial_matched_2x2.log 2>&1 &
+# The compute-matched control (Raw at fewer epochs) is NOT here: it trains from
+# scratch rather than reusing a trajectory, and paying +1x Raw on every dataset to
+# answer a question about three of them is waste. It lives in
+# raw_curve_diagnostic.yaml, restricted to the diagnostic datasets.
+#
+# RunPod: pods have no Docker daemon, so ALWAYS pass --no-docker, and run from the
+# repo root (results_dir/data_dir are relative). scripts/run_campaign.py does both
+# and adds resume; gpu_id below is recorded in the manifest for provenance only.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml \
+#            --no-docker --dataset reuters90 --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/factorial_matched_2x2.yaml \
+#            --no-docker --dry-run
 #
 # NOTE: there is no --mode CLI flag; modes come from the `modes:` list below.
 # To parallelise, split by dataset (--dataset) and by fold (--folds N).
@@ -66,7 +77,8 @@ campaign:
     dblp: { n_splits: 5 }
     agnews: { n_splits: 5 }
     yelp_2013: { n_splits: 5 }
-    medline: { n_splits: 5 }
+    # Deferred: ~151 GPU-h on its own (~64% of this block). Re-enable when budget allows.
+    # medline: { n_splits: 5 }
 
   defaults:
     model: modernbert
@@ -103,10 +115,3 @@ campaign:
     # The 2² itself. Suffixed so discovery never resolves a stale mixed-config dir.
     - modes: [raw, is, cl, is_cl]
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_factorial_matched"
-
-    # Compute-matched control: Raw at fewer epochs, to pre-empt
-    # "IS+CL is just training less". Reuses the same matched config.
-    - modes: [raw]
-      matrix:
-        training.epochs: [2, 4]
-      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_raw_ep{epochs}"

@@ -1,0 +1,89 @@
+# Raw@2ep / Raw@4ep / Raw@6ep curve — is the IS+CL gain just less training?
+#
+# WHY THIS EXISTS
+# The paper's compute-matched control is the epoch budget, not the wall-clock: IS
+# and CL both prune training data, so an IS+CL run trains on strictly fewer
+# instances than Raw. A reviewer's first objection is "you won because you
+# stopped earlier, and 6 epochs overfit". This campaign measures Raw at the two
+# cheaper budgets so the curve Raw@2ep / Raw@4ep / Raw@6ep exists explicitly, and
+# the 6ep endpoint is reused verbatim from Y1 (factorial_matched_2x2.yaml) under
+# an identical config — same hf_model, same batch_size, same folds.
+#
+# It also settles whether Raw has already saturated by 2 epochs on the small
+# datasets, which is the actual mechanism behind the reported speedup: if
+# Raw@2ep ≈ Raw@6ep on reuters90, the honest speedup claim is about convergence
+# speed, not about BIOIS.
+#
+# DATASET SELECTION (three, one per regime)
+#   books      — where pruning HURTS accuracy (IS drops Bengio 0.837 -> 0.821).
+#                If the Raw curve is still rising at 6ep here, IS+CL's loss is
+#                under-training, not selection.
+#   reuters90  — smallest and most imbalanced (macro-F1 0.386), and the dataset
+#                behind the reported speedup. The one where the curve should
+#                flatten earliest.
+#   agnews     — the counterpoint: moderate loss, and the largest of the three,
+#                so it checks the curve shape is not a small-data artifact.
+#
+# P6 would make this file unnecessary: a 6-epoch Raw run that checkpoints per
+# epoch yields the whole curve, and Y2 collapses to a reuters90 verification job
+# (~7.6 GPU-h saved). P6 is optional and not applied.
+#
+# COST: 3 datasets x 2 budgets x 5 folds = 30 runs ≈ 7.6 GPU-h.
+#   Each budget trains from scratch — the 4ep run does NOT warm-start from 2ep.
+#
+# RunPod: pods have no Docker daemon, so ALWAYS pass --no-docker, and run from
+# the repo root (results_dir/data_dir are relative). scripts/run_campaign.py does
+# both. gpu_id is recorded in the manifest for provenance only.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/raw_curve_diagnostic.yaml \
+#            --no-docker --dataset reuters90 --folds 0
+# Dry-run: uv run bio-experiment experiments/campaigns/raw_curve_diagnostic.yaml \
+#            --no-docker --dry-run
+#
+# Template var from the matrix: {epochs} (last dotted component).
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 0
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: raw_curve_diagnostic
+  timestamp: auto
+  summary:
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - hard_slice_macro_f1
+      - train_time_s
+      - total_time
+
+  datasets:
+    books:     { n_splits: 5 }
+    reuters90: { n_splits: 5 }
+    agnews:    { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    random_state: 42
+    training:
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      # epochs is intentionally absent: the matrix sets it, and leaving it out
+      # keeps the two cells the only source of truth for the budget.
+      epochs_per_phase: 2
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    # 2 cells, expanded by itertools.product over the single matrix key.
+    - modes: [raw]
+      matrix:
+        training.epochs: [2, 4]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_raw_ep{epochs}"
