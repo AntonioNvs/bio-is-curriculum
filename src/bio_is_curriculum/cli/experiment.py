@@ -33,6 +33,7 @@ from bio_is_curriculum.results.manifest import (
 
 _DISCRETE_METHODS = frozenset({
     "biois_discrete",
+    "random_discrete",
     "length_discrete",
     "loss_discrete",
     "tfidf_discrete",
@@ -115,7 +116,9 @@ def _build_cli_args(cfg, mode: str, fold: int, experiment_id: str) -> list[str]:
         q_low, q_mid, q_high = cfg.curriculum_q
         if cfg.curriculum_method in _DISCRETE_METHODS:
             args += ["--curriculum-q", str(q_low), str(q_mid), str(q_high)]
-        if cfg.curriculum_method == "biois_discrete":
+        # random_discrete derives its coverage ordering from the BIOIS composite,
+        # so it takes the same weights and noise phases.
+        if cfg.curriculum_method in {"biois_discrete", "random_discrete"}:
             args += [
                 "--curriculum-margin-weight", str(cfg.curriculum_margin_weight),
                 "--curriculum-entropy-weight", str(cfg.curriculum_entropy_weight),

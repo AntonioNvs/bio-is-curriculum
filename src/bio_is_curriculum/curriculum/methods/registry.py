@@ -11,6 +11,9 @@ from bio_is_curriculum.curriculum.methods.heuristic_discrete import (
     TfidfDiscreteCurriculum,
     TrainingDynamicsDiscreteCurriculum,
 )
+from bio_is_curriculum.curriculum.methods.random_discrete import (
+    RandomDiscreteCurriculum,
+)
 from bio_is_curriculum.curriculum.methods.self_adaptive_pmd import (
     SelfAdaptivePMDCurriculum,
 )
@@ -19,6 +22,7 @@ from bio_is_curriculum.curriculum.methods.spcl_soft import SPCLSoftCurriculum
 
 REGISTRY: dict[str, type] = {
     BIOISDiscreteCurriculum.METHOD_ID: BIOISDiscreteCurriculum,
+    RandomDiscreteCurriculum.METHOD_ID: RandomDiscreteCurriculum,
     LengthDiscreteCurriculum.METHOD_ID: LengthDiscreteCurriculum,
     LossDiscreteCurriculum.METHOD_ID: LossDiscreteCurriculum,
     TfidfDiscreteCurriculum.METHOD_ID: TfidfDiscreteCurriculum,
@@ -33,6 +37,7 @@ REGISTRY: dict[str, type] = {
 ALIASES: dict[str, str] = {
     "discrete": "biois_discrete",
     "biois": "biois_discrete",
+    "random": "random_discrete",
     "length": "length_discrete",
     "tfidf": "tfidf_discrete",
     "lrc": "lrc_discrete",
@@ -74,6 +79,7 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
     }
     if method_id in {
         "biois_discrete",
+        "random_discrete",
         "length_discrete",
         "loss_discrete",
         "tfidf_discrete",
@@ -93,7 +99,9 @@ def build_curriculum_kwargs(method: str, args) -> dict[str, Any]:
         if method_id == "td_discrete":
             kwargs["td_probe_epochs"] = getattr(args, "td_probe_epochs", 2)
             kwargs["td_metric"] = getattr(args, "td_metric", "confidence")
-        if method_id == "biois_discrete":
+        # random_discrete reuses the BIOIS composite to derive its coverage
+        # ordering, so it needs the same weights and noise phases.
+        if method_id in {"biois_discrete", "random_discrete"}:
             kwargs.update(
                 {
                     "margin_weight": getattr(args, "curriculum_margin_weight", 0.6),
