@@ -259,7 +259,7 @@ CLI: `--docker-gpu N` overrides `docker.gpu_id`. `--docker` forces Docker wrap e
 | Token | Meaning |
 |-------|---------|
 | `raw`, `is`, `cl`, `is_cl` | Core factorial modes |
-| `is_continuous_cl` | Alias for IS+CL with `spcl_soft` |
+| `is_continuous_cl` | Alias for SPURS with `spcl_soft` |
 | `b1`, `b2`, … | Literature baselines |
 
 ## CLI flags (`bio-experiment`)

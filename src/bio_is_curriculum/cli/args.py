@@ -11,7 +11,7 @@ from bio_is_curriculum.curriculum.imbalance_losses import IMBALANCE_METHODS
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="biO-IS-Curriculum: instance selection + curriculum learning for text classification."
+        description="SPURS: shared-probe instance selection + curriculum learning for text classification."
     )
     p.add_argument("dataset", type=str)
     p.add_argument("--data_dir", type=str, default="datasets")

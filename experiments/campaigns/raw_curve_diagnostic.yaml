@@ -1,8 +1,8 @@
-# Raw@2ep / Raw@4ep / Raw@6ep curve — is the IS+CL gain just less training?
+# Raw@2ep / Raw@4ep / Raw@6ep curve — is the SPURS gain just less training?
 #
 # WHY THIS EXISTS
 # The paper's compute-matched control is the epoch budget, not the wall-clock: IS
-# and CL both prune training data, so an IS+CL run trains on strictly fewer
+# and CL both prune training data, so an SPURS run trains on strictly fewer
 # instances than Raw. A reviewer's first objection is "you won because you
 # stopped earlier, and 6 epochs overfit". This campaign measures Raw at the two
 # cheaper budgets so the curve Raw@2ep / Raw@4ep / Raw@6ep exists explicitly, and
@@ -16,7 +16,7 @@
 #
 # DATASET SELECTION (three, one per regime)
 #   books      — where pruning HURTS accuracy (IS drops Bengio 0.837 -> 0.821).
-#                If the Raw curve is still rising at 6ep here, IS+CL's loss is
+#                If the Raw curve is still rising at 6ep here, SPURS's loss is
 #                under-training, not selection.
 #   reuters90  — smallest and most imbalanced (macro-F1 0.386), and the dataset
 #                behind the reported speedup. The one where the curve should

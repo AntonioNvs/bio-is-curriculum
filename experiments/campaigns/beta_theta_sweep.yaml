@@ -12,7 +12,7 @@
 #   - A robustness claim: macro-F1 across the 3x3 grid, reported as mean ± range.
 #   - The mechanism check: θ should help where pruning *costs* accuracy (books,
 #     where IS drops Bengio 0.837 -> 0.821) and should be neutral where the data
-#     is already clean (dblp, where Raw 0.826 -> IS+CL 0.820 is inside δ=0.01).
+#     is already clean (dblp, where Raw 0.826 -> SPURS 0.820 is inside δ=0.01).
 #     If θ does not recover books, the "noise removal" story is not doing the work.
 #   - β=0.3/θ=0.2 is inside the grid, so the default is re-measured as the anchor.
 #
@@ -28,7 +28,7 @@
 #   point. If books shows the effect, medline only confirms it at 25x cost.
 #
 # MODE: is only. The grid characterises the pruning rule; CL is held out so the
-# 9x3x3 = 81 runs stay interpretable and cheap. β/θ enter CL too (BIOIS-CL reuses
+# 9x3x3 = 81 runs stay interpretable and cheap. β/θ enter CL too (SPURS reuses
 # the same posteriors), so a follow-up grid on modes: [is_cl] is the natural
 # extension once a cell of interest is identified here.
 #

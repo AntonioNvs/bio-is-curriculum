@@ -4,7 +4,7 @@
 # IS removes redundant-correct and low-entropy-misclassified instances, then CL
 # schedules what remains. The cheapest possible alternative is to throw away the
 # same FRACTION of training data at random — no posteriors, no redundancy score,
-# no phases. If that matches IS+CL, the whole method is a expensive way to
+# no phases. If that matches SPURS, the whole method is a expensive way to
 # subsample.
 #
 # This is a *fraction* control, not a *count* control: it matches the retention
@@ -21,7 +21,7 @@
 # The value must be 1 - is_reduction MEASURED on Y1's summary, per dataset. The
 # retention differs by dataset (books prunes far more than reuters90), so a
 # single guessed constant is a control with the wrong denominator — it would
-# either give the control MORE data than IS+CL kept (inflating the baseline) or
+# either give the control MORE data than SPURS kept (inflating the baseline) or
 # less. The runbook is explicit: "não chutar 0.66".
 #
 # scripts/run_campaign.py refuses to execute this campaign while the

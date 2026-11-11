@@ -1,7 +1,7 @@
 [project]
 name = "bio-is-curriculum"
 version = "0.2.0"
-description = "Data-efficient ModernBERT fine-tuning via bi-objective instance selection and curriculum learning"
+description = "SPURS: data-efficient ModernBERT fine-tuning via a shared probe for bi-objective instance selection and curriculum learning"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

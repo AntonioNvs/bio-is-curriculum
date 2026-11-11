@@ -1,4 +1,4 @@
-# BIOIS-CL — Plano consolidado para submissão ACL
+# SPURS — Plano consolidado para submissão ACL
 
 **Documento de trabalho para o autor e o orientador**
 Consolida o parecer do orientador, a revisão crítica interna e a auditoria do repositório.
@@ -15,7 +15,7 @@ Fontes: `report.md` (parecer), `review-acl.md` (revisão crítica), `acl_latex.t
 2. **Comparação inválida na tabela principal.** As quatro células do fatorial 2² não foram rodadas sob configuração pareada — misturam encoder e batch size entre células do mesmo dataset. Isso contamina a manchete de eficiência e a claim de não inferioridade em Medline.
 3. **Claim de mecanismo não falsificável.** Nada no artigo testa que a regra θ remove ruído. Em dados limpos, ela é indistinguível de "remover exemplos difíceis".
 
-A pergunta decisiva: **com o mesmo orçamento, BIOIS-CL produz resultados melhores do que parar o treino completo mais cedo, selecionar aleatoriamente, ou usar um currículo simples com os mesmos posteriors?**
+A pergunta decisiva: **com o mesmo orçamento, SPURS produz resultados melhores do que parar o treino completo mais cedo, selecionar aleatoriamente, ou usar um currículo simples com os mesmos posteriors?**
 
 ---
 
@@ -54,8 +54,8 @@ Executar **antes de qualquer re-run**. Sem isso, os experimentos reproduzem os e
 
 Lido dos `config.json` das células resolvidas:
 
-- **medline**: Raw = `roberta-base` (125M); IS, CL, IS+CL = `answerdotai/ModernBERT-base` (149M). A claim de não inferioridade em Medline compara o método contra um encoder **mais fraco**.
-- **yelp_2013, agnews, reuters90**: Raw/IS em `batch_size=16`, CL/IS+CL em `batch_size=32`, de lotes de execução diferentes (2026-09-04 vs. 2026-09-14/15).
+- **medline**: Raw = `roberta-base` (125M); IS, CL, SPURS = `answerdotai/ModernBERT-base` (149M). A claim de não inferioridade em Medline compara o método contra um encoder **mais fraco**.
+- **yelp_2013, agnews, reuters90**: Raw/IS em `batch_size=16`, CL/SPURS em `batch_size=32`, de lotes de execução diferentes (2026-09-04 vs. 2026-09-14/15).
 - **dblp, books**: os únicos blocos pareados de verdade.
 
 O texto afirma "batch size 32" e "ModernBERT-base" como fixos (`:316`), o que contradiz as execuções de Raw/IS.
@@ -138,7 +138,7 @@ Ordem diagnóstica: **Books e Reuters-90** (onde há perdas) e **AG News** (cont
 
 ### D.2 — Depois: remover componentes um a um
 
-| Componente | Contraste focal em IS+CL | Como |
+| Componente | Contraste focal em SPURS | Como |
 |---|---|---|
 | **Piso de risco** | Com e sem `max(d, γ)`, elegibilidade final comum, pesos por ID congelados | Flag nova em `biois_discrete.py` |
 | **Ponderação** | Sem peso de redundância; sem peso de ruído; todos unitários. Manter as atribuições de fase | `curriculum.beta: 0.0` desliga redundância (já suportado). O peso de ruído (`λn`) exige flag — hoje é hardcoded |
@@ -159,7 +159,7 @@ Ranks globais vs. por classe, ordem inversa, diversas taxas de poda e substitui�
 
 ## 7. Frente E — Diagnóstico das perdas
 
-Em Reuters-90: IS-only tem F1 0,418 em 390 s; IS+CL tem 0,344 em 375 s. **O ganho adicional de 15 s acompanha uma perda de 7,4 pontos percentuais.** Caso prioritário, sem concluir antecipadamente que a causa são as classes minoritárias.
+Em Reuters-90: IS-only tem F1 0,418 em 390 s; SPURS tem 0,344 em 375 s. **O ganho adicional de 15 s acompanha uma perda de 7,4 pontos percentuais.** Caso prioritário, sem concluir antecipadamente que a causa são as classes minoritárias.
 
 | ID | Ação | Como |
 |---|---|---|
@@ -202,7 +202,7 @@ Em Reuters-90: IS-only tem F1 0,418 em 390 s; IS+CL tem 0,344 em 375 s. **O ganh
 | G3 | Substituir o t unilateral por bootstrap pareado | **Já implementado** em `results/equivalence.py` (`bio-equivalence`, δ=0,01, CI 90%, 10k reamostragens) — mas cai no fallback `bootstrap_level="fold"` porque não existe nenhum `predictions_test.csv` |
 | G4 | Rejustificar δ e confiança | O limite unilateral de 90% corresponde a α=0,10; `t_{0,90;4}=1,53` é coerente, mas exige hipóteses não garantidas pelos 5 folds. Justificar a margem de 0,01 **antes** de nova confirmação. Sem suporte inferencial adequado, relatar o trade-off e **retirar a conclusão formal forte** |
 | G5 | Distinguir não inferioridade de equivalência | Ausência de significância não estabelece equivalência |
-| G6 | Calcular a interação | Por fold/seed: `I = F(IS+CL) − F(IS) − F(CL) + F(Raw)`, com incerteza pareada. O contraste avalia as **receitas**; não identifica o componente responsável. Menor tempo, sozinho, não demonstra sinergia |
+| G6 | Calcular a interação | Por fold/seed: `I = F(SPURS) − F(IS) − F(CL) + F(Raw)`, com incerteza pareada. O contraste avalia as **receitas**; não identifica o componente responsável. Menor tempo, sozinho, não demonstra sinergia |
 | G7 | Família de testes | Para múltiplas conclusões confirmatórias, definir a família; ajustes não consertam dependência mal modelada. `results/significance.py` já faz Holm-Bonferroni + Wilcoxon |
 | G8 | Separar os dados | Documentar teste externo, validação, folds internos e calibração. Para scores inteiramente OOF, ajustar TF-IDF em cada treino interno. Se o IDF usa todos os textos do treino externo, **declarar a escolha**, distinguindo acesso a textos internos de vazamento de rótulos |
 | G9 | Recuperar o histórico | Todos os `config.json` têm `git_commit: None` — as execuções vieram de imagem Docker obsoleta. Relatar versões, conversões single-label, IDs, grupos/duplicatas, tokenizer e estado do otimizador/scheduler entre fases. Warm-start dos parâmetros **não** esclarece esses estados |
@@ -214,7 +214,7 @@ Em Reuters-90: IS-only tem F1 0,418 em 390 s; IS+CL tem 0,344 em 375 s. **O ganh
 
 | ID | Ação | Detalhe |
 |---|---|---|
-| H1 | Reconciliar AG News | Tabela 2 (IS+CL) = `0,945` vs. Tabela 6 (BIOIS-CL) = `0,944` — `acl_latex.tex:373` vs. `:611` |
+| H1 | Reconciliar AG News | Tabela 2 (SPURS) = `0,945` vs. Tabela 6 (SPURS) = `0,944` — `acl_latex.tex:373` vs. `:611` |
 | H2 | Yelp: intervalos repetidos | `0,659 ± 0,002` aparece nas Tabelas 4 e 5 (`:482`, `:556`) |
 | H3 | Diferenças derivadas de médias arredondadas | Recalcular a partir dos dados brutos |
 | H4 | Regenerar tabelas dos dados brutos | `bio-summary` + `results/paper_tables.py`, com identificação de runs. **Depende de B3** |
@@ -279,7 +279,7 @@ Priorizar **um** novo dataset de classificação que acrescente condição relev
 - [ ] Quadro das comparações executadas e pendentes
 - [ ] Tabelas geradas dos dados brutos, com identificação de runs
 - [ ] Curvas qualidade × tempo acumulado
-- [ ] Ablações centrais em IS+CL
+- [ ] Ablações centrais em SPURS
 - [ ] Diagnóstico por classe
 - [ ] Descrição verificável dos splits e baselines
 - [ ] Resumo de quais conclusões sobreviveram aos controles

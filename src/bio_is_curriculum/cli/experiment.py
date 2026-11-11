@@ -276,7 +276,7 @@ def _run_batch(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="biO-IS-Curriculum YAML experiment runner.")
+    parser = argparse.ArgumentParser(description="SPURS YAML experiment runner.")
     parser.add_argument("config", type=str)
     parser.add_argument("--folds", nargs="*", type=int, default=None)
     parser.add_argument("--verbose", action="store_true")

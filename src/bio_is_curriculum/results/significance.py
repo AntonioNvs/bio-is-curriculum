@@ -132,7 +132,7 @@ def run(
     """Resolve latest runs and run paired tests across the paper tables.
 
     ``pairs`` optionally restricts comparisons to the given method-name pairs
-    (e.g. ``[("Raw", "IS+CL")]``); ``None`` tests every pair.
+    (e.g. ``[("Raw", "SPURS")]``); ``None`` tests every pair.
     """
     tables = tables or PAPER_TABLES
     pair_set = {frozenset(p) for p in pairs} if pairs is not None else None
@@ -226,7 +226,7 @@ def _parse_args(argv=None):
         default=None,
         metavar="A,B",
         help=(
-            "Restrict to one method pair (comma-separated, e.g. 'Raw,IS+CL'). "
+            "Restrict to one method pair (comma-separated, e.g. 'Raw,SPURS'). "
             "Repeat for multiple pairs. Default: all pairs."
         ),
     )

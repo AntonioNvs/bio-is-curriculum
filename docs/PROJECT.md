@@ -2,7 +2,7 @@
 
 ## Goal
 
-Fine-tune **ModernBERT-base** on text classification benchmarks using **Bi-Objective Instance Selection (BIOIS)** and **Curriculum Learning (CL)** to improve the **efficiency–quality Pareto frontier**.
+**SPURS** (*Shared-Probe Unified Reduction and Scheduling*) fine-tunes **ModernBERT-base** on text classification benchmarks using **Bi-Objective Instance Selection (BIOIS)** and **Curriculum Learning (CL)** to improve the **efficiency–quality Pareto frontier**. A single lightweight TF-IDF weak-classifier probe supplies the statistics for both stages.
 
 ## Core hypothesis
 
@@ -20,14 +20,14 @@ Together, these yield competitive macro-F1 with less data and less training time
 | `raw` | No | No | Reference |
 | `is` | Yes | No | IS ablation |
 | `cl` | Signals only | Yes | CL ablation |
-| `is_cl` | Yes | Yes | **Main method** |
+| `is_cl` | Yes | Yes | **Main method (SPURS)** |
 
 Literature baselines (`b1`, `b2`, …) use alternative difficulty signals/schedules under the same training budget.
 
 ## Relation to prior work
 
 - **SIGIR'23 BIOIS paper (Cunha et al.)**: instance selection for Transformer efficiency.
-- **This repo**: reuses BIOIS signals to **schedule curriculum phases** during RoBERTa fine-tuning — a distinct contribution from IS alone.
+- **This repo (SPURS)**: reuses BIOIS signals to **schedule curriculum phases** during ModernBERT fine-tuning — a distinct contribution from IS alone.
 
 ## Execution
 

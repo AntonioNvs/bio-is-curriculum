@@ -43,7 +43,7 @@ def test_bootstrap_equivalence_identical_is_equivalent():
 
 def test_bootstrap_equivalence_large_gap_not_equivalent():
     y_true, y_pred = _balanced()
-    # IS+CL flips 30 correct -> wrong (drops macro-F1 from 1.0 to ~0.9)
+    # SPURS flips 30 correct -> wrong (drops macro-F1 from 1.0 to ~0.9)
     wrong = y_pred.copy()
     wrong[0:30] = (wrong[0:30] + 1) % 3
     res = bootstrap_equivalence(

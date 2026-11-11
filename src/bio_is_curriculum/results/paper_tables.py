@@ -91,7 +91,7 @@ PAPER_TABLES: list[TableSpec] = [
             _m("Raw", "raw"),
             _m("IS", "is"),
             _m("CL", "cl", match=_DEFAULT_MATCH),
-            _m("IS+CL", "is_cl", match=_DEFAULT_MATCH),
+            _m("SPURS", "is_cl", match=_DEFAULT_MATCH),
         ],
     ),
     TableSpec(
@@ -151,7 +151,7 @@ PAPER_TABLES: list[TableSpec] = [
             _m("BIOIS->SPDCL", "is_b2"),
             _m("PMD", "cl", curriculum_method="self_adaptive_pmd"),
             _m("BIOIS->PMD", "is_cl", curriculum_method="self_adaptive_pmd"),
-            _m("BIOIS-CL", "is_cl", match=_DEFAULT_MATCH),
+            _m("SPURS", "is_cl", match=_DEFAULT_MATCH),
         ],
     ),
 ]

@@ -73,7 +73,7 @@ Isso executa 4 modos × 1 fold. Multiplicar o tempo observado por 5 (folds) e co
 
 **Responde:** a tabela principal é válida? Gera o substrato para o bootstrap pareado, o corte por classe e a curva Raw.
 
-**Por que é bloqueante:** as quatro células do fatorial atual não foram rodadas sob config pareada (`_matches_method` não filtrava encoder nem batch size). Medline compara Raw `roberta-base` contra IS/CL/IS+CL `ModernBERT-base`; yelp/agnews/reuters90 misturam bs=16 e bs=32. Além disso, **0 de 259 run dirs têm `predictions_test.csv`** — sem re-run não existe bootstrap por instância.
+**Por que é bloqueante:** as quatro células do fatorial atual não foram rodadas sob config pareada (`_matches_method` não filtrava encoder nem batch size). Medline compara Raw `roberta-base` contra IS/CL/SPURS `ModernBERT-base`; yelp/agnews/reuters90 misturam bs=16 e bs=32. Além disso, **0 de 259 run dirs têm `predictions_test.csv`** — sem re-run não existe bootstrap por instância.
 
 ### Y1 — `experiments/campaigns/factorial_matched_2x2.yaml`
 
@@ -213,7 +213,7 @@ campaign:
 
 ## 4. Bloco 2 — Controles da pergunta decisiva
 
-**Responde:** com o mesmo orçamento, BIOIS-CL bate alternativas simples? Roda em **Books, Reuters-90 e AG News** — os dois casos de perda e o contraponto com perda pequena. Repetir nos demais só os contrastes que sustentarem a conclusão.
+**Responde:** com o mesmo orçamento, SPURS bate alternativas simples? Roda em **Books, Reuters-90 e AG News** — os dois casos de perda e o contraponto com perda pequena. Repetir nos demais só os contrastes que sustentarem a conclusão.
 
 ### Y3 — `experiments/campaigns/controls_signal_same_selection.yaml` **(novo)**
 

@@ -159,9 +159,9 @@ Compare each job vs. the `curriculum_ablations_multi` reference on macro-F1, har
 
 ---
 
-## 4. Instance selection + curriculum learning (proposed method)
+## 4. Instance selection + curriculum learning (SPURS — proposed method)
 
-BIOIS reduces the dataset; curriculum operates on the subset.
+BIOIS reduces the dataset; curriculum operates on the subset. This is the proposed method (SPURS).
 
 - **Goal:** main result — efficiency with competitive F1.
 - **Mode:** `is_cl`
@@ -283,8 +283,8 @@ Not new training runs; derived from results above.
 
 ## Execution priority
 
-1. Baseline + Only IS + Only CL + IS+CL (2² factorial)
-2. IS+CL with CL variants (discrete, SPCL soft, SPCL loss)
+1. Baseline + Only IS + Only CL + SPURS (2² factorial)
+2. SPURS with CL variants (discrete, SPCL soft, SPCL loss)
 3. Curriculum signal ablations: `biois_discrete` vs. `loss_discrete` / `lrc_discrete` / `td_discrete`
 4. CL parameter ablation: schedule / signal / compute axes (`cl_params_ablation_multi.yaml`)
 5. NLP baselines: AnnealCR (ACL 2020) → AnnealTD (EMNLP 2022) → self-adaptive PLM (`self_adaptive_pmd`, **done**)

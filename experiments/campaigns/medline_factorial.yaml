@@ -1,4 +1,4 @@
-# Medline 5-fold: IS / CL / IS+CL (no raw).
+# Medline 5-fold: IS / CL / SPURS (no raw).
 #
 # Curriculum profile matches is_cl_best_multi / curriculum_ablations defaults
 # (biois_discrete, q=0.3/0.6/0.95, progressive phase lengths).

@@ -1,6 +1,8 @@
-# biO-IS-Curriculum
+# SPURS — Shared-Probe Unified Reduction and Scheduling
 
-Treinamento curricular guiado por redundância e ruído para classificação de texto com Transformers.
+Treinamento curricular guiado por redundância e ruído para classificação de texto com Transformers. SPURS reaproveita um único probe leve (classificador fraco TF-IDF + regressão logística) para **reduzir** o conjunto de treino (instance selection bi-objetivo, BIOIS) e **agendar** as fases do currículo — sem treinar um Transformer extra para estimar dificuldade.
+
+> Nomes internos (pacote `bio_is_curriculum`, modos `is_cl`, método `biois_discrete`, imagem Docker `bio-is-curriculum`) permanecem inalterados por compatibilidade com os resultados já registrados.
 
 ## Instalação
 
@@ -111,9 +113,9 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
     --mode cl --epochs-per-phase 2
 ```
 
-### is_cl — com IS e CL (default)
+### is_cl — com IS e CL (default, implementação de SPURS)
 
-BIOIS reduz o dataset e o curriculum opera sobre o subset reduzido.
+BIOIS reduz o dataset e o curriculum opera sobre o subset reduzido. Este é o modo que corresponde ao método proposto no artigo (SPURS).
 
 ```sh
 uv run python main.py webkb --data_dir datasets --fold 0 \
@@ -122,7 +124,7 @@ uv run python main.py webkb --data_dir datasets --fold 0 \
 
 ### is_continuos_cl — IS + CL contínuo (SPCL soft)
 
-Alias para IS+CL com `--curriculum-method spcl_soft` por default.
+Alias para SPURS com `--curriculum-method spcl_soft` por default.
 
 ```sh
 uv run python main.py webkb --data_dir datasets --fold 0 \

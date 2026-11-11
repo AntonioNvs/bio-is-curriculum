@@ -1,12 +1,12 @@
-# 2² factorial — matched-configuration re-run (Raw / IS / CL / IS+CL).
+# 2² factorial — matched-configuration re-run (Raw / IS / CL / SPURS).
 #
 # WHY THIS EXISTS
 # The paper's factorial table mixes configurations across the four cells of the
 # same dataset, because results/discovery.py::_matches_method filters on mode /
 # curriculum_method / n_splits / train_fraction but NOT on hf_model or
 # batch_size. Verified from config.json of the resolved cells:
-#   - medline : Raw = roberta-base (125M); IS, CL, IS+CL = ModernBERT-base (149M)
-#   - yelp_2013 / agnews / reuters90 : Raw+IS at bs=16, CL+IS+CL at bs=32
+#   - medline : Raw = roberta-base (125M); IS, CL, SPURS = ModernBERT-base (149M)
+#   - yelp_2013 / agnews / reuters90 : Raw+IS at bs=16, CL+SPURS at bs=32
 #   - dblp / books : the only matched blocks
 # This campaign re-runs every cell under ONE config so the comparison is valid.
 #

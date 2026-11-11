@@ -1,10 +1,10 @@
-"""Paired bootstrap equivalence test (TOST-style) between Raw and IS+CL.
+"""Paired bootstrap equivalence test (TOST-style) between Raw and SPURS.
 
 Follows the advisor's design: for each dataset, compare the *per-instance*
-predictions of Raw and IS+CL on the same test instances. Pool the test
+predictions of Raw and SPURS on the same test instances. Pool the test
 instances across folds, bootstrap-resample instances with replacement,
 recompute macro-F1 for both methods on each resample, and take
-``Delta = MacroF1(IS+CL) - MacroF1(Raw)``. Equivalence is supported when the
+``Delta = MacroF1(SPURS) - MacroF1(Raw)``. Equivalence is supported when the
 90% confidence interval of ``Delta`` lies entirely within ``[-delta, +delta]``.
 
 Inputs are the per-fold ``predictions_test.csv`` files (columns ``idx, y_true,
@@ -78,14 +78,14 @@ def bootstrap_equivalence(
     """
     n_folds = len(raw_preds)
     if n_folds != len(iscl_preds):
-        raise ValueError("Raw and IS+CL must have the same number of folds.")
+        raise ValueError("Raw and SPURS must have the same number of folds.")
 
     y_true_pool: list[np.ndarray] = []
     raw_pool: list[np.ndarray] = []
     iscl_pool: list[np.ndarray] = []
     for (yt_r, yr), (yt_i, yi) in zip(raw_preds, iscl_preds):
         if not np.array_equal(yt_r, yt_i):
-            raise ValueError("Fold y_true mismatch between Raw and IS+CL.")
+            raise ValueError("Fold y_true mismatch between Raw and SPURS.")
         y_true_pool.append(np.asarray(yt_r, dtype=np.int64))
         raw_pool.append(np.asarray(yr, dtype=np.int64))
         iscl_pool.append(np.asarray(yi, dtype=np.int64))
@@ -152,7 +152,7 @@ def bootstrap_equivalence_folds(
     """
     n_folds = len(raw_f1)
     if n_folds != len(iscl_f1):
-        raise ValueError("Raw and IS+CL must have the same number of folds.")
+        raise ValueError("Raw and SPURS must have the same number of folds.")
     if n_folds < 2:
         raise ValueError("Fold-level bootstrap requires at least 2 folds.")
     raw = np.asarray(raw_f1, dtype=float)
@@ -192,15 +192,15 @@ def resolve_pair_runs(
     dataset: str,
     n_splits: int = 5,
 ) -> dict[str, tuple[str, str]] | None:
-    """Resolve the factorial ``Raw`` and ``IS+CL`` run dirs for one dataset.
+    """Resolve the factorial ``Raw`` and ``SPURS`` run dirs for one dataset.
 
-    Returns ``{"Raw": (path, mode), "IS+CL": (path, mode)}`` or ``None`` if
+    Returns ``{"Raw": (path, mode), "SPURS": (path, mode)}`` or ``None`` if
     either method is unresolved.
     """
     mapping = identify_latest(results_dir, tables=[_FACTORIAL], n_splits=n_splits)
     sub = mapping[mapping["dataset"] == dataset]
     out: dict[str, tuple[str, str]] = {}
-    for method in ("Raw", "IS+CL"):
+    for method in ("Raw", "SPURS"):
         row = sub[sub["method"] == method]
         if row.empty or not row.iloc[0]["path"]:
             return None
@@ -235,7 +235,7 @@ def run(
     seed: int = DEFAULT_SEED,
     n_splits: int = 5,
 ) -> pd.DataFrame:
-    """Run the Raw vs IS+CL bootstrap equivalence per dataset.
+    """Run the Raw vs SPURS bootstrap equivalence per dataset.
 
     Uses per-instance ``predictions_test.csv`` when available (the advisor's
     procedure). When those files are absent, falls back to a *fold-level*
@@ -272,7 +272,7 @@ def run(
             continue
 
         raw_dir, raw_mode = pair["Raw"]
-        iscl_dir, iscl_mode = pair["IS+CL"]
+        iscl_dir, iscl_mode = pair["SPURS"]
         folds_range = list(range(n_splits))
 
         raw_sizes = collect_per_fold_values(raw_dir, raw_mode, folds_range, "n_train_instances")
@@ -280,7 +280,7 @@ def run(
             dataset_size = round(float(np.mean(raw_sizes)))
         else:
             # Older-schema runs (e.g. medline Raw) lack n_train_instances; fall back
-            # to the IS+CL run's final-phase training size as a proxy for dataset size.
+            # to the SPURS run's final-phase training size as a proxy for dataset size.
             iscl_sizes = collect_per_fold_values(iscl_dir, iscl_mode, folds_range, "n_train_instances")
             dataset_size = round(float(np.mean(iscl_sizes))) if iscl_sizes else float("nan")
 
@@ -418,7 +418,7 @@ def _print_report(df: pd.DataFrame) -> None:
 def _parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description=(
-            "Paired bootstrap equivalence (TOST) between Raw and IS+CL on "
+            "Paired bootstrap equivalence (TOST) between Raw and SPURS on "
             "per-instance test predictions."
         )
     )

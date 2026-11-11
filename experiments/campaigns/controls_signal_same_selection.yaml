@@ -1,7 +1,7 @@
 # Score controls at frozen selection — is the *difficulty score* doing the work?
 #
 # WHY THIS EXISTS
-# The paper's decisive question is whether BIOIS-CL beats simple alternatives at
+# The paper's decisive question is whether SPURS beats simple alternatives at
 # the same budget. Y1 answers it against Raw/IS/CL, but every one of those arms
 # changes two things at once: which instances survive, and in what order they are
 # presented. This campaign freezes the first and varies only the second.
