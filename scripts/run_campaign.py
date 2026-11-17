@@ -343,8 +343,37 @@ def manifest_runs_ok(manifest: dict) -> tuple[bool, str]:
     return True, ""
 
 
+def marker_paths(campaign: Campaign, shard: Shard) -> tuple[Path, ...]:
+    """Candidate marker paths for one shard, current naming first.
+
+    Markers used to be named after the shard alone -- ``books_f0.json`` -- with
+    no campaign in the name. Two campaigns that share a dataset then share a
+    marker: Y1 wrote ``books_f0.json``, and Y2 (same dataset, same fold) found
+    it, validated Y1's manifest -- every run ok, every artifact present -- and
+    skipped its own shard as "already complete". It would have run nothing while
+    reporting success.
+
+    The campaign is now part of the filename. The bare name is still read, so
+    markers written before this change stay usable, but a marker is only ever
+    accepted for the campaign it names (see ``verify_shard``): the legacy path
+    resolves to Y1's own marker for Y1, and to a rejection for everyone else.
+    """
+    return (
+        DONE_DIR / f"{campaign.name}__{shard.key}.json",
+        DONE_DIR / f"{shard.key}.json",
+    )
+
+
 def verify_shard(campaign: Campaign, shard: Shard, marker: dict) -> tuple[bool, str]:
-    """Full completion check: manifest ok AND every artifact present."""
+    """Full completion check: right campaign, manifest ok, every artifact present."""
+    # First, because it is the cheapest and because "manifest missing" would be a
+    # misleading answer for a marker that belongs to a different campaign.
+    marker_campaign = marker.get("campaign")
+    if marker_campaign is None:
+        return False, f"marker records no campaign (expected {campaign.name!r})"
+    if marker_campaign != campaign.name:
+        return False, f"marker belongs to campaign {marker_campaign!r}, not {campaign.name!r}"
+
     manifest_path = Path(str(marker.get("manifest_path", "")))
     if not manifest_path.is_file():
         return False, f"manifest missing: {manifest_path}"
@@ -371,14 +400,17 @@ def verify_shard(campaign: Campaign, shard: Shard, marker: dict) -> tuple[bool, 
 
 
 def is_complete(campaign: Campaign, shard: Shard) -> tuple[bool, str]:
-    marker_path = DONE_DIR / f"{shard.key}.json"
-    if not marker_path.is_file():
-        return False, "no marker"
-    try:
-        marker = json.loads(marker_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        return False, f"marker unreadable: {exc}"
-    return verify_shard(campaign, shard, marker)
+    for marker_path in marker_paths(campaign, shard):
+        if not marker_path.is_file():
+            continue
+        try:
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            return False, f"marker unreadable: {exc}"
+        # No fall-through to the next candidate: a marker under this campaign's
+        # own name means this campaign ran the shard, so its verdict stands.
+        return verify_shard(campaign, shard, marker)
+    return False, "no marker"
 
 
 # --------------------------------------------------------------------------- #
@@ -520,14 +552,25 @@ def run_attempt(campaign: Campaign, shard: Shard, attempt: int) -> tuple[int, Pa
 
 
 def mark_done(campaign: Campaign, shard: Shard, record: dict) -> None:
-    atomic_write_json(DONE_DIR / f"{shard.key}.json", record)
+    """Write the completion marker, under the campaign that earned it.
+
+    The campaign is stamped in regardless of what the caller passed: the marker
+    is what proves *this* campaign finished *this* shard, and ``verify_shard``
+    reads that field back. See ``marker_paths`` for why the name carries it too.
+    """
+    payload = {**record, "campaign": campaign.name}
+    atomic_write_json(DONE_DIR / f"{campaign.name}__{shard.key}.json", payload)
 
 
 # --------------------------------------------------------------------------- #
 # Status
 # --------------------------------------------------------------------------- #
 def print_status(campaign: Campaign, shards: list[Shard]) -> int:
-    records = read_ledger()
+    # The ledger is shared by every campaign that ever ran in this state dir, so
+    # reporting it unfiltered reads as "this campaign already ran 25 shards" when
+    # the 25 belong to another one.
+    all_records = read_ledger()
+    records = [r for r in all_records if r.get("campaign") == campaign.name]
     by_status: dict[str, int] = {}
     for rec in records:
         by_status[rec.get("status", "?")] = by_status.get(rec.get("status", "?"), 0) + 1
@@ -537,6 +580,9 @@ def print_status(campaign: Campaign, shards: list[Shard]) -> int:
     if records:
         summary = ", ".join(f"{k}={v}" for k, v in sorted(by_status.items()))
         print(f"Ledger   : {len(records)} attempt(s) — {summary}")
+    elif all_records:
+        print(f"Ledger   : no attempt by this campaign "
+              f"({len(all_records)} attempt(s) belong to other campaigns)")
     else:
         print(f"Ledger   : empty ({LEDGER})")
 
@@ -732,7 +778,9 @@ def run_campaign(campaign: Campaign, shards: list[Shard], args) -> int:
                     manifest_path = new_experiment_dirs[0] / "manifest.json"
                     record["manifest_path"] = str(manifest_path)
                     marker_ok, marker_why = verify_shard(
-                        campaign, shard, {"manifest_path": str(manifest_path)}
+                        campaign, shard,
+                        {"manifest_path": str(manifest_path),
+                         "campaign": campaign.name},
                     )
                     if marker_ok:
                         append_ledger(record)

@@ -253,13 +253,20 @@ Bootstrap complete.
   logs     $LOG_DIR
   state    $STATE_DIR
 
-Next: launch the campaign (it re-reads $ENV_FILE itself, so no need to source it
-first, but sourcing is harmless):
+Next: launch the campaign.
+
+run_campaign.py does NOT read $ENV_FILE itself, and it refuses to execute
+without BIO_IS_IN_DOCKER=1 (a bare-metal run would silently pin GPU 7 on a
+1-GPU pod and train on CPU). An interactive shell picks the value up from the
+~/.bashrc block above, but `nohup bash -c '...'` never reads ~/.bashrc — the
+run then dies at preflight with "FAIL: BIO_IS_IN_DOCKER is not '1'". Source it
+inside the command that runs the campaign:
 
   cd $REPO_DIR
   source $ENV_FILE
   uv run python scripts/run_campaign.py --dry-run            # list the shards
-  nohup uv run python scripts/run_campaign.py > $LOG_DIR/campaign.log 2>&1 &
+  nohup bash -c "source $ENV_FILE && uv run python scripts/run_campaign.py" \
+      > $LOG_DIR/campaign.log 2>&1 &
 
   uv run python scripts/run_campaign.py --status             # progress + heartbeat
 EOF

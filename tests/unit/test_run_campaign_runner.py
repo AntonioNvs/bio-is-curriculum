@@ -36,9 +36,9 @@ runner = _load_runner()
 # --------------------------------------------------------------------------- #
 # Helpers to build a fake completed shard on disk
 # --------------------------------------------------------------------------- #
-def _fake_campaign(results_dir: str = "results") -> "runner.Campaign":
+def _fake_campaign(results_dir: str = "results", name: str = "fake") -> "runner.Campaign":
     return runner.Campaign(
-        name="fake",
+        name=name,
         path=Path("experiments/campaigns/fake.yaml"),
         text="",
         doc={},
@@ -46,6 +46,11 @@ def _fake_campaign(results_dir: str = "results") -> "runner.Campaign":
         shards=[],
         modes_per_shard=4,
     )
+
+
+def _marker(campaign: "runner.Campaign", manifest_path: Path) -> dict:
+    """A marker as the runner builds it: the campaign is stamped in."""
+    return {"manifest_path": str(manifest_path), "campaign": campaign.name}
 
 
 def _write_shard_tree(
@@ -123,7 +128,7 @@ def test_failed_run_in_manifest_is_not_complete(fake_repo):
     campaign = _fake_campaign()
     shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
 
-    ok, why = runner.verify_shard(campaign, shard, {"manifest_path": str(manifest_path)})
+    ok, why = runner.verify_shard(campaign, shard, _marker(campaign, manifest_path))
     assert ok is False
     assert "not ok" in why
 
@@ -138,7 +143,7 @@ def test_missing_predictions_artifact_is_not_complete(fake_repo):
     campaign = _fake_campaign()
     shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
 
-    ok, why = runner.verify_shard(campaign, shard, {"manifest_path": str(manifest_path)})
+    ok, why = runner.verify_shard(campaign, shard, _marker(campaign, manifest_path))
     assert ok is False
     assert "predictions_test.csv" in why
 
@@ -147,7 +152,7 @@ def test_missing_manifest_is_not_complete(fake_repo):
     campaign = _fake_campaign()
     shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
     ok, why = runner.verify_shard(
-        campaign, shard, {"manifest_path": str(fake_repo / "nope" / "manifest.json")}
+        campaign, shard, _marker(campaign, fake_repo / "nope" / "manifest.json")
     )
     assert ok is False
     assert "manifest missing" in why
@@ -159,10 +164,116 @@ def test_done_marker_is_written_atomically(fake_repo):
     shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
     runner.mark_done(campaign, shard, {"manifest_path": "x"})
 
-    marker = runner.DONE_DIR / f"{shard.key}.json"
+    marker = runner.marker_paths(campaign, shard)[0]
     assert marker.is_file()
     assert json.loads(marker.read_text(encoding="utf-8"))["manifest_path"] == "x"
     assert list(runner.DONE_DIR.glob("*.tmp")) == []
+
+
+# --------------------------------------------------------------------------- #
+# The marker belongs to a campaign, not just to a shard
+#
+# The marker path used to be `<dataset>_f<fold>.json`, with no campaign in it.
+# Y1 and Y2 share three datasets and all five folds, so Y2 found Y1's markers,
+# validated Y1's manifest -- complete, all artifacts present -- and skipped every
+# one of its own shards as "already complete": a campaign that runs nothing and
+# reports success. The campaign is now part of the filename AND a checked field.
+# --------------------------------------------------------------------------- #
+def _legacy_marker(campaign: "runner.Campaign", shard: "runner.Shard",
+                   manifest_path: Path) -> Path:
+    """Write a marker the way the pre-fix code did: bare name, no scoping.
+
+    The record shape is the old one too -- it did carry `campaign`, which is what
+    makes the old markers readable rather than dead weight.
+    """
+    path = runner.marker_paths(campaign, shard)[1]
+    assert path.name == f"{shard.key}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"manifest_path": str(manifest_path), "campaign": campaign.name}),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_another_campaigns_marker_does_not_complete_this_shard(fake_repo):
+    """The regression: Y1's completion must not answer for Y2's shard."""
+    manifest_path = _write_shard_tree(fake_repo)
+    y1 = _fake_campaign(name="factorial_matched_2x2")
+    y2 = _fake_campaign(name="raw_curve_diagnostic")
+    shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
+
+    _legacy_marker(y1, shard, manifest_path)
+    assert runner.is_complete(y1, shard)[0] is True
+
+    complete, why = runner.is_complete(y2, shard)
+    assert complete is False
+    assert "factorial_matched_2x2" in why
+
+
+def test_marker_from_before_the_rename_still_completes_its_own_campaign(fake_repo):
+    """Y1's 25 markers are already on the pod under the bare name.
+
+    Reading the old name keeps them usable, so the fix does not force a re-run
+    of 95 GPU-hours of completed work.
+    """
+    manifest_path = _write_shard_tree(fake_repo)
+    y1 = _fake_campaign(name="factorial_matched_2x2")
+    shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
+
+    _legacy_marker(y1, shard, manifest_path)
+
+    complete, why = runner.is_complete(y1, shard)
+    assert complete is True, why
+
+
+def test_marker_without_a_campaign_is_not_evidence(fake_repo):
+    """An unlabelled marker cannot be attributed, so it must not be trusted.
+
+    Re-running a shard wastes GPU-hours; skipping a shard that never ran wastes
+    the campaign. The asymmetry decides the default.
+    """
+    manifest_path = _write_shard_tree(fake_repo)
+    campaign = _fake_campaign()
+    shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
+
+    ok, why = runner.verify_shard(campaign, shard, {"manifest_path": str(manifest_path)})
+    assert ok is False
+    assert "campaign" in why
+
+
+def test_a_later_campaign_does_not_overwrite_the_earlier_marker(fake_repo):
+    """Two campaigns over one shard leave two markers, each its own."""
+    manifest_path = _write_shard_tree(fake_repo)
+    y1 = _fake_campaign(name="factorial_matched_2x2")
+    y2 = _fake_campaign(name="raw_curve_diagnostic")
+    shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
+
+    runner.mark_done(y1, shard, {"manifest_path": str(manifest_path)})
+    runner.mark_done(y2, shard, {"manifest_path": str(manifest_path)})
+
+    assert runner.is_complete(y1, shard)[0] is True
+    assert runner.is_complete(y2, shard)[0] is True
+    assert sorted(p.name for p in runner.DONE_DIR.glob("*.json")) == [
+        "factorial_matched_2x2__books_f0.json",
+        "raw_curve_diagnostic__books_f0.json",
+    ]
+
+
+def test_status_counts_only_this_campaigns_attempts(fake_repo, capsys):
+    """The ledger is shared; an unfiltered count reads as this campaign's work."""
+    campaign = _fake_campaign(name="raw_curve_diagnostic")
+    shard = runner.Shard(dataset="books", fold=0, declared_hours=1.0)
+    runner.append_ledger({"shard": "books_f0", "campaign": "factorial_matched_2x2",
+                          "status": "ok"})
+    runner.append_ledger({"shard": "books_f0", "campaign": "raw_curve_diagnostic",
+                          "status": "ok"})
+
+    runner.print_status(campaign, [shard])
+    out = capsys.readouterr().out
+
+    assert "1 attempt(s)" in out
+    assert "2 attempt(s)" not in out
 
 
 # --------------------------------------------------------------------------- #
