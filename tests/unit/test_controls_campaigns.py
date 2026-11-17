@@ -9,8 +9,6 @@ these tests exist to catch.
 
 from pathlib import Path
 
-import pytest
-
 from bio_is_curriculum.config.campaign import expand_campaign
 from bio_is_curriculum.config.loader import load_experiment_spec
 
@@ -124,18 +122,32 @@ def test_y5_drops_dblp():
         assert batch.folds == [0, 1, 2]
 
 
-@pytest.mark.parametrize(
-    "name,placeholder",
-    [
-        ("controls_random_stratified.yaml", "TODO(placeholder)"),
-    ],
-)
-def test_placeholder_campaigns_are_marked_for_the_runner(name, placeholder):
-    """Y4 must not run until its train_fraction is measured.
+def test_y4_expands_to_one_run_per_dataset_at_its_measured_retention():
+    """The random-subsample control, filled in from Y1's measured retention.
 
-    scripts/run_campaign.py refuses any campaign whose text still contains this
-    marker, so the guard is only real while the marker is in the file. Filling in
-    the measured value deletes it — at which point this test should be removed.
+    One job per dataset rather than one shared matrix value: the retention
+    genuinely differs by dataset, and a single constant would give two of the
+    three controls the wrong denominator — silently, since the run still
+    completes and only the comparison is void.
     """
-    text = (CAMPAIGNS / name).read_text(encoding="utf-8")
-    assert placeholder in text
+    batches = _expand("controls_random_stratified.yaml")
+
+    assert len(batches) == 3  # 3 datasets x 1 job x 1 matrix value
+    assert {b.dataset for b in batches} == {"books", "reuters90", "agnews"}
+
+    measured = {"reuters90": 0.6370, "books": 0.6596, "agnews": 0.6831}
+    for batch in batches:
+        assert batch.modes == ["raw"]
+        assert batch.folds == [0, 1, 2, 3, 4]
+        assert batch.run.train_fraction == measured[batch.dataset]
+
+
+def test_y4_is_no_longer_a_placeholder():
+    """The runner refuses any campaign still carrying the marker.
+
+    Y4 is runnable now, so the marker must be gone — and it must not creep back
+    in by being quoted in the file's own prose, which would block the campaign
+    just as effectively as leaving it in the job.
+    """
+    text = (CAMPAIGNS / "controls_random_stratified.yaml").read_text(encoding="utf-8")
+    assert "TODO(placeholder)" not in text

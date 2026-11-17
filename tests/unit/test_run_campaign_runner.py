@@ -460,14 +460,41 @@ def test_y1_loads_25_shards_cheap_first():
     assert ordered[-1].dataset == "yelp_2013"
 
 
-def test_y4_is_flagged_as_a_placeholder():
-    campaign = runner.load_campaign("y4")
-    assert runner.PLACEHOLDER_MARKER in campaign.text
-
-
-def test_non_placeholder_campaigns_are_clean():
-    for name in ("y1", "y2", "y3", "y5"):
+def test_no_campaign_is_left_with_a_placeholder():
+    for name in ("y1", "y2", "y3", "y4", "y5"):
         assert runner.PLACEHOLDER_MARKER not in runner.load_campaign(name).text
+
+
+def test_y4_carries_the_measured_retention_per_dataset():
+    """A guessed constant gives the control the wrong denominator, silently.
+
+    The run still completes and the comparison is meaningless, so the numbers are
+    worth asserting rather than trusting. These are the measured 1 - is_reduction
+    from Y1's factorial_matched_2x2 summary, averaged over the 5 folds of each
+    dataset -- and they genuinely differ, which is why this is one job per dataset
+    rather than a single shared value.
+    """
+    campaign = runner.load_campaign("y4")
+    jobs = campaign.doc["campaign"]["jobs"]
+
+    measured = {"reuters90": 0.6370, "books": 0.6596, "agnews": 0.6831}
+    assert len(jobs) == len(measured), "one job per dataset, or a value is shared"
+
+    seen = set()
+    for job in jobs:
+        assert job["modes"] == ["raw"]
+        (dataset,) = job["datasets"]  # scoped to exactly one dataset
+        seen.add(dataset)
+        assert job["matrix"]["training.train_fraction"] == [measured[dataset]]
+    assert seen == set(measured), "a dataset is missing or duplicated"
+
+
+def test_y4_expands_to_15_shards_of_one_run_each():
+    """3 datasets x 5 folds; the ~5.1 GPU-h cost claim rests on this."""
+    campaign = runner.load_campaign("y4")
+
+    assert len(campaign.shards) == 15
+    assert {s.dataset for s in campaign.shards} == {"books", "reuters90", "agnews"}
 
 
 def test_shard_command_disables_docker_and_uses_the_campaign_path():

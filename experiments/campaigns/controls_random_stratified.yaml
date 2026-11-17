@@ -17,23 +17,37 @@
 # uniform subsample would be — if plain stratified subsampling matched BIOIS,
 # the method would be dead, and the control should be able to show that.
 #
-# !! PLACEHOLDER — DO NOT RUN BEFORE FILLING IN !!
-# The value must be 1 - is_reduction MEASURED on Y1's summary, per dataset. The
-# retention differs by dataset (books prunes far more than reuters90), so a
-# single guessed constant is a control with the wrong denominator — it would
-# either give the control MORE data than SPURS kept (inflating the baseline) or
-# less. The runbook is explicit: "não chutar 0.66".
+# RETENTION: MEASURED, NOT GUESSED
+# The value is 1 - is_reduction from Y1's factorial_matched_2x2 summary, averaged
+# over the 5 folds of each dataset. The retention differs per dataset — it spans
+# 0.637 to 0.683, a spread of ~4.6 points — so this is ONE JOB PER DATASET, each
+# with its own value. A single shared constant would give two of the three
+# controls the wrong denominator.
 #
-# scripts/run_campaign.py refuses to execute this campaign while the
-# TODO(placeholder) marker below is present, so a mistyped launch cannot burn
-# GPU-hours on a mis-specified control. Fill it in, then remove the marker.
+#   dataset     is_reduction (mean of 5 folds)   1 - is_reduction
+#   reuters90   0.363029                          0.6370   (prunes most)
+#   books       0.340370                          0.6596
+#   agnews      0.316891                          0.6831   (prunes least)
 #
-#   # after Y1, per dataset:
-#   jq -r '.summary' results/<y1_dir>/manifest.json     # or read summary.csv
-#   #   train_fraction = 1 - is_reduction
+# Source: results/<dataset>-5cv-<ts>_factorial_matched/summary.csv, metric
+# is_reduction, mode is. Mode is_cl reports the same figure — it is the selection
+# stage's reduction, which CL inherits — so either mode gives the value.
 #
-# If retention genuinely differs per dataset, split this into one job per dataset
-# with its own matrix value rather than averaging.
+# WHAT THIS MATCHES, AND WHAT IT DOES NOT. This matches the RETENTION RATE, not
+# the absolute instance count. The control ends up with ~5% more training data
+# than is_cl trains on (6092 vs 5813 on reuters90 fold 0). Two causes: reuters90's
+# selection stage runs on a train split that maybe_upsample_for_biois has already
+# inflated (reduction is a fraction of ~9632, not of the raw 9567), and is_cl's
+# n_train_instances counts a phase subset rather than the full selected set. Both
+# lean the same way, and it is the safe way: the control gets MORE data than
+# SPURS, so a SPURS win cannot be an artefact of starving the baseline. If an
+# exact count match is wanted instead, use n_is_cl/n_raw — reuters90 0.6072,
+# books 0.6265, agnews 0.6489.
+#
+# scripts/run_campaign.py refuses to execute while its placeholder marker (see
+# PLACEHOLDER_MARKER there) appears in this file, so a mistyped launch cannot burn
+# GPU-hours on a mis-specified control. The marker is gone; this line must not
+# reintroduce it by naming it.
 #
 # DATASETS: the same three as Y3, so the control lines up against the score arms.
 #
@@ -92,9 +106,24 @@ campaign:
       imbalance_method: inverse_freq_ce
 
   jobs:
-    - modes: [raw]
+    # One job per dataset, because the retention is a per-dataset measurement.
+    # `datasets` scopes a job to that dataset alone (schema.py:230); putting the
+    # three values in one matrix would instead cross every dataset with every
+    # value and triple the cost.
+    - datasets: [reuters90]
+      modes: [raw]
       matrix:
-        # TODO(placeholder): replace 0.66 with the measured 1 - is_reduction from
-        # Y1's summary, per dataset, and delete this marker. See the header.
-        training.train_fraction: [0.66]
+        training.train_fraction: [0.6370]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_raw_rand{train_fraction}"
+
+    - datasets: [books]
+      modes: [raw]
+      matrix:
+        training.train_fraction: [0.6596]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_raw_rand{train_fraction}"
+
+    - datasets: [agnews]
+      modes: [raw]
+      matrix:
+        training.train_fraction: [0.6831]
       experiment_id: "{dataset}-{n_splits}cv-{timestamp}_raw_rand{train_fraction}"
