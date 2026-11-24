@@ -1,0 +1,1233 @@
+{
+  "ci": 0.9,
+  "comparisons": [
+    {
+      "below_noise": false,
+      "ci_high": -0.0028210160876061987,
+      "ci_low": -0.0044507428456287135,
+      "comparison": "SPURS-Raw/agnews",
+      "dataset": "agnews",
+      "delta_hat": -0.0036300554209549585,
+      "gate": "G-A",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0023339637456143425,
+      "ci_low": -0.003836164362624622,
+      "comparison": "IS-Raw/agnews",
+      "dataset": "agnews",
+      "delta_hat": -0.003089179850496615,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0003982896240015029,
+      "ci_low": -0.0019367652059756103,
+      "comparison": "CL-Raw/agnews",
+      "dataset": "agnews",
+      "delta_hat": -0.0011644234534842202,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.0015708508061045116,
+      "ci_low": -0.00032734607106038615,
+      "comparison": "I/agnews",
+      "dataset": "agnews",
+      "delta_hat": 0.0006235478830258767,
+      "gate": "G-G",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.004550828676289054,
+      "ci_low": -0.005918423039909482,
+      "comparison": "SPURS-Raw@2/agnews",
+      "dataset": "agnews",
+      "delta_hat": -0.00523699299192526,
+      "gate": "G-F",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0018963921780103755,
+      "ci_low": -0.003503274796426764,
+      "comparison": "SPURS-Raw@4/agnews",
+      "dataset": "agnews",
+      "delta_hat": -0.0026954637410159243,
+      "gate": "G-F",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.0015641096138478078,
+      "ci_low": -6.405453434499333e-06,
+      "comparison": "IS-Random@ret/agnews",
+      "dataset": "agnews",
+      "delta_hat": 0.0007796386474290262,
+      "gate": "G-E",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.00013005800640318314,
+      "ci_low": -0.0016971792912966743,
+      "comparison": "RandomPhases-Composite/agnews",
+      "dataset": "agnews",
+      "delta_hat": -0.0009242297122127319,
+      "gate": "G-C",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.001989027257491494,
+      "ci_low": -0.0032776504987207743,
+      "comparison": "MarginOnly-Composite/agnews",
+      "dataset": "agnews",
+      "delta_hat": -0.002634855781704748,
+      "gate": "G-D",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.0008765194176398979,
+      "ci_low": -0.00041973040610306377,
+      "comparison": "EntropyOnly-Composite/agnews",
+      "dataset": "agnews",
+      "delta_hat": 0.0002247981028324908,
+      "gate": "G-D",
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor": 0.00023788800603552485
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.0006941765130909566,
+      "ci_low": -0.005608468814182898,
+      "comparison": "theta0.2-theta0.0/beta0.1/books",
+      "dataset": "books",
+      "delta_hat": -0.0024331732014351015,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0022159395701488176,
+      "ci_low": -0.008961492207480987,
+      "comparison": "theta0.4-theta0.0/beta0.1/books",
+      "dataset": "books",
+      "delta_hat": -0.005535625000483879,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0033917089290042947,
+      "ci_low": -0.010055169611090726,
+      "comparison": "theta0.2-theta0.0/beta0.3/books",
+      "dataset": "books",
+      "delta_hat": -0.006772425543806637,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0014211295668773956,
+      "ci_low": -0.008383258622800361,
+      "comparison": "theta0.4-theta0.0/beta0.3/books",
+      "dataset": "books",
+      "delta_hat": -0.0049497348783837936,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.0033628891155316415,
+      "ci_low": -0.003868054871332305,
+      "comparison": "theta0.2-theta0.0/beta0.5/books",
+      "dataset": "books",
+      "delta_hat": -0.0003000376848029118,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.0042751762099611955,
+      "ci_low": -0.003183340052297845,
+      "comparison": "theta0.4-theta0.0/beta0.5/books",
+      "dataset": "books",
+      "delta_hat": 0.0004466610657062331,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.007396479897483388,
+      "ci_low": -0.013971755255376911,
+      "comparison": "beta0.3-beta0.1/theta0.0/books",
+      "dataset": "books",
+      "delta_hat": -0.0105976450584222,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0320257997021761,
+      "ci_low": -0.03959144715596644,
+      "comparison": "beta0.5-beta0.1/theta0.0/books",
+      "dataset": "books",
+      "delta_hat": -0.03578003552229492,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.011761291943173813,
+      "ci_low": -0.018105211117856707,
+      "comparison": "beta0.3-beta0.1/theta0.2/books",
+      "dataset": "books",
+      "delta_hat": -0.014936897400793736,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.030084192033298936,
+      "ci_low": -0.03730704009163621,
+      "comparison": "beta0.5-beta0.1/theta0.2/books",
+      "dataset": "books",
+      "delta_hat": -0.03364690000566273,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.00692951128942953,
+      "ci_low": -0.013125823786198683,
+      "comparison": "beta0.3-beta0.1/theta0.4/books",
+      "dataset": "books",
+      "delta_hat": -0.010011754936322115,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.026343069130011384,
+      "ci_low": -0.03331675781139199,
+      "comparison": "beta0.5-beta0.1/theta0.4/books",
+      "dataset": "books",
+      "delta_hat": -0.029797749456104805,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0013826537618163777,
+      "ci_low": -0.006635073526545499,
+      "comparison": "default-IS/books",
+      "dataset": "books",
+      "delta_hat": -0.004026207214623545,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor": 0.004026207214623545
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.018825175725582774,
+      "ci_low": -0.024285889802757678,
+      "comparison": "SPURS-Raw/books",
+      "dataset": "books",
+      "delta_hat": -0.021553521535844,
+      "gate": "G-A",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.017204942142275925,
+      "ci_low": -0.022389153275353818,
+      "comparison": "IS-Raw/books",
+      "dataset": "books",
+      "delta_hat": -0.019803016553430197,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.004815395490429675,
+      "ci_low": -0.010054375554243529,
+      "comparison": "CL-Raw/books",
+      "dataset": "books",
+      "delta_hat": -0.0074394693724444405,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.009060963800426768,
+      "ci_low": 0.002195519435519927,
+      "comparison": "I/books",
+      "dataset": "books",
+      "delta_hat": 0.0056889643900306375,
+      "gate": "G-G",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.002134690915151836,
+      "ci_low": -0.0070501967068004375,
+      "comparison": "SPURS-Raw@2/books",
+      "dataset": "books",
+      "delta_hat": -0.004598513230447465,
+      "gate": "G-F",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.013589429889870514,
+      "ci_low": -0.018948531668155976,
+      "comparison": "SPURS-Raw@4/books",
+      "dataset": "books",
+      "delta_hat": -0.016263919506559477,
+      "gate": "G-F",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.007292240021109592,
+      "ci_low": 0.0018037845423292665,
+      "comparison": "IS-Random@ret/books",
+      "dataset": "books",
+      "delta_hat": 0.004536906211922043,
+      "gate": "G-E",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.0018426211942977199,
+      "ci_low": -0.003368105368428187,
+      "comparison": "RandomPhases-Composite/books",
+      "dataset": "books",
+      "delta_hat": -0.0007974651794596666,
+      "gate": "G-C",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.0016654072343062203,
+      "ci_low": -0.002799864221856785,
+      "comparison": "MarginOnly-Composite/books",
+      "dataset": "books",
+      "delta_hat": -0.0005501835077553752,
+      "gate": "G-D",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.0009187607901851234,
+      "ci_low": -0.00386271677412261,
+      "comparison": "EntropyOnly-Composite/books",
+      "dataset": "books",
+      "delta_hat": -0.0015092948710228038,
+      "gate": "G-D",
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor": 2.2291182651512642e-05
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.002279492942131739,
+      "ci_low": -0.008194007310566676,
+      "comparison": "SPURS-Raw/dblp",
+      "dataset": "dblp",
+      "delta_hat": -0.00523722212764155,
+      "gate": "G-A",
+      "n_folds": 5,
+      "n_instances": 38128,
+      "noise_floor": null
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.00813136229666558,
+      "ci_low": -0.013835065677245323,
+      "comparison": "IS-Raw/dblp",
+      "dataset": "dblp",
+      "delta_hat": -0.010983876922373348,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 38128,
+      "noise_floor": null
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.006354510236708028,
+      "ci_low": 0.0007395922862554915,
+      "comparison": "CL-Raw/dblp",
+      "dataset": "dblp",
+      "delta_hat": 0.0035712450056477607,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 38128,
+      "noise_floor": null
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.005598123488062211,
+      "ci_low": -0.00125327363069252,
+      "comparison": "I/dblp",
+      "dataset": "dblp",
+      "delta_hat": 0.0021754097890840374,
+      "gate": "G-G",
+      "n_folds": 5,
+      "n_instances": 38128,
+      "noise_floor": null
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.008275038505739124,
+      "ci_low": -0.007644653770972899,
+      "comparison": "theta0.2-theta0.0/beta0.1/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": 0.000522447855345276,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.0017862965855871306,
+      "ci_low": -0.022522780690602973,
+      "comparison": "theta0.4-theta0.0/beta0.1/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.010912052278738926,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.009194347717469126,
+      "ci_low": -0.007651603607327787,
+      "comparison": "theta0.2-theta0.0/beta0.3/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": 0.000978056423901419,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.00992012170912808,
+      "ci_low": -0.034861512956398395,
+      "comparison": "theta0.4-theta0.0/beta0.3/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.02260744771880807,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.010650241011935742,
+      "ci_low": -0.005147479124985419,
+      "comparison": "theta0.2-theta0.0/beta0.5/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": 0.0026993898498686164,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.006330865164924647,
+      "ci_low": -0.02579114964777681,
+      "comparison": "theta0.4-theta0.0/beta0.5/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.01630198020158713,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.003471111267267125,
+      "ci_low": -0.012222732593738234,
+      "comparison": "beta0.3-beta0.1/theta0.0/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.0049940048900199985,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.018892870182032305,
+      "ci_low": -0.041859577325678916,
+      "comparison": "beta0.5-beta0.1/theta0.0/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.030813696010399405,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": true,
+      "ci_high": 0.003682446622454575,
+      "ci_low": -0.011679425029623929,
+      "comparison": "beta0.3-beta0.1/theta0.2/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.004538396321463856,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0163037266635579,
+      "ci_low": -0.03912328956578641,
+      "comparison": "beta0.5-beta0.1/theta0.2/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.028636754015876065,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.0068567414987853225,
+      "ci_low": -0.026067497467187804,
+      "comparison": "beta0.3-beta0.1/theta0.4/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.016689400330089144,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.025051793261519108,
+      "ci_low": -0.04725754971118756,
+      "comparison": "beta0.5-beta0.1/theta0.4/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.03620362393324761,
+      "gate": "",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.012474448919025586,
+      "ci_low": -0.0015453308181544866,
+      "comparison": "default-IS/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": 0.005645649030000199,
+      "gate": "G-H",
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor": 0.005645649030000199
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.025748625849756655,
+      "ci_low": -0.04886950517336677,
+      "comparison": "SPURS-Raw/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.03780365674746122,
+      "gate": "G-A",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.006107129471326911,
+      "ci_low": -0.023925721779009843,
+      "comparison": "IS-Raw/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.015309807741074044,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.0018847566048852279,
+      "ci_low": -0.017245468052699175,
+      "comparison": "CL-Raw/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.007960142547943916,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.002147116537395768,
+      "ci_low": -0.027037016892640812,
+      "comparison": "I/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.014533706458443263,
+      "gate": "G-G",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.04563429326489152,
+      "ci_low": 0.02220092472752775,
+      "comparison": "SPURS-Raw@2/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": 0.034977108699417614,
+      "gate": "G-F",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.02627269831120951,
+      "ci_low": -0.046920135318581906,
+      "comparison": "SPURS-Raw@4/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.03658032778582171,
+      "gate": "G-F",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.013137721828886253,
+      "ci_low": -0.005619430774840001,
+      "comparison": "IS-Random@ret/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": 0.0035158528666013877,
+      "gate": "G-E",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.003909561883318461,
+      "ci_low": -0.015196238829603746,
+      "comparison": "RandomPhases-Composite/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.0054316314535214905,
+      "gate": "G-C",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.020896332714284822,
+      "ci_low": 0.002631602466809962,
+      "comparison": "MarginOnly-Composite/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": 0.011910331073860192,
+      "gate": "G-D",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.006350475626971005,
+      "ci_low": -0.01197722053708816,
+      "comparison": "EntropyOnly-Composite/reuters90",
+      "dataset": "reuters90",
+      "delta_hat": -0.002539687197489815,
+      "gate": "G-D",
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor": 0.0013758848726727613
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.008627179435236875,
+      "ci_low": 0.005678213570690027,
+      "comparison": "SPURS-Raw/yelp_2013",
+      "dataset": "yelp_2013",
+      "delta_hat": 0.0071590802843456425,
+      "gate": "G-A",
+      "n_folds": 5,
+      "n_instances": 335018,
+      "noise_floor": null
+    },
+    {
+      "below_noise": false,
+      "ci_high": -0.010612679215957106,
+      "ci_low": -0.01359702809735317,
+      "comparison": "IS-Raw/yelp_2013",
+      "dataset": "yelp_2013",
+      "delta_hat": -0.012098096560981375,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 335018,
+      "noise_floor": null
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.016633114689328772,
+      "ci_low": 0.013699257404269588,
+      "comparison": "CL-Raw/yelp_2013",
+      "dataset": "yelp_2013",
+      "delta_hat": 0.015170953353183525,
+      "gate": "",
+      "n_folds": 5,
+      "n_instances": 335018,
+      "noise_floor": null
+    },
+    {
+      "below_noise": false,
+      "ci_high": 0.006018453329259443,
+      "ci_low": 0.002116833015745334,
+      "comparison": "I/yelp_2013",
+      "dataset": "yelp_2013",
+      "delta_hat": 0.0040862234921434926,
+      "gate": "G-G",
+      "n_folds": 5,
+      "n_instances": 335018,
+      "noise_floor": null
+    }
+  ],
+  "config": {
+    "ci": 0.9,
+    "delta": 0.01,
+    "index": "analysis/paper/out/runs_index.csv",
+    "n_bootstrap": 10000,
+    "seed": 42
+  },
+  "datasets": {
+    "agnews|folds=0-1-2-3-4": {
+      "arms": [
+        [
+          "Y1",
+          "agnews",
+          "cl"
+        ],
+        [
+          "Y1",
+          "agnews",
+          "is"
+        ],
+        [
+          "Y1",
+          "agnews",
+          "is_cl"
+        ],
+        [
+          "Y1",
+          "agnews",
+          "raw"
+        ],
+        [
+          "Y2",
+          "agnews",
+          "raw_ep2"
+        ],
+        [
+          "Y2",
+          "agnews",
+          "raw_ep4"
+        ],
+        [
+          "Y3",
+          "agnews",
+          "sel_composite"
+        ],
+        [
+          "Y3",
+          "agnews",
+          "sel_entropy_only"
+        ],
+        [
+          "Y3",
+          "agnews",
+          "sel_margin_only"
+        ],
+        [
+          "Y3",
+          "agnews",
+          "sel_random_phases"
+        ],
+        [
+          "Y4",
+          "agnews",
+          "raw_rand0.6831"
+        ]
+      ],
+      "dataset": "agnews",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "n_classes": 4,
+      "n_folds": 5,
+      "n_instances": 127600,
+      "noise_floor_source": "Y3composite_vs_Y1SPURS",
+      "noise_floor_value": 0.00023788800603552485
+    },
+    "books|folds=0-1-2": {
+      "arms": [
+        [
+          "Y1",
+          "books",
+          "is"
+        ],
+        [
+          "Y1",
+          "books",
+          "is_cl"
+        ],
+        [
+          "Y3",
+          "books",
+          "sel_composite"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.1_t0.0"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.1_t0.2"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.1_t0.4"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.3_t0.0"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.3_t0.2"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.3_t0.4"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.5_t0.0"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.5_t0.2"
+        ],
+        [
+          "Y5",
+          "books",
+          "sweep_b0.5_t0.4"
+        ]
+      ],
+      "dataset": "books",
+      "folds": [
+        0,
+        1,
+        2
+      ],
+      "n_classes": 8,
+      "n_folds": 3,
+      "n_instances": 20157,
+      "noise_floor_source": "Y5default_vs_Y1IS",
+      "noise_floor_value": 0.004026207214623545
+    },
+    "books|folds=0-1-2-3-4": {
+      "arms": [
+        [
+          "Y1",
+          "books",
+          "cl"
+        ],
+        [
+          "Y1",
+          "books",
+          "is"
+        ],
+        [
+          "Y1",
+          "books",
+          "is_cl"
+        ],
+        [
+          "Y1",
+          "books",
+          "raw"
+        ],
+        [
+          "Y2",
+          "books",
+          "raw_ep2"
+        ],
+        [
+          "Y2",
+          "books",
+          "raw_ep4"
+        ],
+        [
+          "Y3",
+          "books",
+          "sel_composite"
+        ],
+        [
+          "Y3",
+          "books",
+          "sel_entropy_only"
+        ],
+        [
+          "Y3",
+          "books",
+          "sel_margin_only"
+        ],
+        [
+          "Y3",
+          "books",
+          "sel_random_phases"
+        ],
+        [
+          "Y4",
+          "books",
+          "raw_rand0.6596"
+        ]
+      ],
+      "dataset": "books",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "n_classes": 8,
+      "n_folds": 5,
+      "n_instances": 33594,
+      "noise_floor_source": "Y3composite_vs_Y1SPURS",
+      "noise_floor_value": 2.2291182651512642e-05
+    },
+    "dblp|folds=0-1-2-3-4": {
+      "arms": [
+        [
+          "Y1",
+          "dblp",
+          "cl"
+        ],
+        [
+          "Y1",
+          "dblp",
+          "is"
+        ],
+        [
+          "Y1",
+          "dblp",
+          "is_cl"
+        ],
+        [
+          "Y1",
+          "dblp",
+          "raw"
+        ]
+      ],
+      "dataset": "dblp",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "n_classes": 10,
+      "n_folds": 5,
+      "n_instances": 38128,
+      "noise_floor_source": "not available",
+      "noise_floor_value": null
+    },
+    "reuters90|folds=0-1-2": {
+      "arms": [
+        [
+          "Y1",
+          "reuters90",
+          "is"
+        ],
+        [
+          "Y1",
+          "reuters90",
+          "is_cl"
+        ],
+        [
+          "Y3",
+          "reuters90",
+          "sel_composite"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.1_t0.0"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.1_t0.2"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.1_t0.4"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.3_t0.0"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.3_t0.2"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.3_t0.4"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.5_t0.0"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.5_t0.2"
+        ],
+        [
+          "Y5",
+          "reuters90",
+          "sweep_b0.5_t0.4"
+        ]
+      ],
+      "dataset": "reuters90",
+      "folds": [
+        0,
+        1,
+        2
+      ],
+      "n_classes": 90,
+      "n_folds": 3,
+      "n_instances": 8042,
+      "noise_floor_source": "Y5default_vs_Y1IS",
+      "noise_floor_value": 0.005645649030000199
+    },
+    "reuters90|folds=0-1-2-3-4": {
+      "arms": [
+        [
+          "Y1",
+          "reuters90",
+          "cl"
+        ],
+        [
+          "Y1",
+          "reuters90",
+          "is"
+        ],
+        [
+          "Y1",
+          "reuters90",
+          "is_cl"
+        ],
+        [
+          "Y1",
+          "reuters90",
+          "raw"
+        ],
+        [
+          "Y2",
+          "reuters90",
+          "raw_ep2"
+        ],
+        [
+          "Y2",
+          "reuters90",
+          "raw_ep4"
+        ],
+        [
+          "Y3",
+          "reuters90",
+          "sel_composite"
+        ],
+        [
+          "Y3",
+          "reuters90",
+          "sel_entropy_only"
+        ],
+        [
+          "Y3",
+          "reuters90",
+          "sel_margin_only"
+        ],
+        [
+          "Y3",
+          "reuters90",
+          "sel_random_phases"
+        ],
+        [
+          "Y4",
+          "reuters90",
+          "raw_rand0.637"
+        ]
+      ],
+      "dataset": "reuters90",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "n_classes": 90,
+      "n_folds": 5,
+      "n_instances": 13327,
+      "noise_floor_source": "Y3composite_vs_Y1SPURS",
+      "noise_floor_value": 0.0013758848726727613
+    },
+    "yelp_2013|folds=0-1-2-3-4": {
+      "arms": [
+        [
+          "Y1",
+          "yelp_2013",
+          "cl"
+        ],
+        [
+          "Y1",
+          "yelp_2013",
+          "is"
+        ],
+        [
+          "Y1",
+          "yelp_2013",
+          "is_cl"
+        ],
+        [
+          "Y1",
+          "yelp_2013",
+          "raw"
+        ]
+      ],
+      "dataset": "yelp_2013",
+      "folds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "n_classes": 5,
+      "n_folds": 5,
+      "n_instances": 335018,
+      "noise_floor_source": "not available",
+      "noise_floor_value": null
+    }
+  },
+  "delta": 0.01,
+  "hard_f1_note": "hard_f1_a_foldmean / hard_f1_b_foldmean are descriptive fold means of the per-model top-20%-entropy macro-F1 (V12); they are never paired and carry no delta.",
+  "n_bootstrap": 10000,
+  "n_comparisons": 64,
+  "noise_floor_definition": "pooled |MacroF1(replicate) - MacroF1(reference)| for a same-selection, same-config rerun (V7), computed on the fold set of the comparison unit",
+  "p_value_definitions": {
+    "p_lower": "mean(Delta*_b <= -delta) [evidence A < B beyond margin]",
+    "p_upper": "mean(Delta*_b >= +delta) [evidence A > B beyond margin]"
+  },
+  "protocol": "paired pooled-instance percentile bootstrap; resamples shared across the arms of a resampling unit (dataset x fold-set)",
+  "seed": 42
+}

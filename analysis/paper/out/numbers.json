@@ -1,0 +1,1080 @@
+{
+  "meta": {
+    "calibration": {
+      "c_probe": {
+        "agnews": 1.944757627533767,
+        "books": 1.8997447311834068,
+        "dblp": 1.8277392504633712,
+        "medline": 1.8277392504633712,
+        "reuters90": 1.0378780821661446,
+        "yelp_2013": 1.2340586053135598
+      },
+      "c_rest": 0.9408113224835334,
+      "total_ratio": 0.9520872913674024
+    },
+    "dataset_order": [
+      "yelp_2013",
+      "agnews",
+      "dblp",
+      "books",
+      "reuters90"
+    ],
+    "protocol": {
+      "ci_level": 0.9,
+      "delta": 0.01,
+      "n_bootstrap": 10000,
+      "seed": 42
+    },
+    "provenance": "aggregations of runs_index.csv / bootstrap.csv / time_calibration.csv + raw saved metadata"
+  },
+  "rows": [
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "interaction_I": 0.004086223492,
+        "interaction_ci_high": 0.006018453329,
+        "interaction_ci_low": 0.002116833016,
+        "noise_floor": null
+      },
+      "key": "Y1/yelp_2013/I",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Raw",
+        "f1_foldmean": 0.6444095740718083,
+        "f1_halfwidth": 0.001291419524758262,
+        "retention": 1.0,
+        "total_s": 19980.541621733457
+      },
+      "key": "Y1/yelp_2013/Raw",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "IS",
+        "ci_high": -0.01061267922,
+        "ci_low": -0.0135970281,
+        "delta": -0.01209809656,
+        "f1_foldmean": 0.6323136018529831,
+        "f1_halfwidth": 0.003533640477873395,
+        "retention": 0.6180727025490342,
+        "total_s": 13076.837052032632
+      },
+      "key": "Y1/yelp_2013/IS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "CL",
+        "ci_high": 0.01663311469,
+        "ci_low": 0.0136992574,
+        "delta": 0.01517095335,
+        "f1_foldmean": 0.6595806934464545,
+        "f1_halfwidth": 0.0012262231877114684,
+        "retention": 1.0,
+        "total_s": 11202.851804584638
+      },
+      "key": "Y1/yelp_2013/CL",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "SPURS",
+        "ci_high": 0.008627179435,
+        "ci_low": 0.005678213571,
+        "delta": 0.007159080284,
+        "equivalence": true,
+        "f1_foldmean": 0.6515688836627423,
+        "f1_halfwidth": 0.0026601534819318236,
+        "ni": true,
+        "ni_status": "equivalent",
+        "retention": 0.6180727025490342,
+        "total_s": 7774.673936972674
+      },
+      "key": "Y1/yelp_2013/SPURS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "interaction_I": 0.000623547883,
+        "interaction_ci_high": 0.001570850806,
+        "interaction_ci_low": -0.0003273460711,
+        "noise_floor": 0.000237888006
+      },
+      "key": "Y1/agnews/I",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Raw",
+        "f1_foldmean": 0.9473637013023051,
+        "f1_halfwidth": 0.0004031814110296486,
+        "retention": 1.0,
+        "total_s": 3598.6584324170835
+      },
+      "key": "Y1/agnews/Raw",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "IS",
+        "ci_high": -0.002333963746,
+        "ci_low": -0.003836164363,
+        "delta": -0.00308917985,
+        "f1_foldmean": 0.9442743487165796,
+        "f1_halfwidth": 0.0010939926153598798,
+        "retention": 0.6831091083246255,
+        "total_s": 2561.414488037955
+      },
+      "key": "Y1/agnews/IS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "CL",
+        "ci_high": -0.000398289624,
+        "ci_low": -0.001936765206,
+        "delta": -0.001164423453,
+        "f1_foldmean": 0.9461997132565199,
+        "f1_halfwidth": 0.0011851453073858564,
+        "retention": 1.0,
+        "total_s": 2406.475189280696
+      },
+      "key": "Y1/agnews/CL",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "SPURS",
+        "ci_high": -0.002821016088,
+        "ci_low": -0.004450742846,
+        "delta": -0.003630055421,
+        "equivalence": true,
+        "f1_foldmean": 0.943732378841864,
+        "f1_halfwidth": 0.0013738372596035877,
+        "ni": true,
+        "ni_status": "equivalent",
+        "retention": 0.6831091083246255,
+        "total_s": 1767.3883093743584
+      },
+      "key": "Y1/agnews/SPURS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "interaction_I": 0.002175409789,
+        "interaction_ci_high": 0.005598123488,
+        "interaction_ci_low": -0.001253273631,
+        "noise_floor": null
+      },
+      "key": "Y1/dblp/I",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Raw",
+        "f1_foldmean": 0.813924460322327,
+        "f1_halfwidth": 0.008975225021746096,
+        "retention": 1.0,
+        "total_s": 2258.1778157654217
+      },
+      "key": "Y1/dblp/Raw",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "IS",
+        "ci_high": -0.008131362297,
+        "ci_low": -0.01383506568,
+        "delta": -0.01098387692,
+        "f1_foldmean": 0.80293993650307,
+        "f1_halfwidth": 0.010032739008357017,
+        "retention": 0.6591722146240806,
+        "total_s": 1571.8160294994711
+      },
+      "key": "Y1/dblp/IS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "CL",
+        "ci_high": 0.006354510237,
+        "ci_low": 0.0007395922863,
+        "delta": 0.003571245006,
+        "f1_foldmean": 0.8175849635342753,
+        "f1_halfwidth": 0.007974525267719187,
+        "retention": 1.0,
+        "total_s": 1296.921683285013
+      },
+      "key": "Y1/dblp/CL",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "SPURS",
+        "ci_high": -0.002279492942,
+        "ci_low": -0.008194007311,
+        "delta": -0.005237222128,
+        "equivalence": true,
+        "f1_foldmean": 0.8087098420305754,
+        "f1_halfwidth": 0.008686773858313056,
+        "ni": true,
+        "ni_status": "equivalent",
+        "retention": 0.6591722146240806,
+        "total_s": 928.2242550613358
+      },
+      "key": "Y1/dblp/SPURS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "interaction_I": 0.00568896439,
+        "interaction_ci_high": 0.0090609638,
+        "interaction_ci_low": 0.002195519436,
+        "noise_floor": 2.229118265e-05
+      },
+      "key": "Y1/books/I",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Raw",
+        "f1_foldmean": 0.8464525285067935,
+        "f1_halfwidth": 0.0030951360311887704,
+        "retention": 1.0,
+        "total_s": 2058.5699800039174
+      },
+      "key": "Y1/books/Raw",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "IS",
+        "ci_high": -0.01720494214,
+        "ci_low": -0.02238915328,
+        "delta": -0.01980301655,
+        "f1_foldmean": 0.8266642742826059,
+        "f1_halfwidth": 0.005148598462127469,
+        "retention": 0.6596298855585356,
+        "total_s": 1431.486637230683
+      },
+      "key": "Y1/books/IS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "CL",
+        "ci_high": -0.00481539549,
+        "ci_low": -0.01005437555,
+        "delta": -0.007439469372,
+        "f1_foldmean": 0.8390612986484574,
+        "f1_halfwidth": 0.005261456581248611,
+        "retention": 1.0,
+        "total_s": 1178.6038064130582
+      },
+      "key": "Y1/books/CL",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "SPURS",
+        "ci_high": -0.01882517573,
+        "ci_low": -0.0242858898,
+        "delta": -0.02155352154,
+        "equivalence": false,
+        "f1_foldmean": 0.8249090895786321,
+        "f1_halfwidth": 0.00186695522972179,
+        "ni": false,
+        "ni_status": "not established",
+        "retention": 0.6596298855585356,
+        "total_s": 864.0880930203479
+      },
+      "key": "Y1/books/SPURS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "interaction_I": -0.01453370646,
+        "interaction_ci_high": -0.002147116537,
+        "interaction_ci_low": -0.02703701689,
+        "noise_floor": 0.001375884873
+      },
+      "key": "Y1/reuters90/I",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Raw",
+        "f1_foldmean": 0.3819800640249105,
+        "f1_halfwidth": 0.030465853770715215,
+        "retention": 1.0,
+        "total_s": 820.1922108496074
+      },
+      "key": "Y1/reuters90/Raw",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "IS",
+        "ci_high": -0.006107129471,
+        "ci_low": -0.02392572178,
+        "delta": -0.01530980774,
+        "f1_foldmean": 0.3610053336307043,
+        "f1_halfwidth": 0.020982399392382,
+        "retention": 0.6369710314074118,
+        "total_s": 614.7611374673434
+      },
+      "key": "Y1/reuters90/IS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "CL",
+        "ci_high": 0.001884756605,
+        "ci_low": -0.01724546805,
+        "delta": -0.007960142548,
+        "f1_foldmean": 0.3696926423214463,
+        "f1_halfwidth": 0.022414010345776284,
+        "retention": 1.0,
+        "total_s": 533.400228760438
+      },
+      "key": "Y1/reuters90/CL",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "SPURS",
+        "ci_high": -0.02574862585,
+        "ci_low": -0.04886950517,
+        "delta": -0.03780365675,
+        "equivalence": false,
+        "f1_foldmean": 0.33900013685236957,
+        "f1_halfwidth": 0.009983933440408321,
+        "ni": false,
+        "ni_status": "not established",
+        "retention": 0.6369710314074118,
+        "total_s": 397.5928341261577
+      },
+      "key": "Y1/reuters90/SPURS",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": true,
+      "cells": {
+        "encoder_note": "legacy roberta-base Raw; ModernBERT IS/CL/SPURS",
+        "f1_halfwidth_legacy": 0.0057232504671659,
+        "f1_legacy": 0.8221878354474491,
+        "pending": true,
+        "probe_s_legacy": null,
+        "source_dir": "runpod_results/medline-5cv-20260828-210758/raw_fold0",
+        "total_s_calibrated": 38635.80202675144,
+        "total_s_legacy": 36349.0
+      },
+      "key": "legacy/medline/Raw",
+      "legacy": true,
+      "legacy_raw": {
+        "probe_s": null,
+        "total_s": 36349.0
+      },
+      "status": "pending",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": true,
+      "cells": {
+        "encoder_note": "legacy roberta-base Raw; ModernBERT IS/CL/SPURS",
+        "f1_halfwidth_legacy": 0.0025226590478777734,
+        "f1_legacy": 0.8263469500800074,
+        "pending": true,
+        "probe_s_legacy": 412.8226864691824,
+        "source_dir": "runpod_results/medline-5cv-20260920-172720/is_fold0",
+        "total_s_calibrated": 36213.07804692991,
+        "total_s_legacy": 34270.0
+      },
+      "key": "legacy/medline/IS",
+      "legacy": true,
+      "legacy_raw": {
+        "probe_s": 412.8226864691824,
+        "total_s": 34270.0
+      },
+      "status": "pending",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": true,
+      "cells": {
+        "encoder_note": "legacy roberta-base Raw; ModernBERT IS/CL/SPURS",
+        "f1_halfwidth_legacy": 0.0040672794642616856,
+        "f1_legacy": 0.8238097475070651,
+        "pending": true,
+        "probe_s_legacy": 404.6944501455873,
+        "source_dir": "runpod_results/medline-5cv-20260920-172720/cl_fold0",
+        "total_s_calibrated": 28551.54642689825,
+        "total_s_legacy": 27058.0
+      },
+      "key": "legacy/medline/CL",
+      "legacy": true,
+      "legacy_raw": {
+        "probe_s": 404.6944501455873,
+        "total_s": 27058.0
+      },
+      "status": "pending",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": true,
+      "cells": {
+        "encoder_note": "legacy roberta-base Raw; ModernBERT IS/CL/SPURS",
+        "f1_halfwidth_legacy": 0.0035272375293393123,
+        "f1_legacy": 0.8157047819657505,
+        "pending": true,
+        "probe_s_legacy": 404.23493151552975,
+        "source_dir": "runpod_results/medline-5cv-20260920-172720/is_cl_fold0",
+        "total_s_calibrated": 20826.53627819958,
+        "total_s_legacy": 19790.0
+      },
+      "key": "legacy/medline/SPURS",
+      "legacy": true,
+      "legacy_raw": {
+        "probe_s": 404.23493151552975,
+        "total_s": 19790.0
+      },
+      "status": "pending",
+      "table": "tab_22_cell_means"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Raw",
+        "eval_s": 25.041568651190026,
+        "finetune_s": 794.0168686616234,
+        "load_s": 1.1337735367938877,
+        "probe_selection_s": 0.0,
+        "tokens": 8617011.6,
+        "tokens_M": 8.6170116,
+        "total_s": 820.1922108496074,
+        "visits": 57580.8,
+        "visits_M": 0.0575808
+      },
+      "key": "Y1/reuters90/Raw/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "IS",
+        "eval_s": 24.969900354743004,
+        "finetune_s": 519.4454275165684,
+        "load_s": 1.073422288754955,
+        "probe_selection_s": 69.27238730727694,
+        "tokens": 5846660.4,
+        "tokens_M": 5.8466604,
+        "total_s": 614.7611374673434,
+        "visits": 36909.6,
+        "visits_M": 0.0369096
+      },
+      "key": "Y1/reuters90/IS/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "CL",
+        "eval_s": 36.11918723313138,
+        "finetune_s": 422.15116089936345,
+        "load_s": 1.0255422059446573,
+        "probe_selection_s": 74.10433842199855,
+        "tokens": 4408348.0,
+        "tokens_M": 4.408348,
+        "total_s": 533.400228760438,
+        "visits": 35927.6,
+        "visits_M": 0.0359276
+      },
+      "key": "Y1/reuters90/CL/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "SPURS",
+        "eval_s": 36.05373986833729,
+        "finetune_s": 289.79431083239615,
+        "load_s": 1.0334406924434005,
+        "probe_selection_s": 70.71134273298085,
+        "tokens": 2948366.4,
+        "tokens_M": 2.9483664,
+        "total_s": 397.5928341261577,
+        "visits": 23046.0,
+        "visits_M": 0.023046
+      },
+      "key": "Y1/reuters90/SPURS/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Raw",
+        "eval_s": 607.1274674070067,
+        "finetune_s": 19354.72748065442,
+        "load_s": 18.68667367203161,
+        "probe_selection_s": 0.0,
+        "tokens": 224557776.0,
+        "tokens_M": 224.557776,
+        "total_s": 19980.541621733457,
+        "visits": 1447274.4,
+        "visits_M": 1.4472744
+      },
+      "key": "Y1/yelp_2013/Raw/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "IS",
+        "eval_s": 605.3212052323855,
+        "finetune_s": 12245.698501116689,
+        "load_s": 18.416826899163425,
+        "probe_selection_s": 207.40051878439263,
+        "tokens": 140342653.2,
+        "tokens_M": 140.3426532,
+        "total_s": 13076.837052032632,
+        "visits": 894520.8,
+        "visits_M": 0.8945208
+      },
+      "key": "Y1/yelp_2013/IS/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "CL",
+        "eval_s": 879.0235745169223,
+        "finetune_s": 10008.397983446252,
+        "load_s": 17.825706555508077,
+        "probe_selection_s": 297.60454006595535,
+        "tokens": 112274742.0,
+        "tokens_M": 112.274742,
+        "total_s": 11202.851804584638,
+        "visits": 892485.6,
+        "visits_M": 0.8924856
+      },
+      "key": "Y1/yelp_2013/CL/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "SPURS",
+        "eval_s": 880.7991269350983,
+        "finetune_s": 6614.399637829699,
+        "load_s": 18.016352964565158,
+        "probe_selection_s": 261.4588192433119,
+        "tokens": 70001213.6,
+        "tokens_M": 70.0012136,
+        "total_s": 7774.673936972674,
+        "visits": 551620.0,
+        "visits_M": 0.55162
+      },
+      "key": "Y1/yelp_2013/SPURS/cost",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_cost_breakdown"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Composite",
+        "f1_foldmean": 0.9439713599472531,
+        "f1_halfwidth": 0.001425408470400648,
+        "hard_f1": 0.7673965579682032
+      },
+      "key": "Y3/agnews/Composite",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Margin only",
+        "below_noise": false,
+        "ci_high": -0.001989027257,
+        "ci_low": -0.003277650499,
+        "delta": -0.002634855782,
+        "f1_foldmean": 0.9413368844978919,
+        "f1_halfwidth": 0.001386992869421792,
+        "hard_f1": 0.7632898101345628,
+        "noise_floor": 0.000237888006
+      },
+      "key": "Y3/agnews/Margin only",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Entropy only",
+        "below_noise": true,
+        "ci_high": 0.0008765194176,
+        "ci_low": -0.0004197304061,
+        "delta": 0.0002247981028,
+        "f1_foldmean": 0.9441961032173509,
+        "f1_halfwidth": 0.0012150157043153721,
+        "hard_f1": 0.7713572223324539,
+        "noise_floor": 0.000237888006
+      },
+      "key": "Y3/agnews/Entropy only",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Random",
+        "below_noise": false,
+        "ci_high": -0.0001300580064,
+        "ci_low": -0.001697179291,
+        "delta": -0.0009242297122,
+        "f1_foldmean": 0.943046346702863,
+        "f1_halfwidth": 0.0011203258120151046,
+        "hard_f1": 0.7789233396393431,
+        "noise_floor": 0.000237888006
+      },
+      "key": "Y3/agnews/Random",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Composite",
+        "f1_foldmean": 0.8249564541505107,
+        "f1_halfwidth": 0.00499527388484567,
+        "hard_f1": 0.5127689876957318
+      },
+      "key": "Y3/books/Composite",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Margin only",
+        "below_noise": false,
+        "ci_high": 0.001665407234,
+        "ci_low": -0.002799864222,
+        "delta": -0.0005501835078,
+        "f1_foldmean": 0.824338436242054,
+        "f1_halfwidth": 0.0014660545548360162,
+        "hard_f1": 0.5055984059012484,
+        "noise_floor": 2.229118265e-05
+      },
+      "key": "Y3/books/Margin only",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Entropy only",
+        "below_noise": false,
+        "ci_high": 0.0009187607902,
+        "ci_low": -0.003862716774,
+        "delta": -0.001509294871,
+        "f1_foldmean": 0.8234129698265231,
+        "f1_halfwidth": 0.005285852843605348,
+        "hard_f1": 0.5067702521012778,
+        "noise_floor": 2.229118265e-05
+      },
+      "key": "Y3/books/Entropy only",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Random",
+        "below_noise": false,
+        "ci_high": 0.001842621194,
+        "ci_low": -0.003368105368,
+        "delta": -0.0007974651795,
+        "f1_foldmean": 0.8241464845208538,
+        "f1_halfwidth": 0.007278416657110487,
+        "hard_f1": 0.5151892326139959,
+        "noise_floor": 2.229118265e-05
+      },
+      "key": "Y3/books/Random",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Composite",
+        "f1_foldmean": 0.34094219446591756,
+        "f1_halfwidth": 0.007106899459858556,
+        "hard_f1": 0.1713393515781334
+      },
+      "key": "Y3/reuters90/Composite",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Margin only",
+        "below_noise": false,
+        "ci_high": 0.02089633271,
+        "ci_low": 0.002631602467,
+        "delta": 0.01191033107,
+        "f1_foldmean": 0.3527536441640602,
+        "f1_halfwidth": 0.01572222865367759,
+        "hard_f1": 0.20373734620372103,
+        "noise_floor": 0.001375884873
+      },
+      "key": "Y3/reuters90/Margin only",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Entropy only",
+        "below_noise": false,
+        "ci_high": 0.006350475627,
+        "ci_low": -0.01197722054,
+        "delta": -0.002539687197,
+        "f1_foldmean": 0.3389942891814738,
+        "f1_halfwidth": 0.01811691092795802,
+        "hard_f1": 0.1594276767317942,
+        "noise_floor": 0.001375884873
+      },
+      "key": "Y3/reuters90/Entropy only",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "arm": "Random",
+        "below_noise": false,
+        "ci_high": 0.003909561883,
+        "ci_low": -0.01519623883,
+        "delta": -0.005431631454,
+        "f1_foldmean": 0.3370935431348226,
+        "f1_halfwidth": 0.021595078966095884,
+        "hard_f1": 0.18835032733186274,
+        "noise_floor": 0.001375884873
+      },
+      "key": "Y3/reuters90/Random",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_frozen_selection"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "definition": "bottom/top tercile of classes by training support (total_by_class); cell = mean per-class F1 over pooled predictions",
+        "group_removed": 5961,
+        "group_support": 20078,
+        "is_f1_pooled_perclass": 0.8000714350829947,
+        "n_classes_group": 2,
+        "pct_removed": 29.68921207291563,
+        "raw_f1_pooled_perclass": 0.8248445853293241,
+        "spurs_f1_pooled_perclass": 0.7953838446319421
+      },
+      "key": "Y1/books/Rare",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_per_class"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "definition": "bottom/top tercile of classes by training support (total_by_class); cell = mean per-class F1 over pooled predictions",
+        "group_removed": 19665,
+        "group_support": 52227,
+        "is_f1_pooled_perclass": 0.8966579801993492,
+        "n_classes_group": 3,
+        "pct_removed": 37.65293813544718,
+        "raw_f1_pooled_perclass": 0.9065566615814326,
+        "spurs_f1_pooled_perclass": 0.8936556545094853
+      },
+      "key": "Y1/books/Frequent",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_per_class"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "definition": "bottom/top tercile of classes by training support (total_by_class); cell = mean per-class F1 over pooled predictions",
+        "group_removed": 91,
+        "group_support": 858,
+        "is_f1_pooled_perclass": 0.13616885625135267,
+        "n_classes_group": 30,
+        "pct_removed": 10.606060606060606,
+        "raw_f1_pooled_perclass": 0.15455867232183024,
+        "spurs_f1_pooled_perclass": 0.11402010230425672
+      },
+      "key": "Y1/reuters90/Rare",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_per_class"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "definition": "bottom/top tercile of classes by training support (total_by_class); cell = mean per-class F1 over pooled predictions",
+        "group_removed": 16946,
+        "group_support": 43781,
+        "is_f1_pooled_perclass": 0.53349837421488,
+        "n_classes_group": 30,
+        "pct_removed": 38.70628811584934,
+        "raw_f1_pooled_perclass": 0.538278524532981,
+        "spurs_f1_pooled_perclass": 0.5232516744942316
+      },
+      "key": "Y1/reuters90/Frequent",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_per_class"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "beta": "0.1",
+        "dataset": "books",
+        "theta0.0": {
+          "f1": 0.8414340294115882,
+          "retention": 0.9000289411667425
+        },
+        "theta0.2": {
+          "f1": 0.839029019827111,
+          "retention": 0.8595939967751272
+        },
+        "theta0.4": {
+          "f1": 0.8359170540193608,
+          "retention": 0.8191177078595939
+        }
+      },
+      "key": "Y5/books/beta0.1",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_beta_theta"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "beta": "0.3",
+        "dataset": "books",
+        "theta0.0": {
+          "f1": 0.8308732926069397,
+          "retention": 0.7000041344523917
+        },
+        "theta0.2": {
+          "f1": 0.8241331916184915,
+          "retention": 0.6595691900607764
+        },
+        "theta0.4": {
+          "f1": 0.8259358306380481,
+          "retention": 0.6190929011452433
+        }
+      },
+      "key": "Y5/books/beta0.3",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_beta_theta"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "beta": "0.5",
+        "dataset": "books",
+        "theta0.0": {
+          "f1": 0.8057080514017461,
+          "retention": 0.5000206722619589
+        },
+        "theta0.2": {
+          "f1": 0.8053300583631368,
+          "retention": 0.4595857278703435
+        },
+        "theta0.4": {
+          "f1": 0.806170597196718,
+          "retention": 0.4191094389548104
+        }
+      },
+      "key": "Y5/books/beta0.5",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_beta_theta"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "beta": "0.1",
+        "dataset": "reuters90",
+        "theta0.0": {
+          "f1": 0.3795580341066322,
+          "retention": 0.9000692346493531
+        },
+        "theta0.2": {
+          "f1": 0.3787779730316678,
+          "retention": 0.8371882084313486
+        },
+        "theta0.4": {
+          "f1": 0.37142219957036327,
+          "retention": 0.7742033039891547
+        }
+      },
+      "key": "Y5/reuters90/beta0.1",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_beta_theta"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "beta": "0.3",
+        "dataset": "reuters90",
+        "theta0.0": {
+          "f1": 0.37312133905138806,
+          "retention": 0.700069243989942
+        },
+        "theta0.2": {
+          "f1": 0.37712051490213555,
+          "retention": 0.6371882177719375
+        },
+        "theta0.4": {
+          "f1": 0.3511284530688566,
+          "retention": 0.5742033133297436
+        }
+      },
+      "key": "Y5/reuters90/beta0.3",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_beta_theta"
+    },
+    {
+      "calibrated_time_cell": false,
+      "cells": {
+        "beta": "0.5",
+        "dataset": "reuters90",
+        "theta0.0": {
+          "f1": 0.3481056002678713,
+          "retention": 0.5000346248936585
+        },
+        "theta0.2": {
+          "f1": 0.3512457798192721,
+          "retention": 0.43715359867565384
+        },
+        "theta0.4": {
+          "f1": 0.3316417101358086,
+          "retention": 0.37416869423346005
+        }
+      },
+      "key": "Y5/reuters90/beta0.5",
+      "legacy": false,
+      "status": "matched",
+      "table": "tab_beta_theta"
+    }
+  ]
+}

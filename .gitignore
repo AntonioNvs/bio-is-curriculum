@@ -33,6 +33,7 @@ results/**/self_adaptive_scores.csv
 results/**/instance_selection.json
 results/**/self_adaptive_verbalizers.json
 results/**/train_subsample.json
+runpod_results/
 
 plots/**
 logs/

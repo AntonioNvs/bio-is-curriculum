@@ -1,0 +1,27 @@
+[INFO] index_written: /home/antoniocaetanonevesneto/ufmg/bio-is-curriculum/analysis/paper/out/runs_index.csv rows=259 cols=60
+[INFO] results_dir: /home/antoniocaetanonevesneto/ufmg/bio-is-curriculum/runpod_results
+[PASS] I1a_cell_set: expected=259 observed=259 missing=0 extra=0
+[PASS] I1b_fold_counts: all (campaign,dataset,arm) fold sets OK; bad=[]
+[PASS] I1c_predictions_present: 259 rows each with predictions_test.csv (complete shard)
+[PASS] I2a_named_fields_equal: DC1-I2 fields equal across arms except declared factors; bad=[]
+[PASS] I2b_no_undeclared_diff: no undeclared config key differs across arms; bad=[]
+[PASS] I3a_multiphase_count: multi-phase folds = 110 (expect 110)
+[PASS] I3b_max_eq_last: max |max_phase-last_phase| = 0.00e+00
+[PASS] I3c_recomputed_eq_last: max |recomputed-last_phase| = 1.11e-16
+[PASS] I3d_hard_f1_recomputed: max |hard_f1_recomputed-last_phase_hard| = 8.33e-17
+[PASS] I4_paired_idx_ytrue: idx/y_true identical across arms; bad=[]
+[PASS] I5_frozen_selection: Y3(all arms)+Y5(0.3,0.2) removed_by_class == Y1 IS; checked=66 bad=[]
+[PASS] I6a_v5_retention: Y1 IS fold-mean retention matches V5; bad={}
+[PASS] I6b_v5_y4_fraction: Y4 subsample fraction == IS retention to 4 dp; bad={}; max|dn|={'agnews': 7.275957614183426e-12, 'books': 0.5276884276681812, 'reuters90': 0.41626133385489084}
+[PASS] I7_visits_agree: max |compute_proxy/avg_seq_len - sum(n*epochs)| = 0.0000
+[PASS] I8a_stages_nonneg: logged stages >= 0; negatives={}
+[PASS] I8b_components_nonneg: cost components >= 0; negatives={}
+[PASS] I8c_sum_to_total: max |sum(components)-total| = 0.00e+00
+[PASS] I9a_src_diff_empty: git diff 4bed017..61bc115 -- src is empty (got 0 chars)
+[PASS] I9b_commit_per_campaign: commits per campaign = {'Y1': ['4bed017'], 'Y2': ['61bc115'], 'Y3': ['61bc115'], 'Y4': ['61bc115'], 'Y5': ['61bc115']}; all=['4bed017', '61bc115']
+[PASS] I10_dataset_order: descending training size order = ['yelp_2013', 'agnews', 'dblp', 'books', 'reuters90'] (V8 expects ['yelp_2013', 'agnews', 'dblp', 'books', 'reuters90'])
+[PASS] I11_no_torch_transformers: leaked modules = []
+[INFO] V3_duplicate_dropped: runpod_results/agnews-5cv-20261117-193956_raw_ep2/raw_fold1 (superseded by agnews-5cv-20261118-125108_raw_ep2)
+[INFO] V3_duplicate_dropped: runpod_results/agnews-5cv-20261117-193956_raw_ep4/raw_fold1 (incomplete: no predictions_test.csv)
+[INFO] V14_total_gpu_hours: deduplicated sum of total_run_time_s = 153.71 GPU-h
+[INFO] shards_scanned: 446 top-level dirs; 259 resolved rows
