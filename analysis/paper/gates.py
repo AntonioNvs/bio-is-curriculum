@@ -80,6 +80,23 @@ def _within(lo: float, hi: float, delta: float) -> bool:
     return lo >= -delta and hi <= delta
 
 
+def ni_label(ci_low: float, ci_high: float, delta: float) -> str:
+    """The pre-committed NI label (plan section 2, protocol bullet).
+
+    ``NI`` is ``Yes`` when ``CI_low >= -delta`` and ``No`` when ``CI_low <
+    -delta``; but when the CI half-width exceeds ``delta`` the interval is too
+    wide to resolve the comparison against ``-delta`` and the label is ``n.e.``
+    (not established).  This is the single source of the NI cell used by
+    ``make_tables.py`` (Table 2) and by the ``G-A`` detail below; ``lint_tex.py``
+    asserts the two agree with ``gates.csv``.  Do not derive the label from the
+    bootstrap's ``equivalence_status`` (that field tracks the narrower
+    equivalence window CI subset of [-delta, delta]).
+    """
+    if (ci_high - ci_low) / 2.0 > delta:
+        return "n.e."
+    return "Yes" if ci_low >= -delta else "No"
+
+
 def verdict_ni(r) -> str:
     return "PASS" if r["ci_low"] >= -r["delta"] else "FAIL"
 
@@ -128,8 +145,9 @@ def build_rows(b: Boot) -> list[dict]:
         cmp = f"SPURS-Raw/{ds}"
         r = b.row(cmp)
         v = verdict_ni(r)
-        det = "NI holds" if v == "PASS" else (
-            "NI not established" if r["ci_high"] >= -b.delta else "NI fails (No)")
+        det = {"Yes": "NI holds", "No": "NI fails (No)",
+               "n.e.": "NI not established"}[
+                   ni_label(r["ci_low"], r["ci_high"], b.delta)]
         add("G-A", ds, v, "CI_low >= -delta", cmp, r["delta_hat"],
             r["ci_low"], r["ci_high"], noise=b.noise_floor(ds), detail=det)
 

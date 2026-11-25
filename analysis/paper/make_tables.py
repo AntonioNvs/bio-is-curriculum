@@ -47,6 +47,12 @@ for _mod in ("torch", "transformers"):
 import numpy as np
 import pandas as pd
 
+# The NI cell of Table 2 is decided by the pre-committed gate rule, which lives
+# with the gates (``gates.ni_label``); sharing it keeps make_tables.py output and
+# ``out/gates.csv`` in agreement (asserted by lint_tex.py).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gates import ni_label  # noqa: E402
+
 # --------------------------------------------------------------------------- #
 # Constants (dataset order V8; plan section 2)
 # --------------------------------------------------------------------------- #
@@ -298,9 +304,7 @@ def table_22(t: Tables) -> None:
                 delta_cell = f_delta_ci(b["delta_hat"], b["ci_low"], b["ci_high"])
                 cells.update(delta=b["delta_hat"], ci_low=b["ci_low"], ci_high=b["ci_high"])
                 if arm == "is_cl":
-                    ni_cell = ("Yes" if b["ni_pass"]
-                               else ("n.e." if b["equivalence_status"] == "not established"
-                                     else "No"))
+                    ni_cell = ni_label(b["ci_low"], b["ci_high"], b["delta"])
                     cells.update(ni=bool(b["ni_pass"]),
                                  equivalence=bool(b["equivalence_pass"]),
                                  ni_status=b["equivalence_status"])

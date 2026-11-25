@@ -3,7 +3,7 @@ G-A,yelp_2013,PASS,CI_low >= -delta,SPURS-Raw/yelp_2013,0.00715908,0.00567821,0.
 G-A,agnews,PASS,CI_low >= -delta,SPURS-Raw/agnews,-0.00363006,-0.00445074,-0.00282102,0.01,0.9,0.000237888,,NI holds,127600,5
 G-A,dblp,PASS,CI_low >= -delta,SPURS-Raw/dblp,-0.00523722,-0.00819401,-0.00227949,0.01,0.9,,,NI holds,38128,5
 G-A,books,FAIL,CI_low >= -delta,SPURS-Raw/books,-0.0215535,-0.0242859,-0.0188252,0.01,0.9,0.00402621,,NI fails (No),33594,5
-G-A,reuters90,FAIL,CI_low >= -delta,SPURS-Raw/reuters90,-0.0378037,-0.0488695,-0.0257486,0.01,0.9,0.00564565,,NI fails (No),13327,5
+G-A,reuters90,FAIL,CI_low >= -delta,SPURS-Raw/reuters90,-0.0378037,-0.0488695,-0.0257486,0.01,0.9,0.00564565,,NI not established,13327,5
 G-G,yelp_2013,PASS,interaction CI excludes 0 (positive),I/yelp_2013,0.00408622,0.00211683,0.00601845,0.01,0.9,,,synergy,335018,5
 G-G,agnews,FAIL,interaction CI excludes 0 (positive),I/agnews,0.000623548,-0.000327346,0.00157085,0.01,0.9,0.000237888,,no synergy,127600,5
 G-G,dblp,FAIL,interaction CI excludes 0 (positive),I/dblp,0.00217541,-0.00125327,0.00559812,0.01,0.9,,,no synergy,38128,5

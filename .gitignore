@@ -44,3 +44,5 @@ logs/
 **/acl_latex*
 paper/Relatorio_revisao_BIOIS_CL_ACL.pdf
 paper/report.md
+analysis/
+analysis/paper/
