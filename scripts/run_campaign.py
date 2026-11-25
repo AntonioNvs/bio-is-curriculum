@@ -80,6 +80,12 @@ CAMPAIGN_DIR = REPO_ROOT / "experiments" / "campaigns"
 # Shipped campaigns, by short name.
 CAMPAIGNS: dict[str, str] = {
     "y1": "factorial_matched_2x2.yaml",
+    # The deferred Medline leg of Y1, kept as its own campaign rather than added
+    # to factorial_matched_2x2.yaml so Y1 stays the 25 shards it shipped with (and
+    # so the two can be budgeted, launched and resumed independently). Same four
+    # modes, same config; the experiment_id suffix routes its dirs into Y1's cell
+    # set. ~161 GPU-h over 5 shards, so run it with resume, not by hand.
+    "y1-medline": "factorial_matched_medline.yaml",
     "y2": "raw_curve_diagnostic.yaml",
     "y3": "controls_signal_same_selection.yaml",
     "y4": "controls_random_stratified.yaml",

@@ -1,0 +1,157 @@
+# Medline leg of the 2² factorial — matched-configuration re-run (Raw / IS / CL / SPURS).
+#
+# WHY THIS EXISTS
+# factorial_matched_2x2.yaml (Y1) re-ran five datasets under ONE config so the
+# four cells of the same dataset are comparable. Medline was deferred there
+# because at ~151 GPU-h it would have dominated the critical path, so it is the
+# ONE dataset in the paper whose factorial is still mixed:
+#   medline : Raw = roberta-base (125M); IS, CL, SPURS = ModernBERT-base (149M)
+#             (verified from config.json of the resolved legacy cells)
+# This file is that deferred leg, and it is the only run that can make Medline a
+# matched block. Until it finishes, every Medline cell in Table 2 stays
+# \LEGACY[pending] and the Medline row must not be described as matched.
+#
+# NOT THE SAME AS medline_factorial.yaml
+# experiments/campaigns/medline_factorial.yaml is the September campaign that
+# produced the numbers the paper currently cites. It is a historical record of
+# what actually ran and is left untouched. It differs from this file in three
+# ways that matter: modes [is, cl, is_cl] (no raw), experiment_id without the
+# _factorial_matched suffix, and — decisive — its run dirs contain only
+# config.json / phase_metrics.csv / timings.csv. Zero Medline run dirs in the
+# repo have predictions_test.csv, which the paired pooled-instance bootstrap,
+# the per-class breakdown, the probe calibration and the label-noise metric all
+# read. Re-running only the missing Raw arm would therefore leave Medline
+# outside the paper's statistical protocol, so all FOUR arms are re-run here.
+#
+# WHY predictions_test.csv IS NOT OPTIONAL
+# runner.py calls recorder.save_predictions() unconditionally, so every run here
+# emits it. analysis/paper/build_index.py::discover_shards marks a shard complete
+# only if that file exists (has_pred), and I1c_predictions_present counts rows
+# against the expected cell set. Without it the new dirs would be dropped as
+# "incomplete: no predictions_test.csv" and the campaign would look like a no-op.
+#
+# PREREQUISITE PATCHES: both are already in the tree, verified before writing
+# this file, so nothing needs doing before launch:
+#   1. models/modernbert.py::_compute_proxy returns float(self._token_count_total)
+#      (the old global_step * avg_seq_len omitted batch_size).
+#   2. results/discovery.py::_matches_method enforces hf_model and batch_size via
+#      expected_config, so a mixed-config cell can no longer resolve silently.
+# Do not revert either one: with the old _compute_proxy the per-phase
+# compute_proxy axis is wrong by the batch-size ratio, and fig_phase_trajectory
+# plots that axis.
+#
+# COST: 20 runs (4 arms x 5 folds) = ~161 GPU-h, range 156-173.
+#   cl 28,550 s | is 27,204 s | spurs 20,824 s | raw@6 39,174 s  (per fold, current service)
+# One A100 80 GB, one job at a time: ~6.7 days. 5 pods: ~1.3-1.4 days.
+# The raw arm is 54 of the 161 GPU-h (32%) and the least certain line: it is derived
+# from roberta/bs16 runs x the CL-arm config factor 1.060, because no matched raw
+# Medline run exists to measure. c_probe[medline] is likewise extrapolated (the
+# median of the five anchored datasets) - there is no Medline calibration anchor.
+# Full derivation and the September cross-check: memory `medline-y1-rerun-cost`.
+#
+# POD PREREQUISITE: scripts/pod_bootstrap.sh line 57 sets
+#   DATASETS="${DATASETS:-reuters90 books dblp agnews yelp_2013}"
+# which EXCLUDES medline. Bootstrap with medline added, or the run fails at data
+# load:
+#   DATASETS="reuters90 books dblp agnews yelp_2013 medline" bash scripts/pod_bootstrap.sh
+#
+# ANALYST NOTE (post-run, expected fallout — none of this is in the repo yet)
+# Measured baseline before the run (probe, 2026-11-25): build_index.py resolves
+# 259 expected cells and 259 observed, with ZERO medline cells on either side --
+# DATASET_ORDER has no medline, so I1a_cell_set passes by not looking. The five
+# existing medline dirs (…_biois_discrete, _length_discrete, _b1,
+# _self_adaptive_pmd, _spdcl) and the September _factorial-less one are all
+# invisible: campaign_of() maps none of those suffixes, and the bare
+# medline-5cv-<ts> name does not even match _DIR_RE (it requires "_suffix").
+# The new dirs are the first medline runs the index will ever see, so they arrive
+# as 20 EXTRA cells and I1a fails until the index is told to expect them:
+#   * DATASET_ORDER must gain "medline" first (largest training set), which both
+#     silences I1a (expected_cells() is built from DATASET_ORDER) and satisfies
+#     I10_dataset_order's descending-size assertion. I1c_predictions_present then
+#     compares len(rows) against the widened set, so it must move in step.
+#   * I9b_commit_per_campaign asserts camp_commits["Y1"] == ["4bed017"] exactly.
+#     These runs carry a newer commit; the check needs the new hash added.
+#   * V5_RETENTION has no medline key, so I6a's retention cross-check silently
+#     skips Medline unless one is added from this run's IS fold-mean retention.
+# Order matters: editing DATASET_ORDER reorders Table 2's rows, which
+# lint_tex.py checks against the paper's V8 order.
+#
+# RunPod: pods have no Docker daemon, so ALWAYS pass --no-docker, and run from the
+# repo root (results_dir/data_dir are relative). scripts/run_campaign.py does both
+# and adds resume; gpu_id below is recorded in the manifest for provenance only.
+#
+# Smoke:   uv run bio-experiment experiments/campaigns/factorial_matched_medline.yaml \
+#            --no-docker --dataset medline --folds 0 --dry-run     # expect 4 job lines
+# Dry-run: uv run bio-experiment experiments/campaigns/factorial_matched_medline.yaml \
+#            --no-docker --dry-run                                  # expect 20 job lines
+#
+# NOTE: there is no --mode CLI flag; modes come from the `modes:` list below.
+# To parallelise, split by fold (--folds N) across pods — one shard per fold, the
+# same granularity scripts/run_campaign.py uses, bounds a preemption to ~32 GPU-h.
+
+docker:
+  image: bio-is-curriculum:latest
+  gpu_id: 7
+  cpus: 16
+  memory: 32g
+
+campaign:
+  name: factorial_matched_medline
+  timestamp: auto
+  summary:
+    # Same metric list as factorial_matched_2x2.yaml, so the Medline rows land in
+    # the same summary columns as the other five datasets (medline_factorial.yaml
+    # omitted f1_weighted and accuracy, which is why the legacy summary has holes).
+    layout: compare_by_dataset
+    metrics:
+      - macro_f1
+      - micro_f1
+      - f1_weighted
+      - accuracy
+      - hard_slice_macro_f1
+      - n_train_instances
+      - n_removed
+      - is_reduction
+      - train_time_s
+      - total_time
+
+  datasets:
+    medline: { n_splits: 5 }
+
+  defaults:
+    model: modernbert
+    hf_model: answerdotai/ModernBERT-base
+    folds: [0, 1, 2, 3, 4]
+    random_state: 42
+    instance_selection:
+      beta: 0.3
+      theta: 0.2
+    curriculum:
+      method: biois_discrete
+      q_low: 0.3
+      q_mid: 0.6
+      q_high: 0.95
+      beta: 0.5
+      margin_weight: 0.6
+      entropy_weight: 0.4
+      length_weight: 0.25
+      noise_weight_phases: [hard]
+      phase_max_lengths: [96, 160, 256]
+    training:
+      batch_size: 32
+      eval_batch_size: 64
+      max_length: 256
+      epochs: 6
+      epochs_per_phase: 2
+      lr: 2.0e-5
+      weight_decay: 0.001
+      warmup_ratio: 0.06
+      imbalance_method: inverse_freq_ce
+
+  jobs:
+    # raw is first in the list only for readability: it is the arm the September
+    # campaign never ran. The suffix is what routes these dirs into Y1 —
+    # build_index.py::campaign_of maps exactly "factorial_matched" to "Y1", so any
+    # other suffix would land the runs outside the index and silently do nothing.
+    - modes: [raw, is, cl, is_cl]
+      experiment_id: "{dataset}-{n_splits}cv-{timestamp}_factorial_matched"
